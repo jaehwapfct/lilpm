@@ -130,19 +130,38 @@ export function MCPSettingsPage() {
         if (config.mcpServers) {
           // Parse MCP server config format
           Object.entries(config.mcpServers).forEach(([name, serverConfig]: [string, any]) => {
-            const endpoint = serverConfig.args?.find((arg: string) => arg.startsWith('http'));
-            const authHeader = serverConfig.args?.find((arg: string, i: number, arr: string[]) => 
-              arr[i - 1] === '--header' && arg.startsWith('Authorization')
-            );
-            const apiKey = authHeader?.replace('Authorization: Bearer ', '') || '';
+            let endpoint = '';
+            let apiKey = '';
+            let description = '';
+            
+            // Format 1: { url: "...", headers: { Authorization: "..." } }
+            if (serverConfig.url) {
+              endpoint = serverConfig.url;
+              if (serverConfig.headers?.Authorization) {
+                apiKey = serverConfig.headers.Authorization.replace('Bearer ', '');
+              }
+              description = `MCP Server: ${endpoint}`;
+            }
+            // Format 2: { command: "npx", args: [...] }
+            else if (serverConfig.args) {
+              endpoint = serverConfig.args.find((arg: string) => arg.startsWith('http')) || '';
+              const authIndex = serverConfig.args.findIndex((arg: string) => arg === '--header');
+              if (authIndex !== -1 && serverConfig.args[authIndex + 1]) {
+                const authHeader = serverConfig.args[authIndex + 1];
+                if (authHeader.startsWith('Authorization: Bearer ')) {
+                  apiKey = authHeader.replace('Authorization: Bearer ', '');
+                }
+              }
+              description = `Custom MCP: ${serverConfig.command} ${(serverConfig.args || []).slice(0, 2).join(' ')}`;
+            }
             
             addConnector({
               name,
-              description: `Custom MCP: ${serverConfig.command} ${(serverConfig.args || []).slice(0, 2).join(' ')}`,
+              description,
               icon: '🔌',
               category: 'development',
               configType: 'manual',
-              apiEndpoint: endpoint || '',
+              apiEndpoint: endpoint,
               apiKey,
               mcpConfig: serverConfig,
               enabled: false,
@@ -194,36 +213,65 @@ export function MCPSettingsPage() {
     setTestResult(null);
     
     try {
-      // Extract endpoint and API key from mcpConfig
+      // Extract endpoint and API key from mcpConfig (support multiple formats)
       let endpoint = editingConnector.apiEndpoint || '';
       let apiKey = editingConnector.apiKey || '';
+      const mcpConfig = editingConnector.mcpConfig as any;
       
-      if (editingConnector.mcpConfig?.args) {
-        const urlArg = editingConnector.mcpConfig.args.find((arg: string) => arg.startsWith('http'));
-        if (urlArg) {
-          endpoint = urlArg;
+      if (mcpConfig) {
+        // Format 1: { url: "...", headers: { Authorization: "Bearer ..." } }
+        if (mcpConfig.url) {
+          endpoint = mcpConfig.url;
+          if (mcpConfig.headers?.Authorization) {
+            apiKey = mcpConfig.headers.Authorization.replace('Bearer ', '');
+          }
         }
-        
-        const authIndex = editingConnector.mcpConfig.args.findIndex((arg: string) => arg === '--header');
-        if (authIndex !== -1 && editingConnector.mcpConfig.args[authIndex + 1]) {
-          const authHeader = editingConnector.mcpConfig.args[authIndex + 1];
-          if (authHeader.startsWith('Authorization: Bearer ')) {
-            apiKey = authHeader.replace('Authorization: Bearer ', '');
+        // Format 2: { command: "npx", args: [...] }
+        else if (mcpConfig.args) {
+          const urlArg = mcpConfig.args.find((arg: string) => arg.startsWith('http'));
+          if (urlArg) endpoint = urlArg;
+          
+          const authIndex = mcpConfig.args.findIndex((arg: string) => arg === '--header');
+          if (authIndex !== -1 && mcpConfig.args[authIndex + 1]) {
+            const authHeader = mcpConfig.args[authIndex + 1];
+            if (authHeader.startsWith('Authorization: Bearer ')) {
+              apiKey = authHeader.replace('Authorization: Bearer ', '');
+            }
+          }
+        }
+        // Format 3: mcpServers wrapper
+        else if (mcpConfig.mcpServers) {
+          const serverName = Object.keys(mcpConfig.mcpServers)[0];
+          const server = mcpConfig.mcpServers[serverName];
+          if (server?.url) {
+            endpoint = server.url;
+            if (server.headers?.Authorization) {
+              apiKey = server.headers.Authorization.replace('Bearer ', '');
+            }
+          } else if (server?.args) {
+            const urlArg = server.args.find((arg: string) => arg.startsWith('http'));
+            if (urlArg) endpoint = urlArg;
           }
         }
       }
       
       if (!endpoint) {
-        setTestResult({ success: false, message: 'No endpoint configured' });
+        setTestResult({ success: false, message: 'No endpoint configured. Check your JSON config format.' });
         return;
       }
       
       console.log('[MCP Test] Endpoint:', endpoint);
-      console.log('[MCP Test] API Key:', apiKey ? `${apiKey.substring(0, 20)}...` : 'none');
+      console.log('[MCP Test] API Key:', apiKey ? `${apiKey.substring(0, 30)}...` : 'none');
       
       // Use Edge Function proxy to avoid CORS
       const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://lbzjnhlribtfwnoydpdv.supabase.co';
       const MCP_PROXY_URL = `${SUPABASE_URL}/functions/v1/mcp-proxy`;
+      
+      console.log('[MCP Test] Proxy URL:', MCP_PROXY_URL);
+      
+      // Set timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
       
       // Test with tools/list action
       const response = await fetch(MCP_PROXY_URL, {
@@ -234,10 +282,13 @@ export function MCPSettingsPage() {
         body: JSON.stringify({
           endpoint,
           apiKey,
-          action: 'list',  // Standard MCP tools list
+          action: 'list',
           params: {},
         }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
       
       const result = await response.json();
       console.log('[MCP Test] Proxy response:', result);
@@ -260,10 +311,17 @@ export function MCPSettingsPage() {
         setTestResult({ success: false, message: errorMsg });
       }
     } catch (error) {
-      setTestResult({ 
-        success: false, 
-        message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}` 
-      });
+      if (error instanceof Error && error.name === 'AbortError') {
+        setTestResult({ 
+          success: false, 
+          message: '⏱️ Timeout: MCP Proxy Edge Function not responding.\n\nPlease deploy the Edge Function first:\n\nsupabase functions deploy mcp-proxy --no-verify-jwt --project-ref lbzjnhlribtfwnoydpdv' 
+        });
+      } else {
+        setTestResult({ 
+          success: false, 
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}\n\nMake sure the MCP Proxy Edge Function is deployed.` 
+        });
+      }
     } finally {
       setIsTesting(false);
     }

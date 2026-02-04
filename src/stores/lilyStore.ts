@@ -73,6 +73,52 @@ function parseMCPToolCalls(content: string): MCPToolCall[] {
   return toolCalls;
 }
 
+// Extract MCP config from connector (supports multiple JSON formats)
+function extractMCPConfig(connector: MCPConnector): { endpoint: string; apiKey: string } {
+  let endpoint = connector.apiEndpoint || '';
+  let apiKey = connector.apiKey || '';
+  const mcpConfig = connector.mcpConfig as any;
+  
+  if (mcpConfig) {
+    // Format 1: { url: "...", headers: { Authorization: "Bearer ..." } }
+    if (mcpConfig.url) {
+      endpoint = mcpConfig.url;
+      if (mcpConfig.headers?.Authorization) {
+        apiKey = mcpConfig.headers.Authorization.replace('Bearer ', '');
+      }
+    }
+    // Format 2: { command: "npx", args: [...] }
+    else if (mcpConfig.args) {
+      const urlArg = mcpConfig.args.find((arg: string) => arg.startsWith('http'));
+      if (urlArg) endpoint = urlArg;
+      
+      const authIndex = mcpConfig.args.findIndex((arg: string) => arg === '--header');
+      if (authIndex !== -1 && mcpConfig.args[authIndex + 1]) {
+        const authHeader = mcpConfig.args[authIndex + 1];
+        if (authHeader.startsWith('Authorization: Bearer ')) {
+          apiKey = authHeader.replace('Authorization: Bearer ', '');
+        }
+      }
+    }
+    // Format 3: mcpServers wrapper
+    else if (mcpConfig.mcpServers) {
+      const serverName = Object.keys(mcpConfig.mcpServers)[0];
+      const server = mcpConfig.mcpServers[serverName];
+      if (server?.url) {
+        endpoint = server.url;
+        if (server.headers?.Authorization) {
+          apiKey = server.headers.Authorization.replace('Bearer ', '');
+        }
+      } else if (server?.args) {
+        const urlArg = server.args.find((arg: string) => arg.startsWith('http'));
+        if (urlArg) endpoint = urlArg;
+      }
+    }
+  }
+  
+  return { endpoint, apiKey };
+}
+
 // Call MCP server through Edge Function proxy (avoids CORS)
 async function callMCPServer(
   connector: MCPConnector,
@@ -80,26 +126,7 @@ async function callMCPServer(
   params: Record<string, unknown>
 ): Promise<{ success: boolean; data?: unknown; error?: string }> {
   try {
-    // Extract endpoint and API key from mcpConfig
-    let endpoint = connector.apiEndpoint || '';
-    let apiKey = connector.apiKey || '';
-    
-    if (connector.mcpConfig?.args) {
-      // Find URL in args
-      const urlArg = connector.mcpConfig.args.find((arg: string) => arg.startsWith('http'));
-      if (urlArg) {
-        endpoint = urlArg;
-      }
-      
-      // Find API key from Authorization header
-      const authIndex = connector.mcpConfig.args.findIndex((arg: string) => arg === '--header');
-      if (authIndex !== -1 && connector.mcpConfig.args[authIndex + 1]) {
-        const authHeader = connector.mcpConfig.args[authIndex + 1];
-        if (authHeader.startsWith('Authorization: Bearer ')) {
-          apiKey = authHeader.replace('Authorization: Bearer ', '');
-        }
-      }
-    }
+    const { endpoint, apiKey } = extractMCPConfig(connector);
     
     if (!endpoint) {
       return { success: false, error: 'No API endpoint configured' };
@@ -134,7 +161,7 @@ async function callMCPServer(
       return { 
         success: false, 
         error: result.error || 'MCP call failed',
-        data: result.attempts, // Include attempt details for debugging
+        data: result.attempts,
       };
     }
   } catch (error) {
