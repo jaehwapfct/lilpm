@@ -187,6 +187,38 @@ export function MCPSettingsPage() {
   const handleSaveEdit = () => {
     if (!editingConnector) return;
     
+    // Validate JSON config if present
+    if (editingConnector.mcpConfig && (editingConnector.mcpConfig as any)._raw) {
+      try {
+        const config = JSON.parse((editingConnector.mcpConfig as any)._raw);
+        editingConnector.mcpConfig = config;
+      } catch {
+        toast.error('Invalid JSON configuration');
+        return;
+      }
+    }
+    
+    // Update API endpoint from mcpConfig if available
+    if (editingConnector.mcpConfig?.args) {
+      const endpoint = editingConnector.mcpConfig.args.find((arg: string) => 
+        arg.startsWith('http')
+      );
+      if (endpoint) {
+        editingConnector.apiEndpoint = endpoint;
+      }
+      
+      // Extract API key from Authorization header
+      const authIndex = editingConnector.mcpConfig.args.findIndex((arg: string) => 
+        arg === '--header'
+      );
+      if (authIndex !== -1 && editingConnector.mcpConfig.args[authIndex + 1]) {
+        const authHeader = editingConnector.mcpConfig.args[authIndex + 1];
+        if (authHeader.startsWith('Authorization: Bearer ')) {
+          editingConnector.apiKey = authHeader.replace('Authorization: Bearer ', '');
+        }
+      }
+    }
+    
     updateConnector(editingConnector.id, editingConnector);
     toast.success('Connector updated');
     setEditingConnector(null);
@@ -485,7 +517,7 @@ export function MCPSettingsPage() {
 
         {/* Edit Dialog */}
         <Dialog open={!!editingConnector} onOpenChange={() => setEditingConnector(null)}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Connector Settings</DialogTitle>
               <DialogDescription>
@@ -493,32 +525,91 @@ export function MCPSettingsPage() {
               </DialogDescription>
             </DialogHeader>
             {editingConnector && (
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Name</Label>
-                  <Input
-                    value={editingConnector.name}
-                    onChange={(e) => setEditingConnector({ ...editingConnector, name: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>API Endpoint</Label>
-                  <Input
-                    placeholder="https://api.example.com/mcp"
-                    value={editingConnector.apiEndpoint || ''}
-                    onChange={(e) => setEditingConnector({ ...editingConnector, apiEndpoint: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>API Key</Label>
-                  <Input
-                    type="password"
-                    placeholder="sk-..."
-                    value={editingConnector.apiKey || ''}
-                    onChange={(e) => setEditingConnector({ ...editingConnector, apiKey: e.target.value })}
-                  />
-                </div>
-              </div>
+              <Tabs defaultValue={editingConnector.mcpConfig ? 'json' : 'basic'} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="basic">Basic</TabsTrigger>
+                  <TabsTrigger value="json">JSON Config</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="basic" className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Name</Label>
+                    <Input
+                      value={editingConnector.name}
+                      onChange={(e) => setEditingConnector({ ...editingConnector, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Description</Label>
+                    <Input
+                      value={editingConnector.description}
+                      onChange={(e) => setEditingConnector({ ...editingConnector, description: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>API Endpoint</Label>
+                    <Input
+                      placeholder="https://api.example.com/mcp"
+                      value={editingConnector.apiEndpoint || ''}
+                      onChange={(e) => setEditingConnector({ ...editingConnector, apiEndpoint: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>API Key</Label>
+                    <Input
+                      type="password"
+                      placeholder="sk-..."
+                      value={editingConnector.apiKey || ''}
+                      onChange={(e) => setEditingConnector({ ...editingConnector, apiKey: e.target.value })}
+                    />
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="json" className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>MCP Server Configuration (JSON)</Label>
+                    <textarea
+                      className="w-full h-56 p-3 font-mono text-xs bg-muted rounded-md border resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                      placeholder={`{
+  "command": "npx",
+  "args": [
+    "mcp-remote",
+    "https://example.com/mcp/sse",
+    "--header",
+    "Authorization: Bearer YOUR_TOKEN"
+  ],
+  "env": {}
+}`}
+                      value={editingConnector.mcpConfig ? JSON.stringify(editingConnector.mcpConfig, null, 2) : ''}
+                      onChange={(e) => {
+                        try {
+                          const config = e.target.value ? JSON.parse(e.target.value) : undefined;
+                          setEditingConnector({ ...editingConnector, mcpConfig: config });
+                        } catch {
+                          // Allow invalid JSON while typing, will validate on save
+                          setEditingConnector({ 
+                            ...editingConnector, 
+                            mcpConfig: { _raw: e.target.value } as any 
+                          });
+                        }
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Configure MCP server with command, args, and environment variables.
+                      This will be used when calling the MCP server.
+                    </p>
+                    {editingConnector.mcpConfig && (
+                      <div className="p-3 bg-muted/50 rounded-md text-xs space-y-1">
+                        <p><strong>Command:</strong> {(editingConnector.mcpConfig as any).command || 'N/A'}</p>
+                        <p><strong>Args:</strong> {(editingConnector.mcpConfig as any).args?.join(' ') || 'N/A'}</p>
+                        {(editingConnector.mcpConfig as any).env && Object.keys((editingConnector.mcpConfig as any).env).length > 0 && (
+                          <p><strong>Env:</strong> {Object.keys((editingConnector.mcpConfig as any).env).join(', ')}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
             )}
             <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button 
