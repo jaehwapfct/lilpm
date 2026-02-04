@@ -21,8 +21,15 @@ serve(async (req) => {
 
   if (req.method === "GET") {
     return new Response(
-      JSON.stringify({ status: "ok", service: "mcp-proxy" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ status: "ok", service: "mcp-proxy", version: "1.0.1" }),
+      { 
+        status: 200,
+        headers: { 
+          ...corsHeaders, 
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store",
+        } 
+      }
     );
   }
 

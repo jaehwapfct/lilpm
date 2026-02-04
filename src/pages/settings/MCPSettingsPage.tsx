@@ -332,15 +332,21 @@ export function MCPSettingsPage() {
         setTestResult({ success: false, message: errorMsg });
       }
     } catch (error) {
+      console.error('[MCP Test] Caught error:', error);
       if (error instanceof Error && error.name === 'AbortError') {
         setTestResult({ 
           success: false, 
-          message: '⏱️ Timeout: MCP Proxy Edge Function not responding.\n\nPlease deploy the Edge Function first:\n\nsupabase functions deploy mcp-proxy --no-verify-jwt --project-ref lbzjnhlribtfwnoydpdv' 
+          message: '⏱️ Timeout: MCP call took too long (60s).\n\nThe MCP server might be slow or unreachable.' 
+        });
+      } else if (error instanceof TypeError && error.message.includes('fetch')) {
+        setTestResult({ 
+          success: false, 
+          message: `❌ Network/CORS Error\n\nError: ${error.message}\n\nThis might be a CORS issue. Check browser console for details.` 
         });
       } else {
         setTestResult({ 
           success: false, 
-          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}\n\nMake sure the MCP Proxy Edge Function is deployed.` 
+          message: `❌ Error: ${error instanceof Error ? error.message : JSON.stringify(error)}\n\nCheck browser console (F12) for more details.` 
         });
       }
     } finally {
