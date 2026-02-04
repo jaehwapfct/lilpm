@@ -1,0 +1,266 @@
+import { supabase } from '@/lib/supabase';
+import type { Profile, Team, TeamMember, TeamInvite, TeamRole } from '@/types/database';
+
+// ============================================
+// PROFILE SERVICES
+// ============================================
+
+export const profileService = {
+  async getProfile(userId: string): Promise<Profile | null> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (error) throw error;
+    return data as Profile | null;
+  },
+
+  async updateProfile(userId: string, updates: Partial<Profile>): Promise<Profile> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updates as any)
+      .eq('id', userId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data as Profile;
+  },
+};
+
+// ============================================
+// TEAM SERVICES
+// ============================================
+
+export const teamService = {
+  async getTeams(): Promise<Team[]> {
+    const { data, error } = await supabase
+      .from('teams')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return (data || []) as Team[];
+  },
+
+  async getTeam(teamId: string): Promise<Team | null> {
+    const { data, error } = await supabase
+      .from('teams')
+      .select('*')
+      .eq('id', teamId)
+      .single();
+    
+    if (error) throw error;
+    return data as Team | null;
+  },
+
+  async createTeam(name: string, slug: string, issuePrefix?: string): Promise<Team> {
+    // First check for a valid session
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session?.user) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Please verify your email first, then try again.');
+      }
+    }
+
+    // Use RPC function that handles team creation + owner assignment atomically
+    // This bypasses RLS issues since the function uses SECURITY DEFINER
+    const { data: team, error } = await supabase
+      .rpc('create_team_with_owner', {
+        _name: name,
+        _slug: slug,
+        _issue_prefix: issuePrefix || slug.toUpperCase().slice(0, 3),
+      });
+    
+    if (error) {
+      console.error('Team creation error:', error);
+      throw new Error(error.message || 'Failed to create team');
+    }
+    
+    if (!team) throw new Error('Failed to create team');
+
+    return team as Team;
+  },
+
+  async updateTeam(teamId: string, updates: Partial<Team>): Promise<Team> {
+    const { data, error } = await supabase
+      .from('teams')
+      .update(updates as any)
+      .eq('id', teamId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data as Team;
+  },
+
+  async deleteTeam(teamId: string): Promise<void> {
+    const { error } = await supabase
+      .from('teams')
+      .delete()
+      .eq('id', teamId);
+    
+    if (error) throw error;
+  },
+};
+
+// ============================================
+// TEAM MEMBER SERVICES
+// ============================================
+
+export interface TeamMemberWithProfile extends TeamMember {
+  profile: Profile;
+}
+
+export const teamMemberService = {
+  async getMembers(teamId: string): Promise<TeamMemberWithProfile[]> {
+    const { data, error } = await supabase
+      .from('team_members')
+      .select(`
+        *,
+        profile:profiles(*)
+      `)
+      .eq('team_id', teamId)
+      .order('joined_at', { ascending: true });
+    
+    if (error) throw error;
+    return (data || []) as unknown as TeamMemberWithProfile[];
+  },
+
+  async addMember(teamId: string, userId: string, role: TeamRole = 'member'): Promise<TeamMember> {
+    const { data, error } = await supabase
+      .from('team_members')
+      .insert({ team_id: teamId, user_id: userId, role } as any)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data as TeamMember;
+  },
+
+  async updateMemberRole(memberId: string, role: TeamRole): Promise<TeamMember> {
+    const { data, error } = await supabase
+      .from('team_members')
+      .update({ role } as any)
+      .eq('id', memberId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data as TeamMember;
+  },
+
+  async removeMember(memberId: string): Promise<void> {
+    const { error } = await supabase
+      .from('team_members')
+      .delete()
+      .eq('id', memberId);
+    
+    if (error) throw error;
+  },
+
+  async getUserRole(teamId: string, userId: string): Promise<TeamRole | null> {
+    const { data, error } = await supabase
+      .rpc('get_team_role', { _user_id: userId, _team_id: teamId } as any);
+    
+    if (error) return null;
+    return data as TeamRole | null;
+  },
+};
+
+// ============================================
+// TEAM INVITE SERVICES
+// ============================================
+
+export const teamInviteService = {
+  async getInvites(teamId: string): Promise<TeamInvite[]> {
+    const { data, error } = await supabase
+      .from('team_invites')
+      .select('*')
+      .eq('team_id', teamId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return (data || []) as TeamInvite[];
+  },
+
+  async createInvite(teamId: string, email: string, role: TeamRole = 'member'): Promise<TeamInvite> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const { data, error } = await supabase
+      .from('team_invites')
+      .insert({
+        team_id: teamId,
+        email,
+        role,
+        invited_by: user.id,
+      } as any)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data as TeamInvite;
+  },
+
+  async cancelInvite(inviteId: string): Promise<void> {
+    const { error } = await supabase
+      .from('team_invites')
+      .update({ status: 'cancelled' } as any)
+      .eq('id', inviteId);
+    
+    if (error) throw error;
+  },
+
+  async acceptInvite(token: string): Promise<Team> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    // Get invite
+    const { data: invite, error: inviteError } = await supabase
+      .from('team_invites')
+      .select('*, team:teams(*)')
+      .eq('token', token)
+      .eq('status', 'pending')
+      .single();
+    
+    if (inviteError) throw inviteError;
+    if (!invite) throw new Error('Invite not found or expired');
+
+    const typedInvite = invite as any;
+
+    // Check if already a member
+    const { data: existing } = await supabase
+      .from('team_members')
+      .select('id')
+      .eq('team_id', typedInvite.team_id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!existing) {
+      // Add as team member
+      const { error: memberError } = await supabase
+        .from('team_members')
+        .insert({
+          team_id: typedInvite.team_id,
+          user_id: user.id,
+          role: typedInvite.role,
+        } as any);
+      
+      if (memberError) throw memberError;
+    }
+
+    // Mark invite as accepted
+    await supabase
+      .from('team_invites')
+      .update({ status: 'accepted' } as any)
+      .eq('id', typedInvite.id);
+
+    return typedInvite.team as Team;
+  },
+};

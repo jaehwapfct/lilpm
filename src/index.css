@@ -1,0 +1,201 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Linear.app inspired design system - Dark theme first */
+
+@layer base {
+  :root {
+    /* Dark theme as default - Linear.app style */
+    --background: 228 14% 8%;
+    --foreground: 0 0% 100%;
+
+    --card: 228 12% 12%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 228 12% 12%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 228 12% 16%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 228 12% 16%;
+    --muted-foreground: 220 9% 60%;
+
+    --accent: 228 12% 16%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 228 10% 20%;
+    --input: 228 10% 20%;
+    --ring: 243 75% 59%;
+
+    --radius: 0.5rem;
+
+    /* Linear specific colors */
+    --linear-bg: 228 14% 8%;
+    --linear-bg-elevated: 228 12% 12%;
+    --linear-bg-hover: 228 12% 16%;
+    --linear-border: 228 10% 20%;
+    --linear-text-primary: 0 0% 100%;
+    --linear-text-secondary: 220 9% 60%;
+    --linear-text-tertiary: 220 9% 40%;
+    --linear-accent: 243 75% 59%;
+    --linear-accent-hover: 243 75% 65%;
+    --linear-success: 142 71% 45%;
+    --linear-warning: 38 92% 50%;
+    --linear-danger: 0 84% 60%;
+
+    /* Status colors */
+    --status-backlog: 220 9% 46%;
+    --status-todo: 220 9% 70%;
+    --status-in-progress: 243 75% 59%;
+    --status-done: 142 71% 45%;
+    --status-cancelled: 0 0% 40%;
+
+    /* Priority colors */
+    --priority-urgent: 0 84% 60%;
+    --priority-high: 38 92% 50%;
+    --priority-medium: 243 75% 59%;
+    --priority-low: 220 9% 46%;
+    --priority-none: 220 9% 30%;
+
+    --sidebar-background: 228 14% 6%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 243 75% 59%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 228 12% 12%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 228 10% 18%;
+    --sidebar-ring: 243 75% 59%;
+  }
+
+  .dark {
+    --background: 228 14% 8%;
+    --foreground: 0 0% 100%;
+
+    --card: 228 12% 12%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 228 12% 12%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 228 12% 16%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 228 12% 16%;
+    --muted-foreground: 220 9% 60%;
+
+    --accent: 228 12% 16%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 228 10% 20%;
+    --input: 228 10% 20%;
+    --ring: 243 75% 59%;
+
+    --sidebar-background: 228 14% 6%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 243 75% 59%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 228 12% 12%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 228 10% 18%;
+    --sidebar-ring: 243 75% 59%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Custom scrollbar - Linear style */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.3);
+  }
+}
+
+@layer components {
+  /* Linear-style focus ring */
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+
+  /* Linear-style keyboard shortcut badge */
+  .kbd {
+    @apply inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground;
+  }
+
+  /* Linear-style hover effect */
+  .hover-bg {
+    @apply transition-colors hover:bg-accent;
+  }
+
+  /* Linear-style active state */
+  .active-bg {
+    @apply bg-accent;
+  }
+}
+
+@layer utilities {
+  /* Animation utilities */
+  .animate-in {
+    animation: animate-in 0.2s ease-out;
+  }
+
+  @keyframes animate-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-slide-in-right {
+    animation: slide-in-right 0.2s ease-out;
+  }
+
+  @keyframes slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+}
