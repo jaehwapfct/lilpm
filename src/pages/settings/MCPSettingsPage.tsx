@@ -194,15 +194,14 @@ export function MCPSettingsPage() {
     setTestResult(null);
     
     try {
-      // Extract base URL and API key from mcpConfig
-      let baseUrl = editingConnector.apiEndpoint || '';
+      // Extract endpoint and API key from mcpConfig
+      let endpoint = editingConnector.apiEndpoint || '';
       let apiKey = editingConnector.apiKey || '';
       
       if (editingConnector.mcpConfig?.args) {
         const urlArg = editingConnector.mcpConfig.args.find((arg: string) => arg.startsWith('http'));
         if (urlArg) {
-          // Remove /sse suffix to get base URL
-          baseUrl = urlArg.replace(/\/sse$/, '');
+          endpoint = urlArg;
         }
         
         const authIndex = editingConnector.mcpConfig.args.findIndex((arg: string) => arg === '--header');
@@ -214,65 +213,52 @@ export function MCPSettingsPage() {
         }
       }
       
-      if (!baseUrl) {
+      if (!endpoint) {
         setTestResult({ success: false, message: 'No endpoint configured' });
         return;
       }
       
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (apiKey) {
-        headers['Authorization'] = `Bearer ${apiKey}`;
-      }
-      
-      console.log('[MCP Test] Base URL:', baseUrl);
+      console.log('[MCP Test] Endpoint:', endpoint);
       console.log('[MCP Test] API Key:', apiKey ? `${apiKey.substring(0, 20)}...` : 'none');
       
-      // Try multiple endpoint patterns
-      const testEndpoints = [
-        { url: `${baseUrl}/tools/list`, method: 'GET', desc: 'GET /tools/list' },
-        { url: `${baseUrl}/tools/list`, method: 'POST', body: {}, desc: 'POST /tools/list' },
-        { url: `${baseUrl}/rpc`, method: 'POST', body: { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }, desc: 'JSON-RPC tools/list' },
-        { url: `${baseUrl}/api/tools`, method: 'GET', desc: 'GET /api/tools' },
-        { url: `${baseUrl}/health`, method: 'GET', desc: 'Health check' },
-        { url: baseUrl, method: 'GET', desc: 'Base URL' },
-        { url: `${baseUrl}/sse`, method: 'GET', desc: 'SSE endpoint' },
-      ];
+      // Use Edge Function proxy to avoid CORS
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://lbzjnhlribtfwnoydpdv.supabase.co';
+      const MCP_PROXY_URL = `${SUPABASE_URL}/functions/v1/mcp-proxy`;
       
-      const results: string[] = [];
-      let anySuccess = false;
-      
-      for (const test of testEndpoints) {
-        try {
-          console.log('[MCP Test] Trying:', test.desc, test.url);
-          const response = await fetch(test.url, {
-            method: test.method,
-            headers,
-            ...(test.body ? { body: JSON.stringify(test.body) } : {}),
-          });
-          
-          const status = response.status;
-          const statusText = response.ok ? '✅' : '❌';
-          
-          if (response.ok) {
-            anySuccess = true;
-            const data = await response.text();
-            results.push(`${statusText} ${test.desc}: ${status}\n   Response: ${data.substring(0, 100)}${data.length > 100 ? '...' : ''}`);
-          } else {
-            const errorText = await response.text();
-            results.push(`${statusText} ${test.desc}: ${status} - ${errorText.substring(0, 50)}`);
-          }
-        } catch (e) {
-          const error = e instanceof Error ? e.message : 'Unknown error';
-          results.push(`❌ ${test.desc}: ${error}`);
-        }
-      }
-      
-      setTestResult({ 
-        success: anySuccess, 
-        message: `Base URL: ${baseUrl}\nAPI Key: ${apiKey ? 'Configured' : 'Not set'}\n\n--- Test Results ---\n${results.join('\n\n')}` 
+      // Test with tools/list action
+      const response = await fetch(MCP_PROXY_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          endpoint,
+          apiKey,
+          action: 'list',  // Standard MCP tools list
+          params: {},
+        }),
       });
+      
+      const result = await response.json();
+      console.log('[MCP Test] Proxy response:', result);
+      
+      if (result.success) {
+        setTestResult({ 
+          success: true, 
+          message: `✅ MCP Connection Successful!\n\nEndpoint: ${endpoint}\nPattern: ${result.pattern}\n\nResponse:\n${JSON.stringify(result.data, null, 2).substring(0, 500)}` 
+        });
+      } else {
+        let errorMsg = `❌ MCP Connection Failed\n\nEndpoint: ${endpoint}\nError: ${result.error}\n`;
+        
+        if (result.attempts) {
+          errorMsg += '\n--- Attempted Patterns ---\n';
+          result.attempts.forEach((attempt: any) => {
+            errorMsg += `\n${attempt.pattern}\n  Status: ${attempt.status}\n  Error: ${attempt.error || 'N/A'}\n`;
+          });
+        }
+        
+        setTestResult({ success: false, message: errorMsg });
+      }
     } catch (error) {
       setTestResult({ 
         success: false, 

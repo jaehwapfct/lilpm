@@ -8,6 +8,7 @@ import type { MCPConnector } from '@/types/mcp';
 // Fallback to hardcoded URL if env var is undefined
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://lbzjnhlribtfwnoydpdv.supabase.co';
 const CHAT_URL = `${SUPABASE_URL}/functions/v1/lily-chat`;
+const MCP_PROXY_URL = `${SUPABASE_URL}/functions/v1/mcp-proxy`;
 
 interface LilyStore {
   messages: LilyMessage[];
@@ -72,23 +73,22 @@ function parseMCPToolCalls(content: string): MCPToolCall[] {
   return toolCalls;
 }
 
-// Call MCP server
+// Call MCP server through Edge Function proxy (avoids CORS)
 async function callMCPServer(
   connector: MCPConnector,
   action: string,
   params: Record<string, unknown>
 ): Promise<{ success: boolean; data?: unknown; error?: string }> {
   try {
-    // Extract base URL and API key from mcpConfig
-    let baseUrl = connector.apiEndpoint || '';
+    // Extract endpoint and API key from mcpConfig
+    let endpoint = connector.apiEndpoint || '';
     let apiKey = connector.apiKey || '';
     
     if (connector.mcpConfig?.args) {
       // Find URL in args
       const urlArg = connector.mcpConfig.args.find((arg: string) => arg.startsWith('http'));
       if (urlArg) {
-        // Remove /sse suffix to get base URL
-        baseUrl = urlArg.replace(/\/sse$/, '');
+        endpoint = urlArg;
       }
       
       // Find API key from Authorization header
@@ -101,77 +101,42 @@ async function callMCPServer(
       }
     }
     
-    if (!baseUrl) {
+    if (!endpoint) {
       return { success: false, error: 'No API endpoint configured' };
     }
     
-    // Prepare authorization header
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    console.log('[MCP] Calling via proxy:', endpoint, action);
     
-    if (apiKey) {
-      headers['Authorization'] = `Bearer ${apiKey}`;
+    // Get auth token for Edge Function
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    // Call through Edge Function proxy to avoid CORS
+    const response = await fetch(MCP_PROXY_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+      },
+      body: JSON.stringify({
+        endpoint,
+        apiKey,
+        action,
+        params,
+      }),
+    });
+    
+    const result = await response.json();
+    console.log('[MCP] Proxy response:', result);
+    
+    if (result.success) {
+      return { success: true, data: result.data };
+    } else {
+      return { 
+        success: false, 
+        error: result.error || 'MCP call failed',
+        data: result.attempts, // Include attempt details for debugging
+      };
     }
-    
-    console.log('[MCP] Base URL:', baseUrl);
-    console.log('[MCP] Action:', action);
-    console.log('[MCP] Params:', params);
-    
-    // Try multiple endpoint patterns
-    const endpointPatterns = [
-      // Pattern 1: Direct tools endpoint
-      { url: `${baseUrl}/tools/${action}`, method: 'POST', body: params },
-      // Pattern 2: JSON-RPC style
-      { url: `${baseUrl}/rpc`, method: 'POST', body: { jsonrpc: '2.0', id: Date.now(), method: action, params } },
-      // Pattern 3: Call endpoint with method in body
-      { url: `${baseUrl}/call`, method: 'POST', body: { method: action, params } },
-      // Pattern 4: Tools call endpoint
-      { url: `${baseUrl}/tools/call`, method: 'POST', body: { name: action, arguments: params } },
-      // Pattern 5: API endpoint
-      { url: `${baseUrl}/api/${action}`, method: 'POST', body: params },
-    ];
-    
-    let lastError = '';
-    
-    for (const pattern of endpointPatterns) {
-      try {
-        console.log('[MCP] Trying:', pattern.url);
-        
-        const response = await fetch(pattern.url, {
-          method: pattern.method,
-          headers,
-          body: JSON.stringify(pattern.body),
-        });
-        
-        console.log('[MCP] Response status:', response.status);
-        
-        if (response.ok) {
-          const result = await response.json();
-          console.log('[MCP] Success:', result);
-          
-          // Handle different response formats
-          if (result.error) {
-            lastError = result.error.message || JSON.stringify(result.error);
-            continue;
-          }
-          
-          return { 
-            success: true, 
-            data: result.result || result.data || result 
-          };
-        } else {
-          const errorText = await response.text();
-          lastError = `${response.status}: ${errorText.substring(0, 200)}`;
-          console.log('[MCP] Error:', lastError);
-        }
-      } catch (e) {
-        lastError = e instanceof Error ? e.message : 'Request failed';
-        console.log('[MCP] Exception:', lastError);
-      }
-    }
-    
-    return { success: false, error: `All endpoints failed. Last error: ${lastError}` };
   } catch (error) {
     console.error('[MCP] Call failed:', error);
     return { 
