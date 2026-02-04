@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useCallback } from 'react';
+import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -19,9 +19,10 @@ import {
   parseISO,
   isValid,
   addDays,
+  subDays,
 } from 'date-fns';
 import { ko, enUS } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Calendar, ZoomIn, ZoomOut, Layers, User, Folder } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, ZoomIn, ZoomOut, Layers, User, Folder, GripVertical, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -42,6 +43,21 @@ import type { Issue } from '@/types';
 interface GanttChartProps {
   issues: Issue[];
   onIssueClick?: (issue: Issue) => void;
+  onIssueUpdate?: (issueId: string, updates: { dueDate?: string; startDate?: string }) => void;
+  onDependencyCreate?: (fromIssueId: string, toIssueId: string) => void;
+}
+
+interface DragState {
+  issueId: string | null;
+  mode: 'move' | 'resize-start' | 'resize-end' | 'link' | null;
+  startX: number;
+  originalDueDate: string | null;
+  originalCreatedAt: string | null;
+}
+
+interface Dependency {
+  from: string;
+  to: string;
 }
 
 type ViewMode = 'day' | 'week' | 'month' | 'quarter';
@@ -54,7 +70,7 @@ interface GroupedIssues {
   isCollapsed: boolean;
 }
 
-export function GanttChart({ issues, onIssueClick }: GanttChartProps) {
+export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCreate }: GanttChartProps) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const dateLocale = i18n.language === 'ko' ? ko : enUS;
@@ -64,6 +80,18 @@ export function GanttChart({ issues, onIssueClick }: GanttChartProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [groupBy, setGroupBy] = useState<GroupBy>('none');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  
+  // Drag state
+  const [dragState, setDragState] = useState<DragState>({
+    issueId: null,
+    mode: null,
+    startX: 0,
+    originalDueDate: null,
+    originalCreatedAt: null,
+  });
+  const [linkingFrom, setLinkingFrom] = useState<string | null>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [dependencies, setDependencies] = useState<Dependency[]>([]);
   
   // Calculate the cell width based on view mode
   const cellWidth = useMemo(() => {
@@ -226,6 +254,90 @@ export function GanttChart({ issues, onIssueClick }: GanttChartProps) {
       }
     }, 100);
   };
+
+  // Drag handlers
+  const handleBarMouseDown = useCallback((e: React.MouseEvent, issue: Issue, mode: 'move' | 'resize-start' | 'resize-end') => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    setDragState({
+      issueId: issue.id,
+      mode,
+      startX: e.clientX,
+      originalDueDate: issue.dueDate || null,
+      originalCreatedAt: issue.createdAt,
+    });
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!dragState.issueId || !dragState.mode) return;
+    
+    if (linkingFrom) {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+      return;
+    }
+    
+    const deltaX = e.clientX - dragState.startX;
+    const daysDelta = Math.round(deltaX / cellWidth);
+    
+    if (daysDelta === 0) return;
+    
+    const issue = issues.find(i => i.id === dragState.issueId);
+    if (!issue) return;
+    
+    const originalDueDate = dragState.originalDueDate 
+      ? parseISO(dragState.originalDueDate) 
+      : addDays(parseISO(dragState.originalCreatedAt!), 3);
+    
+    if (dragState.mode === 'move') {
+      const newDueDate = addDays(originalDueDate, daysDelta);
+      onIssueUpdate?.(issue.id, { dueDate: format(newDueDate, 'yyyy-MM-dd') });
+    } else if (dragState.mode === 'resize-end') {
+      const newDueDate = addDays(originalDueDate, daysDelta);
+      onIssueUpdate?.(issue.id, { dueDate: format(newDueDate, 'yyyy-MM-dd') });
+    }
+  }, [dragState, cellWidth, issues, onIssueUpdate, linkingFrom]);
+
+  const handleMouseUp = useCallback(() => {
+    if (linkingFrom) {
+      setLinkingFrom(null);
+    }
+    setDragState({
+      issueId: null,
+      mode: null,
+      startX: 0,
+      originalDueDate: null,
+      originalCreatedAt: null,
+    });
+  }, [linkingFrom]);
+
+  const handleStartLinking = useCallback((e: React.MouseEvent, issueId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setLinkingFrom(issueId);
+    setMousePosition({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  const handleBarMouseEnter = useCallback((issueId: string) => {
+    if (linkingFrom && linkingFrom !== issueId) {
+      // Create dependency
+      setDependencies(prev => [...prev, { from: linkingFrom, to: issueId }]);
+      onDependencyCreate?.(linkingFrom, issueId);
+      setLinkingFrom(null);
+    }
+  }, [linkingFrom, onDependencyCreate]);
+
+  // Add global mouse event listeners
+  useEffect(() => {
+    if (dragState.issueId || linkingFrom) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [dragState.issueId, linkingFrom, handleMouseMove, handleMouseUp]);
 
   const getBarPosition = useCallback((issue: Issue) => {
     const dueDate = issue.dueDate ? parseISO(issue.dueDate) : null;
@@ -561,22 +673,58 @@ export function GanttChart({ issues, onIssueClick }: GanttChartProps) {
                             <TooltipTrigger asChild>
                               <div
                                 className={cn(
-                                  "absolute top-1/2 -translate-y-1/2 h-6 rounded cursor-pointer transition-all shadow-sm",
+                                  "absolute top-1/2 -translate-y-1/2 h-6 rounded transition-all shadow-sm group/bar",
                                   getStatusColor(issue.status),
-                                  !barPos.hasDueDate && "opacity-60 border-2 border-dashed border-white/30"
+                                  !barPos.hasDueDate && "opacity-60 border-2 border-dashed border-white/30",
+                                  dragState.issueId === issue.id && "ring-2 ring-white ring-opacity-50 z-30",
+                                  linkingFrom === issue.id && "ring-2 ring-yellow-400 z-30"
                                 )}
                                 style={{ 
                                   left: barPos.left, 
                                   width: barPos.width,
-                                  minWidth: '40px',
+                                  minWidth: '60px',
+                                  cursor: dragState.mode ? 'grabbing' : 'grab',
                                 }}
-                                onClick={() => handleIssueClick(issue)}
+                                onMouseDown={(e) => handleBarMouseDown(e, issue, 'move')}
+                                onMouseEnter={() => handleBarMouseEnter(issue.id)}
+                                onDoubleClick={() => handleIssueClick(issue)}
                               >
-                                <div className="h-full flex items-center px-2 overflow-hidden">
+                                {/* Left resize handle */}
+                                <div 
+                                  className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 bg-white/20 rounded-l flex items-center justify-center"
+                                  onMouseDown={(e) => handleBarMouseDown(e, issue, 'resize-start')}
+                                >
+                                  <GripVertical className="h-3 w-3 text-white/70" />
+                                </div>
+                                
+                                {/* Bar content */}
+                                <div className="h-full flex items-center px-3 overflow-hidden">
                                   <StatusIcon status={issue.status} className="h-3 w-3 mr-1.5 flex-shrink-0 text-white" />
                                   <span className="text-[10px] text-white font-medium truncate">
                                     {issue.identifier}
                                   </span>
+                                </div>
+                                
+                                {/* Right resize handle */}
+                                <div 
+                                  className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 bg-white/20 rounded-r flex items-center justify-center"
+                                  onMouseDown={(e) => handleBarMouseDown(e, issue, 'resize-end')}
+                                >
+                                  <GripVertical className="h-3 w-3 text-white/70" />
+                                </div>
+                                
+                                {/* Link points */}
+                                <div 
+                                  className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-yellow-400 border-2 border-white opacity-0 group-hover/bar:opacity-100 cursor-crosshair flex items-center justify-center"
+                                  onMouseDown={(e) => handleStartLinking(e, issue.id)}
+                                >
+                                  <Link2 className="h-2 w-2 text-yellow-900" />
+                                </div>
+                                <div 
+                                  className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-yellow-400 border-2 border-white opacity-0 group-hover/bar:opacity-100 cursor-crosshair flex items-center justify-center"
+                                  onMouseDown={(e) => handleStartLinking(e, issue.id)}
+                                >
+                                  <Link2 className="h-2 w-2 text-yellow-900" />
                                 </div>
                               </div>
                             </TooltipTrigger>
@@ -593,6 +741,9 @@ export function GanttChart({ issues, onIssueClick }: GanttChartProps) {
                                     {t('issues.dueDate')}: {format(parseISO(issue.dueDate), 'PPP', { locale: dateLocale })}
                                   </p>
                                 )}
+                                <p className="text-[10px] text-muted-foreground mt-1">
+                                  {t('gantt.dragToMove', 'Drag to move • Double-click to view')}
+                                </p>
                               </div>
                             </TooltipContent>
                           </Tooltip>

@@ -110,12 +110,19 @@ export function MCPSettingsPage() {
   const [jsonConfig, setJsonConfig] = useState('');
   const [addMode, setAddMode] = useState<'manual' | 'json'>('manual');
 
-  const filteredConnectors = connectors.filter((connector) => {
-    const matchesSearch = connector.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         connector.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || connector.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredConnectors = connectors
+    .filter((connector) => {
+      const matchesSearch = connector.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           connector.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === 'all' || connector.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => {
+      // Enabled connectors first
+      if (a.enabled && !b.enabled) return -1;
+      if (!a.enabled && b.enabled) return 1;
+      return 0;
+    });
 
   const handleToggle = (id: string, name: string, enabled: boolean) => {
     toggleConnector(id);

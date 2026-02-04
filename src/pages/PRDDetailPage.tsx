@@ -304,10 +304,10 @@ export function PRDDetailPage() {
               
               {/* Status dropdown */}
               <Select value={status} onValueChange={(v) => handleStatusChange(v as PRDStatus)}>
-                <SelectTrigger className="w-32 h-8">
-                  <div className="flex items-center gap-1.5">
+                <SelectTrigger className="w-[140px] h-8">
+                  <div className="flex items-center gap-1.5 truncate">
                     {statusConfig[status].icon}
-                    <SelectValue />
+                    <span className="truncate">{statusConfig[status].label}</span>
                   </div>
                 </SelectTrigger>
                 <SelectContent>
@@ -315,7 +315,7 @@ export function PRDDetailPage() {
                     <SelectItem key={key} value={key}>
                       <div className="flex items-center gap-2">
                         {config.icon}
-                        {config.label}
+                        <span>{config.label}</span>
                       </div>
                     </SelectItem>
                   ))}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
@@ -18,10 +18,20 @@ import {
   Target,
   FileText,
   GanttChartSquare,
+  ArrowLeft,
+  MessageSquare,
+  Pin,
+  PinOff,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTeamStore } from '@/stores/teamStore';
+import { useLilyStore } from '@/stores/lilyStore';
 import { projectService } from '@/lib/services/projectService';
+import { formatDistanceToNow } from 'date-fns';
+import { ko, enUS } from 'date-fns/locale';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import {
   Collapsible,
@@ -79,6 +89,112 @@ function NavItem({ icon: Icon, label, href, badge, isActive, shortcut, onClick }
   );
 }
 
+// Conversation list item for Lily mode
+interface ConversationListItemProps {
+  conv: { id: string; title: string | null; updatedAt: string };
+  isPinned: boolean;
+  isSelected: boolean;
+  isEditing: boolean;
+  editingTitle: string;
+  dateLocale: typeof ko | typeof enUS;
+  t: (key: string, fallback?: string) => string;
+  onSelect: () => void;
+  onDelete: () => void;
+  onPin: () => void;
+  onStartEdit: () => void;
+  onSaveEdit: () => void;
+  onCancelEdit: () => void;
+  onEditingTitleChange: (value: string) => void;
+}
+
+function ConversationListItem({
+  conv,
+  isPinned,
+  isSelected,
+  isEditing,
+  editingTitle,
+  dateLocale,
+  t,
+  onSelect,
+  onDelete,
+  onPin,
+  onStartEdit,
+  onSaveEdit,
+  onCancelEdit,
+  onEditingTitleChange,
+}: ConversationListItemProps) {
+  return (
+    <div
+      className={cn(
+        "group flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-accent",
+        isSelected && "bg-accent"
+      )}
+      onClick={onSelect}
+    >
+      {isPinned ? (
+        <Pin className="h-3 w-3 flex-shrink-0 text-primary" />
+      ) : (
+        <MessageSquare className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+      )}
+      
+      <div className="flex-1 min-w-0">
+        {isEditing ? (
+          <input
+            type="text"
+            value={editingTitle}
+            onChange={(e) => onEditingTitleChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onSaveEdit();
+              if (e.key === 'Escape') onCancelEdit();
+            }}
+            onBlur={onSaveEdit}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full text-sm bg-background border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary"
+            autoFocus
+          />
+        ) : (
+          <p className="text-sm truncate">
+            {conv.title || t('lily.untitledConversation', 'Untitled')}
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          {formatDistanceToNow(new Date(conv.updatedAt), { addSuffix: true, locale: dateLocale })}
+        </p>
+      </div>
+      
+      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+          onClick={(e) => { e.stopPropagation(); onStartEdit(); }}
+          title={t('common.rename', 'Rename')}
+        >
+          <Pencil className="h-3 w-3" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+          onClick={(e) => { e.stopPropagation(); onPin(); }}
+          title={isPinned ? t('lily.unpin', 'Unpin') : t('lily.pin', 'Pin')}
+        >
+          {isPinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 text-destructive"
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          title={t('common.delete', 'Delete')}
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 const PROJECT_ICONS: Record<string, string> = {
   folder: '📁',
   rocket: '🚀',
@@ -98,13 +214,44 @@ interface SidebarProps {
 export function Sidebar({ onNavigate, style }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === 'ko' ? ko : enUS;
   const { currentTeam, teams, selectTeam } = useTeamStore();
+  const { 
+    conversations, 
+    currentConversationId, 
+    loadConversations, 
+    loadConversation,
+    createConversation,
+    deleteConversation,
+    updateConversationTitle,
+    pinConversation,
+  } = useLilyStore();
+  
   const [projectsOpen, setProjectsOpen] = useState(true);
   const [teamsOpen, setTeamsOpen] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [projects, setProjects] = useState<Project[]>([]);
+  
+  // Lily mode state - show conversation history in sidebar when on /lily route
+  const isLilyMode = location.pathname === '/lily';
+  const [editingConvId, setEditingConvId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+  const [pinnedConversations, setPinnedConversations] = useState<string[]>([]);
+
+  // Load pinned conversations
+  useEffect(() => {
+    const pinned = JSON.parse(localStorage.getItem('pinnedConversations') || '[]');
+    setPinnedConversations(pinned);
+  }, [conversations]);
+
+  // Load conversations when in Lily mode and team changes
+  useEffect(() => {
+    if (isLilyMode && currentTeam?.id) {
+      loadConversations(currentTeam.id);
+    }
+  }, [isLilyMode, currentTeam?.id, loadConversations]);
 
   const handleNavigate = (path: string) => {
     navigate(path);
@@ -169,6 +316,149 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
   const filteredProjects = projects.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleNewConversation = async () => {
+    if (currentTeam) {
+      await createConversation(currentTeam.id);
+    }
+  };
+
+  const handleSelectConversation = async (conversationId: string) => {
+    await loadConversation(conversationId);
+  };
+
+  const handleSaveEditTitle = (convId: string) => {
+    if (editingTitle.trim()) {
+      updateConversationTitle(convId, editingTitle.trim());
+    }
+    setEditingConvId(null);
+  };
+
+  const handlePinConversation = (convId: string, pin: boolean) => {
+    pinConversation(convId, pin);
+    if (pin) {
+      setPinnedConversations(prev => [...prev, convId]);
+    } else {
+      setPinnedConversations(prev => prev.filter(id => id !== convId));
+    }
+  };
+
+  // If in Lily mode, show conversation history sidebar
+  if (isLilyMode) {
+    return (
+      <aside className="flex-1 bg-sidebar border-r border-border flex flex-col" style={style}>
+        {/* Back button header */}
+        <div className="h-12 flex items-center px-3 border-b border-border gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8"
+            onClick={() => navigate('/dashboard')}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-violet-500" />
+            <span className="font-semibold text-sm">{t('lily.title')}</span>
+          </div>
+        </div>
+
+        {/* New Conversation Button */}
+        <div className="px-3 py-3 border-b border-border">
+          <Button 
+            onClick={handleNewConversation} 
+            className="w-full gap-2"
+            size="sm"
+          >
+            <Plus className="h-4 w-4" />
+            {t('lily.newConversation', 'New Chat')}
+          </Button>
+        </div>
+
+        {/* Conversation List */}
+        <ScrollArea className="flex-1">
+          <div className="p-2 space-y-1">
+            {conversations.length === 0 ? (
+              <p className="text-center text-muted-foreground text-sm py-4">
+                {t('lily.noHistory', 'No conversations yet')}
+              </p>
+            ) : (
+              <>
+                {/* Pinned */}
+                {conversations.filter(c => pinnedConversations.includes(c.id)).length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-xs font-medium text-muted-foreground px-2 mb-1 flex items-center gap-1">
+                      <Pin className="h-3 w-3" />
+                      {t('lily.pinned', 'Pinned')}
+                    </p>
+                    {conversations.filter(c => pinnedConversations.includes(c.id)).map((conv) => (
+                      <ConversationListItem
+                        key={conv.id}
+                        conv={conv}
+                        isPinned={true}
+                        isSelected={currentConversationId === conv.id}
+                        isEditing={editingConvId === conv.id}
+                        editingTitle={editingTitle}
+                        dateLocale={dateLocale}
+                        t={t}
+                        onSelect={() => handleSelectConversation(conv.id)}
+                        onDelete={() => deleteConversation(conv.id)}
+                        onPin={() => handlePinConversation(conv.id, false)}
+                        onStartEdit={() => { setEditingConvId(conv.id); setEditingTitle(conv.title || ''); }}
+                        onSaveEdit={() => handleSaveEditTitle(conv.id)}
+                        onCancelEdit={() => setEditingConvId(null)}
+                        onEditingTitleChange={setEditingTitle}
+                      />
+                    ))}
+                  </div>
+                )}
+                
+                {/* Recent */}
+                {conversations.filter(c => !pinnedConversations.includes(c.id)).length > 0 && (
+                  <div>
+                    {pinnedConversations.length > 0 && (
+                      <p className="text-xs font-medium text-muted-foreground px-2 mb-1">
+                        {t('lily.recent', 'Recent')}
+                      </p>
+                    )}
+                    {conversations.filter(c => !pinnedConversations.includes(c.id)).map((conv) => (
+                      <ConversationListItem
+                        key={conv.id}
+                        conv={conv}
+                        isPinned={false}
+                        isSelected={currentConversationId === conv.id}
+                        isEditing={editingConvId === conv.id}
+                        editingTitle={editingTitle}
+                        dateLocale={dateLocale}
+                        t={t}
+                        onSelect={() => handleSelectConversation(conv.id)}
+                        onDelete={() => deleteConversation(conv.id)}
+                        onPin={() => handlePinConversation(conv.id, true)}
+                        onStartEdit={() => { setEditingConvId(conv.id); setEditingTitle(conv.title || ''); }}
+                        onSaveEdit={() => handleSaveEditTitle(conv.id)}
+                        onCancelEdit={() => setEditingConvId(null)}
+                        onEditingTitleChange={setEditingTitle}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </ScrollArea>
+
+        {/* Settings */}
+        <div className="border-t border-border p-3">
+          <NavItem
+            icon={Settings}
+            label={t('common.settings')}
+            href="/settings"
+            onClick={onNavigate}
+          />
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside className="flex-1 bg-sidebar border-r border-border flex flex-col" style={style}>

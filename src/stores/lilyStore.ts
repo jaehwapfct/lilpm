@@ -28,6 +28,9 @@ interface LilyStore {
   loadConversation: (conversationId: string) => Promise<void>;
   createConversation: (teamId?: string, projectId?: string) => Promise<string>;
   deleteConversation: (conversationId: string) => Promise<void>;
+  updateConversationTitle: (conversationId: string, title: string) => Promise<void>;
+  pinConversation: (conversationId: string, pinned: boolean) => Promise<void>;
+  reorderConversation: (conversationId: string, newIndex: number) => void;
   loadDataSources: () => Promise<void>;
   generatePRD: () => Promise<void>;
   generateTickets: (teamId: string) => Promise<Issue[]>;
@@ -473,6 +476,61 @@ export const useLilyStore = create<LilyStore>((set, get) => ({
     } catch (error) {
       console.error('Failed to delete conversation:', error);
     }
+  },
+
+  updateConversationTitle: async (conversationId: string, title: string) => {
+    try {
+      await conversationService.updateConversation(conversationId, { title });
+      set((state) => ({
+        conversations: state.conversations.map(c => 
+          c.id === conversationId ? { ...c, title } : c
+        ),
+      }));
+    } catch (error) {
+      console.error('Failed to update conversation title:', error);
+    }
+  },
+
+  pinConversation: async (conversationId: string, pinned: boolean) => {
+    try {
+      // Store pinned state in localStorage since we don't have a DB field for it
+      const pinnedConversations = JSON.parse(localStorage.getItem('pinnedConversations') || '[]') as string[];
+      
+      if (pinned && !pinnedConversations.includes(conversationId)) {
+        pinnedConversations.push(conversationId);
+      } else if (!pinned) {
+        const index = pinnedConversations.indexOf(conversationId);
+        if (index > -1) pinnedConversations.splice(index, 1);
+      }
+      
+      localStorage.setItem('pinnedConversations', JSON.stringify(pinnedConversations));
+      
+      // Sort conversations to put pinned ones first
+      set((state) => ({
+        conversations: [...state.conversations].sort((a, b) => {
+          const aIsPinned = pinnedConversations.includes(a.id);
+          const bIsPinned = pinnedConversations.includes(b.id);
+          if (aIsPinned && !bIsPinned) return -1;
+          if (!aIsPinned && bIsPinned) return 1;
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        }),
+      }));
+    } catch (error) {
+      console.error('Failed to pin conversation:', error);
+    }
+  },
+
+  reorderConversation: (conversationId: string, newIndex: number) => {
+    set((state) => {
+      const conversations = [...state.conversations];
+      const currentIndex = conversations.findIndex(c => c.id === conversationId);
+      if (currentIndex === -1) return state;
+      
+      const [removed] = conversations.splice(currentIndex, 1);
+      conversations.splice(newIndex, 0, removed);
+      
+      return { conversations };
+    });
   },
 
   sendMessage: async (message: string, context?: { teamId?: string; projectId?: string; mcpConnectors?: MCPConnector[] }) => {

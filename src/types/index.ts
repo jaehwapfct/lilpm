@@ -178,6 +178,7 @@ export interface LilyMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  thinking?: string; // Chain of thought reasoning
   timestamp: string;
   metadata?: {
     suggestedIssues?: Partial<Issue>[];

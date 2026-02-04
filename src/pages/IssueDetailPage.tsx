@@ -461,8 +461,8 @@ export function IssueDetailPage() {
                     }}
                     autoFocus
                     placeholder={t('issues.addDescription')}
-                    rows={6}
-                    className="focus-visible:ring-1 focus-visible:ring-primary"
+                    rows={15}
+                    className="focus-visible:ring-1 focus-visible:ring-primary min-h-[300px] resize-y"
                   />
                   <div className="absolute right-2 top-2 flex items-center gap-1">
                     {isSavingDescription && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}

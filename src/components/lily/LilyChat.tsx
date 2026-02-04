@@ -7,6 +7,7 @@ import {
   FileText, 
   Ticket,
   ChevronDown,
+  ChevronRight,
   Loader2,
   Bot,
   User,
@@ -20,6 +21,12 @@ import {
   Square,
   Settings,
   Link,
+  Pin,
+  PinOff,
+  Pencil,
+  MoreHorizontal,
+  GripVertical,
+  Brain,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -42,7 +49,7 @@ import { SuggestedIssuesList } from './SuggestedIssueCard';
 import { cn } from '@/lib/utils';
 import type { AIProvider, Issue } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
-import { ko, enUS } from 'date-fns/locale';
+import { ko, enUS, Locale } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Plug, ExternalLink } from 'lucide-react';
@@ -51,6 +58,161 @@ import { Switch } from '@/components/ui/switch';
 const MIN_HISTORY_WIDTH = 200;
 const MAX_HISTORY_WIDTH = 400;
 const DEFAULT_HISTORY_WIDTH = 256; // 16rem = 256px
+
+// ThinkingBlock component for Chain of Thought
+function ThinkingBlock({ content, t }: { content: string; t: (key: string, fallback?: string) => string }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  if (!content.trim()) return null;
+  
+  return (
+    <div className="border border-border/50 rounded-md bg-muted/30 overflow-hidden">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:bg-muted/50 transition-colors"
+      >
+        {isExpanded ? (
+          <ChevronDown className="h-3 w-3" />
+        ) : (
+          <ChevronRight className="h-3 w-3" />
+        )}
+        <Brain className="h-3 w-3 text-violet-500" />
+        <span className="font-medium">{t('lily.chainOfThought', 'Thinking Process')}</span>
+        {!isExpanded && (
+          <span className="text-muted-foreground/70 truncate flex-1 text-left">
+            {content.slice(0, 50)}...
+          </span>
+        )}
+      </button>
+      {isExpanded && (
+        <div className="px-3 pb-3 pt-1 text-xs text-muted-foreground whitespace-pre-wrap border-t border-border/30">
+          {content}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ConversationItem component for the sidebar
+interface ConversationItemProps {
+  conv: { id: string; title: string | null; updatedAt: string };
+  isPinned: boolean;
+  isSelected: boolean;
+  isEditing: boolean;
+  editingTitle: string;
+  dateLocale: Locale;
+  t: (key: string, fallback?: string) => string;
+  onSelect: () => void;
+  onDelete: () => void;
+  onPin: () => void;
+  onStartEdit: () => void;
+  onSaveEdit: () => void;
+  onCancelEdit: () => void;
+  onEditingTitleChange: (value: string) => void;
+}
+
+function ConversationItem({
+  conv,
+  isPinned,
+  isSelected,
+  isEditing,
+  editingTitle,
+  dateLocale,
+  t,
+  onSelect,
+  onDelete,
+  onPin,
+  onStartEdit,
+  onSaveEdit,
+  onCancelEdit,
+  onEditingTitleChange,
+}: ConversationItemProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  return (
+    <div
+      className={cn(
+        "group flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-accent",
+        isSelected && "bg-accent"
+      )}
+      onClick={onSelect}
+    >
+      {isPinned && <Pin className="h-3 w-3 flex-shrink-0 text-primary" />}
+      {!isPinned && <MessageSquare className="h-4 w-4 flex-shrink-0 text-muted-foreground" />}
+      
+      <div className="flex-1 min-w-0">
+        {isEditing ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={editingTitle}
+            onChange={(e) => onEditingTitleChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onSaveEdit();
+              if (e.key === 'Escape') onCancelEdit();
+            }}
+            onBlur={onSaveEdit}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full text-sm bg-background border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        ) : (
+          <p className="text-sm truncate">
+            {conv.title || t('lily.untitledConversation', 'Untitled')}
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          {formatDistanceToNow(new Date(conv.updatedAt), { addSuffix: true, locale: dateLocale })}
+        </p>
+      </div>
+      
+      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+          onClick={(e) => {
+            e.stopPropagation();
+            onStartEdit();
+          }}
+          title={t('common.rename', 'Rename')}
+        >
+          <Pencil className="h-3 w-3" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+          onClick={(e) => {
+            e.stopPropagation();
+            onPin();
+          }}
+          title={isPinned ? t('lily.unpin', 'Unpin') : t('lily.pin', 'Pin')}
+        >
+          {isPinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 text-destructive"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          title={t('common.delete', 'Delete')}
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export function LilyChat() {
   const { t, i18n } = useTranslation();
@@ -114,8 +276,21 @@ export function LilyChat() {
     loadConversation,
     createConversation,
     deleteConversation,
+    updateConversationTitle,
+    pinConversation,
     analyzeProject,
   } = useLilyStore();
+
+  // State for editing conversation titles
+  const [editingConvId, setEditingConvId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+  const [pinnedConversations, setPinnedConversations] = useState<string[]>([]);
+
+  // Load pinned conversations from localStorage
+  useEffect(() => {
+    const pinned = JSON.parse(localStorage.getItem('pinnedConversations') || '[]');
+    setPinnedConversations(pinned);
+  }, [conversations]);
   
   const { currentTeam } = useTeamStore();
   const { createIssue } = useIssueStore();
@@ -208,11 +383,11 @@ export function LilyChat() {
 
   return (
     <div className="flex h-full bg-background">
-      {/* Sidebar - Conversation History with Resize Handle */}
+      {/* Sidebar - Hidden on desktop (moved to main Sidebar), shown on mobile when toggled */}
       <div 
         className={cn(
-          "relative border-r border-border flex flex-col transition-all duration-200 fixed md:relative inset-y-0 left-0 z-40 bg-background",
-          showHistory ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          "relative border-r border-border flex flex-col transition-all duration-200 fixed inset-y-0 left-0 z-40 bg-background md:hidden",
+          showHistory ? "translate-x-0" : "-translate-x-full"
         )}
         style={{ width: historyWidth }}
       >
@@ -235,37 +410,88 @@ export function LilyChat() {
                 {t('lily.noHistory')}
               </p>
             ) : (
-              conversations.map((conv) => (
-                <div
-                  key={conv.id}
-                  className={cn(
-                    "group flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-accent",
-                    currentConversationId === conv.id && "bg-accent"
-                  )}
-                  onClick={() => handleSelectConversation(conv.id)}
-                >
-                  <MessageSquare className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm truncate">
-                      {conv.title || t('lily.untitledConversation', 'Untitled')}
+              <>
+                {/* Pinned Conversations */}
+                {conversations.filter(c => pinnedConversations.includes(c.id)).length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-xs font-medium text-muted-foreground px-2 mb-1 flex items-center gap-1">
+                      <Pin className="h-3 w-3" />
+                      {t('lily.pinned', 'Pinned')}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(conv.updatedAt), { addSuffix: true, locale: dateLocale })}
-                    </p>
+                    {conversations.filter(c => pinnedConversations.includes(c.id)).map((conv) => (
+                      <ConversationItem 
+                        key={conv.id}
+                        conv={conv}
+                        isPinned={true}
+                        isSelected={currentConversationId === conv.id}
+                        isEditing={editingConvId === conv.id}
+                        editingTitle={editingTitle}
+                        dateLocale={dateLocale}
+                        t={t}
+                        onSelect={() => handleSelectConversation(conv.id)}
+                        onDelete={() => deleteConversation(conv.id)}
+                        onPin={() => {
+                          pinConversation(conv.id, false);
+                          setPinnedConversations(prev => prev.filter(id => id !== conv.id));
+                        }}
+                        onStartEdit={() => {
+                          setEditingConvId(conv.id);
+                          setEditingTitle(conv.title || '');
+                        }}
+                        onSaveEdit={() => {
+                          if (editingTitle.trim()) {
+                            updateConversationTitle(conv.id, editingTitle.trim());
+                          }
+                          setEditingConvId(null);
+                        }}
+                        onCancelEdit={() => setEditingConvId(null)}
+                        onEditingTitleChange={setEditingTitle}
+                      />
+                    ))}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteConversation(conv.id);
-                    }}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))
+                )}
+                
+                {/* Recent Conversations */}
+                {conversations.filter(c => !pinnedConversations.includes(c.id)).length > 0 && (
+                  <div>
+                    {pinnedConversations.length > 0 && (
+                      <p className="text-xs font-medium text-muted-foreground px-2 mb-1">
+                        {t('lily.recent', 'Recent')}
+                      </p>
+                    )}
+                    {conversations.filter(c => !pinnedConversations.includes(c.id)).map((conv) => (
+                      <ConversationItem 
+                        key={conv.id}
+                        conv={conv}
+                        isPinned={false}
+                        isSelected={currentConversationId === conv.id}
+                        isEditing={editingConvId === conv.id}
+                        editingTitle={editingTitle}
+                        dateLocale={dateLocale}
+                        t={t}
+                        onSelect={() => handleSelectConversation(conv.id)}
+                        onDelete={() => deleteConversation(conv.id)}
+                        onPin={() => {
+                          pinConversation(conv.id, true);
+                          setPinnedConversations(prev => [...prev, conv.id]);
+                        }}
+                        onStartEdit={() => {
+                          setEditingConvId(conv.id);
+                          setEditingTitle(conv.title || '');
+                        }}
+                        onSaveEdit={() => {
+                          if (editingTitle.trim()) {
+                            updateConversationTitle(conv.id, editingTitle.trim());
+                          }
+                          setEditingConvId(null);
+                        }}
+                        onCancelEdit={() => setEditingConvId(null)}
+                        onEditingTitleChange={setEditingTitle}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </ScrollArea>
@@ -341,74 +567,6 @@ export function LilyChat() {
                     {selectedProvider === provider && <Check className="h-4 w-4" />}
                   </DropdownMenuItem>
                 ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* MCP Connect */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Plug className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">{t('lily.connect', 'Connect')}</span>
-                  {getActiveConnectors().length > 0 && (
-                    <Badge variant="secondary" className="h-4 px-1 text-[10px]">
-                      {getActiveConnectors().length}
-                    </Badge>
-                  )}
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-72">
-                <DropdownMenuLabel className="flex items-center gap-2">
-                  <Plug className="h-4 w-4" />
-                  {t('lily.mcpConnections', 'MCPs')}
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <div className="max-h-60 overflow-y-auto">
-                  {sortedConnectors.slice(0, 8).map((connector) => (
-                    <div
-                      key={connector.id}
-                      className="flex items-center justify-between px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        toggleConnector(connector.id);
-                        toast.success(connector.enabled 
-                          ? `${connector.name} disconnected` 
-                          : `${connector.name} connected`
-                        );
-                      }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{connector.icon}</span>
-                        <div>
-                          <p className="text-sm font-medium">{connector.name}</p>
-                          <p className="text-[10px] text-muted-foreground truncate max-w-[150px]">
-                            {connector.description}
-                          </p>
-                        </div>
-                      </div>
-                      <Switch 
-                        checked={connector.enabled} 
-                        onCheckedChange={() => {
-                          toggleConnector(connector.id);
-                          toast.success(connector.enabled 
-                            ? `${connector.name} disconnected` 
-                            : `${connector.name} connected`
-                          );
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                  ))}
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => navigate('/settings/mcp')}
-                  className="flex items-center gap-2"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  <span>{t('lily.viewAllMcp', 'View all MCPs')}</span>
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -524,8 +682,29 @@ export function LilyChat() {
                   )}
                 >
                   {message.role === 'assistant' ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <ReactMarkdown>{message.content}</ReactMarkdown>
+                    <div className="space-y-2">
+                      {/* Chain of Thought UI */}
+                      {message.thinking && (
+                        <ThinkingBlock content={message.thinking} t={t} />
+                      )}
+                      {/* Parse thinking from content if present */}
+                      {message.content.includes('<thinking>') ? (
+                        <>
+                          <ThinkingBlock 
+                            content={message.content.match(/<thinking>([\s\S]*?)<\/thinking>/)?.[1] || ''} 
+                            t={t} 
+                          />
+                          <div className="prose prose-sm dark:prose-invert max-w-none">
+                            <ReactMarkdown>
+                              {message.content.replace(/<thinking>[\s\S]*?<\/thinking>/g, '').trim()}
+                            </ReactMarkdown>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                          <ReactMarkdown>{message.content}</ReactMarkdown>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -600,7 +779,73 @@ export function LilyChat() {
 
         {/* Input */}
         <div className="border-t border-border p-3 sm:p-4">
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-end">
+            {/* MCP Connect Button */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-11 w-11 flex-shrink-0">
+                  <Plug className="h-4 w-4" />
+                  {getActiveConnectors().length > 0 && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 bg-primary text-primary-foreground text-[10px] rounded-full flex items-center justify-center">
+                      {getActiveConnectors().length}
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-72">
+                <DropdownMenuLabel className="flex items-center gap-2">
+                  <Plug className="h-4 w-4" />
+                  {t('lily.mcpConnections', 'MCPs')}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <div className="max-h-60 overflow-y-auto">
+                  {sortedConnectors.slice(0, 8).map((connector) => (
+                    <div
+                      key={connector.id}
+                      className="flex items-center justify-between px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleConnector(connector.id);
+                        toast.success(connector.enabled 
+                          ? `${connector.name} disconnected` 
+                          : `${connector.name} connected`
+                        );
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{connector.icon}</span>
+                        <div>
+                          <p className="text-sm font-medium">{connector.name}</p>
+                          <p className="text-[10px] text-muted-foreground truncate max-w-[150px]">
+                            {connector.description}
+                          </p>
+                        </div>
+                      </div>
+                      <Switch 
+                        checked={connector.enabled} 
+                        onCheckedChange={() => {
+                          toggleConnector(connector.id);
+                          toast.success(connector.enabled 
+                            ? `${connector.name} disconnected` 
+                            : `${connector.name} connected`
+                          );
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => navigate('/settings/mcp')}
+                  className="flex items-center gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  <span>{t('lily.viewAllMcp', 'View all MCPs')}</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
             <Textarea
               ref={inputRef}
               value={input}
@@ -609,7 +854,7 @@ export function LilyChat() {
               onCompositionStart={() => setIsComposing(true)}
               onCompositionEnd={() => setIsComposing(false)}
               placeholder={t('lily.placeholder')}
-              className="min-h-[44px] max-h-[200px] resize-none text-sm"
+              className="min-h-[44px] max-h-[200px] resize-none text-sm flex-1"
               rows={1}
             />
             {isLoading ? (
