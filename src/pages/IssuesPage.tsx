@@ -211,7 +211,12 @@ export function IssuesPage() {
               onCreateIssue={handleOpenCreateModal}
             />
           ) : viewPreferences.layout === 'gantt' ? (
-            <GanttChart issues={filteredIssues} />
+            <GanttChart 
+              issues={filteredIssues} 
+              onIssueUpdate={async (issueId, updates) => {
+                await updateIssue(issueId, updates);
+              }}
+            />
           ) : (
             <div className="h-full overflow-y-auto p-4">
               <IssueList

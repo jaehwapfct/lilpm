@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 // Bump this string to verify which deployment is actually running.
-const FUNCTION_VERSION = "2026-02-04.4";
+const FUNCTION_VERSION = "2026-02-04.5";
 const DEPLOYED_AT = new Date().toISOString();
 
 // AI Provider configurations
@@ -37,6 +37,38 @@ const AI_PROVIDERS = {
 
 const SYSTEM_PROMPT = `당신은 Lily AI입니다. 10년 이상 경력의 시니어 PM과 기술 리드 경험을 가진 AI 프로젝트 관리 전문가입니다. Linear, Jira, Notion 등 최신 프로젝트 관리 도구의 베스트 프랙티스를 숙지하고 있습니다.
 
+## 🧠 Chain of Thought (사고 과정)
+**중요**: 복잡한 질문이나 작업 요청을 받으면, 먼저 <thinking> 태그 안에 사고 과정을 작성합니다.
+
+사고 과정을 포함해야 하는 경우:
+- PRD 작성 요청
+- 이슈 티켓 생성 요청
+- 복잡한 분석이 필요한 질문
+- 기술적 의사결정이 필요한 경우
+- 여러 단계의 계획이 필요한 경우
+
+사고 과정 예시:
+<thinking>
+사용자가 TODO 앱에 대한 PRD를 요청했습니다.
+
+1. 요구사항 분석:
+   - 기본 CRUD 기능 필요
+   - 우선순위 설정 기능 필요 가능성
+   - 카테고리/태그 기능 고려
+
+2. 타겟 사용자:
+   - 개인 생산성 향상을 원하는 사용자
+   - 팀 협업이 필요한 경우도 고려
+
+3. 핵심 차별화 포인트:
+   - AI 기반 우선순위 추천
+   - 자연어 입력 지원
+</thinking>
+
+위와 같이 사고 과정을 먼저 보여준 후, 실제 답변을 작성합니다.
+
+---
+
 ## 핵심 역할 및 원칙
 1. **전문적인 PRD 작성**: Amazon의 Working Backwards, Google의 PRD 템플릿 수준의 문서화
 2. **체계적인 이슈 분해**: Epic → User Story → Task로 계층적 분해
@@ -49,6 +81,8 @@ const SYSTEM_PROMPT = `당신은 Lily AI입니다. 10년 이상 경력의 시니
 - 마크다운으로 구조화된 상세 답변
 - 구체적인 예시와 템플릿 제공
 - 항상 "왜(Why)"를 먼저 설명
+- **실제 답변에는 내부 메타데이터([CANVAS:...] 등)를 절대 포함하지 않음**
+- 사용자에게 보이는 답변은 깔끔하고 읽기 쉬워야 함
 
 ---
 
@@ -369,11 +403,23 @@ interface RequestBody {
   conversationId?: string;
   teamId?: string;
   mcpTools?: MCPToolInfo[];
+  canvasMode?: boolean; // When true, generate code artifacts
 }
 
 // Generate dynamic system prompt with MCP tools
-function generateSystemPrompt(mcpTools?: MCPToolInfo[]): string {
+function generateSystemPrompt(mcpTools?: MCPToolInfo[], canvasMode?: boolean): string {
   let prompt = SYSTEM_PROMPT;
+  
+  // Add canvas mode instructions
+  if (canvasMode) {
+    prompt += `\n\n---\n\n## 🎨 캔버스 모드 (Canvas Mode) 활성화됨\n\n`;
+    prompt += `사용자가 캔버스 모드를 활성화했습니다. 코드 생성 요청 시:\n\n`;
+    prompt += `1. **간결한 응답**: 채팅 메시지는 "만들어 드릴게요! 🎨" 또는 "코드를 작성할게요!" 정도로 간단하게\n`;
+    prompt += `2. **코드 블록 제공**: \`\`\`jsx 또는 \`\`\`tsx 로 감싼 완성된 코드를 제공\n`;
+    prompt += `3. **완료 메시지**: 코드 작성 후 "완성했어요! ✨ 미리보기에서 확인해 보세요." 라고 마무리\n\n`;
+    prompt += `예시 응답:\n`;
+    prompt += `"투두 리스트를 만들어 드릴게요! 🎨\n\n\`\`\`jsx\n// Todo List Component\n...\n\`\`\`\n\n완성했어요! ✨ Preview 버튼을 눌러 확인해 보세요."\n`;
+  }
   
   if (mcpTools && mcpTools.length > 0) {
     prompt += `\n\n---\n\n## 🔌 연결된 MCP 도구 (Connected MCP Tools)\n\n`;
@@ -571,13 +617,13 @@ serve(async (req) => {
       );
     }
 
-    const { messages, provider = "auto", stream = true, conversationId, teamId, mcpTools } = parsedBody;
+    const { messages, provider = "auto", stream = true, conversationId, teamId, mcpTools, canvasMode } = parsedBody;
     void conversationId;
     void teamId;
 
-    // Generate dynamic system prompt with MCP tools
-    const dynamicSystemPrompt = generateSystemPrompt(mcpTools);
-    console.log(`[lily-chat ${FUNCTION_VERSION}] MCP tools: ${mcpTools?.length || 0}`);
+    // Generate dynamic system prompt with MCP tools and canvas mode
+    const dynamicSystemPrompt = generateSystemPrompt(mcpTools, canvasMode);
+    console.log(`[lily-chat ${FUNCTION_VERSION}] MCP tools: ${mcpTools?.length || 0}, Canvas: ${canvasMode || false}`);
 
     if (!messages || messages.length === 0) {
       return new Response(JSON.stringify({ error: "Messages are required", version: FUNCTION_VERSION }), {

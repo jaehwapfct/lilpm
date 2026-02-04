@@ -34,7 +34,7 @@ interface LilyStore {
   showArtifact: boolean;
   
   // Actions
-  sendMessage: (message: string, context?: { teamId?: string; projectId?: string; mcpConnectors?: MCPConnector[] }) => Promise<void>;
+  sendMessage: (message: string, context?: { teamId?: string; projectId?: string; mcpConnectors?: MCPConnector[]; canvasMode?: boolean }) => Promise<void>;
   stopGeneration: () => void;
   loadConversations: (teamId?: string) => Promise<void>;
   loadConversation: (conversationId: string) => Promise<void>;
@@ -257,6 +257,7 @@ async function streamChat({
   messages,
   provider,
   mcpConnectors,
+  canvasMode,
   onDelta,
   onDone,
   onError,
@@ -265,6 +266,7 @@ async function streamChat({
   messages: { role: 'user' | 'assistant'; content: string }[];
   provider: AIProvider;
   mcpConnectors?: MCPConnector[];
+  canvasMode?: boolean;
   onDelta: (text: string) => void;
   onDone: (fullContent: string) => void;
   onError: (error: string) => void;
@@ -292,6 +294,7 @@ async function streamChat({
       provider, 
       stream: true,
       mcpTools: activeMcpTools,
+      canvasMode: canvasMode || false,
     }),
     signal,
   });
@@ -552,7 +555,7 @@ export const useLilyStore = create<LilyStore>((set, get) => ({
     });
   },
 
-  sendMessage: async (message: string, context?: { teamId?: string; projectId?: string; mcpConnectors?: MCPConnector[] }) => {
+  sendMessage: async (message: string, context?: { teamId?: string; projectId?: string; mcpConnectors?: MCPConnector[]; canvasMode?: boolean }) => {
     const userMessage: LilyMessage = {
       id: Date.now().toString(),
       role: 'user',
@@ -608,6 +611,7 @@ export const useLilyStore = create<LilyStore>((set, get) => ({
         messages: apiMessages,
         provider: get().selectedProvider,
         mcpConnectors: context?.mcpConnectors,
+        canvasMode: context?.canvasMode,
         signal: abortController.signal,
         onDelta: (chunk) => updateAssistantMessage(chunk),
         onDone: async (fullContent) => {

@@ -89,7 +89,9 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
     originalDueDate: null,
     originalCreatedAt: null,
   });
+  const [dragDelta, setDragDelta] = useState(0); // Visual offset during drag (in pixels)
   const [linkingFrom, setLinkingFrom] = useState<string | null>(null);
+  const [linkingFromPos, setLinkingFromPos] = useState<{ x: number; y: number } | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [dependencies, setDependencies] = useState<Dependency[]>([]);
   
@@ -270,38 +272,46 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
   }, []);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!dragState.issueId || !dragState.mode) return;
-    
+    // Handle linking line
     if (linkingFrom) {
       setMousePosition({ x: e.clientX, y: e.clientY });
       return;
     }
     
+    if (!dragState.issueId || !dragState.mode) return;
+    
     const deltaX = e.clientX - dragState.startX;
-    const daysDelta = Math.round(deltaX / cellWidth);
     
-    if (daysDelta === 0) return;
-    
-    const issue = issues.find(i => i.id === dragState.issueId);
-    if (!issue) return;
-    
-    const originalDueDate = dragState.originalDueDate 
-      ? parseISO(dragState.originalDueDate) 
-      : addDays(parseISO(dragState.originalCreatedAt!), 3);
-    
-    if (dragState.mode === 'move') {
-      const newDueDate = addDays(originalDueDate, daysDelta);
-      onIssueUpdate?.(issue.id, { dueDate: format(newDueDate, 'yyyy-MM-dd') });
-    } else if (dragState.mode === 'resize-end') {
-      const newDueDate = addDays(originalDueDate, daysDelta);
-      onIssueUpdate?.(issue.id, { dueDate: format(newDueDate, 'yyyy-MM-dd') });
-    }
-  }, [dragState, cellWidth, issues, onIssueUpdate, linkingFrom]);
+    // Update visual drag delta immediately for smooth feedback
+    setDragDelta(deltaX);
+  }, [dragState, linkingFrom]);
 
   const handleMouseUp = useCallback(() => {
     if (linkingFrom) {
       setLinkingFrom(null);
+      setLinkingFromPos(null);
     }
+    
+    // Commit the drag changes
+    if (dragState.issueId && dragState.mode && dragDelta !== 0) {
+      const daysDelta = Math.round(dragDelta / cellWidth);
+      
+      if (daysDelta !== 0) {
+        const issue = issues.find(i => i.id === dragState.issueId);
+        if (issue) {
+          const originalDueDate = dragState.originalDueDate 
+            ? parseISO(dragState.originalDueDate) 
+            : addDays(parseISO(dragState.originalCreatedAt!), 3);
+          
+          if (dragState.mode === 'move' || dragState.mode === 'resize-end') {
+            const newDueDate = addDays(originalDueDate, daysDelta);
+            onIssueUpdate?.(issue.id, { dueDate: format(newDueDate, 'yyyy-MM-dd') });
+          }
+        }
+      }
+    }
+    
+    setDragDelta(0);
     setDragState({
       issueId: null,
       mode: null,
@@ -309,12 +319,18 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
       originalDueDate: null,
       originalCreatedAt: null,
     });
-  }, [linkingFrom]);
+  }, [linkingFrom, dragState, dragDelta, cellWidth, issues, onIssueUpdate]);
 
-  const handleStartLinking = useCallback((e: React.MouseEvent, issueId: string) => {
+  const handleStartLinking = useCallback((e: React.MouseEvent, issueId: string, side: 'left' | 'right') => {
     e.preventDefault();
     e.stopPropagation();
     setLinkingFrom(issueId);
+    // Store the exact position where the linking started
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    setLinkingFromPos({ 
+      x: rect.left + rect.width / 2, 
+      y: rect.top + rect.height / 2 
+    });
     setMousePosition({ x: e.clientX, y: e.clientY });
   }, []);
 
@@ -668,22 +684,34 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
                         </div>
                         
                         {/* Issue Bar */}
-                        {barPos.isVisible && (
+                        {barPos.isVisible && (() => {
+                          // Calculate visual offset for dragged bar
+                          const isDragging = dragState.issueId === issue.id;
+                          const visualOffset = isDragging ? dragDelta : 0;
+                          const visualWidth = isDragging && dragState.mode === 'resize-end' 
+                            ? `${Math.max(60, parseFloat(barPos.width) + dragDelta)}px`
+                            : barPos.width;
+                          const visualLeft = isDragging && dragState.mode === 'move'
+                            ? `${parseFloat(barPos.left) + dragDelta}px`
+                            : barPos.left;
+                          
+                          return (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div
                                 className={cn(
-                                  "absolute top-1/2 -translate-y-1/2 h-6 rounded transition-all shadow-sm group/bar",
+                                  "absolute top-1/2 -translate-y-1/2 h-6 rounded shadow-sm group/bar select-none",
                                   getStatusColor(issue.status),
                                   !barPos.hasDueDate && "opacity-60 border-2 border-dashed border-white/30",
-                                  dragState.issueId === issue.id && "ring-2 ring-white ring-opacity-50 z-30",
+                                  isDragging && "ring-2 ring-white ring-opacity-50 z-30 transition-none",
+                                  !isDragging && "transition-all",
                                   linkingFrom === issue.id && "ring-2 ring-yellow-400 z-30"
                                 )}
                                 style={{ 
-                                  left: barPos.left, 
-                                  width: barPos.width,
+                                  left: visualLeft, 
+                                  width: visualWidth,
                                   minWidth: '60px',
-                                  cursor: dragState.mode ? 'grabbing' : 'grab',
+                                  cursor: isDragging ? 'grabbing' : 'grab',
                                 }}
                                 onMouseDown={(e) => handleBarMouseDown(e, issue, 'move')}
                                 onMouseEnter={() => handleBarMouseEnter(issue.id)}
@@ -691,14 +719,14 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
                               >
                                 {/* Left resize handle */}
                                 <div 
-                                  className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 bg-white/20 rounded-l flex items-center justify-center"
-                                  onMouseDown={(e) => handleBarMouseDown(e, issue, 'resize-start')}
+                                  className="absolute left-0 top-0 bottom-0 w-3 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 bg-white/20 rounded-l flex items-center justify-center z-10"
+                                  onMouseDown={(e) => { e.stopPropagation(); handleBarMouseDown(e, issue, 'resize-start'); }}
                                 >
                                   <GripVertical className="h-3 w-3 text-white/70" />
                                 </div>
                                 
                                 {/* Bar content */}
-                                <div className="h-full flex items-center px-3 overflow-hidden">
+                                <div className="h-full flex items-center px-3 overflow-hidden pointer-events-none">
                                   <StatusIcon status={issue.status} className="h-3 w-3 mr-1.5 flex-shrink-0 text-white" />
                                   <span className="text-[10px] text-white font-medium truncate">
                                     {issue.identifier}
@@ -707,22 +735,22 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
                                 
                                 {/* Right resize handle */}
                                 <div 
-                                  className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 bg-white/20 rounded-r flex items-center justify-center"
-                                  onMouseDown={(e) => handleBarMouseDown(e, issue, 'resize-end')}
+                                  className="absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 bg-white/20 rounded-r flex items-center justify-center z-10"
+                                  onMouseDown={(e) => { e.stopPropagation(); handleBarMouseDown(e, issue, 'resize-end'); }}
                                 >
                                   <GripVertical className="h-3 w-3 text-white/70" />
                                 </div>
                                 
                                 {/* Link points */}
                                 <div 
-                                  className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-yellow-400 border-2 border-white opacity-0 group-hover/bar:opacity-100 cursor-crosshair flex items-center justify-center"
-                                  onMouseDown={(e) => handleStartLinking(e, issue.id)}
+                                  className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-yellow-400 border-2 border-white opacity-0 group-hover/bar:opacity-100 cursor-crosshair flex items-center justify-center z-20"
+                                  onMouseDown={(e) => { e.stopPropagation(); handleStartLinking(e, issue.id, 'left'); }}
                                 >
                                   <Link2 className="h-2 w-2 text-yellow-900" />
                                 </div>
                                 <div 
-                                  className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-yellow-400 border-2 border-white opacity-0 group-hover/bar:opacity-100 cursor-crosshair flex items-center justify-center"
-                                  onMouseDown={(e) => handleStartLinking(e, issue.id)}
+                                  className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-yellow-400 border-2 border-white opacity-0 group-hover/bar:opacity-100 cursor-crosshair flex items-center justify-center z-20"
+                                  onMouseDown={(e) => { e.stopPropagation(); handleStartLinking(e, issue.id, 'right'); }}
                                 >
                                   <Link2 className="h-2 w-2 text-yellow-900" />
                                 </div>
@@ -747,7 +775,8 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
                               </div>
                             </TooltipContent>
                           </Tooltip>
-                        )}
+                          );
+                        })()}
                       </div>
                     );
                   })}
@@ -770,17 +799,41 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
         </div>
       </div>
 
-      {/* Dependency Lines - SVG Overlay */}
+      {/* Dependency Lines - SVG Overlay (Notion-style bezier curves) */}
       <svg 
         className="absolute top-0 left-0 w-full h-full pointer-events-none z-[15]"
         style={{ overflow: 'visible' }}
       >
+        <defs>
+          <marker
+            id="arrowhead"
+            markerWidth="10"
+            markerHeight="7"
+            refX="9"
+            refY="3.5"
+            orient="auto"
+            markerUnits="strokeWidth"
+          >
+            <polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b" />
+          </marker>
+          <marker
+            id="arrowhead-hover"
+            markerWidth="10"
+            markerHeight="7"
+            refX="9"
+            refY="3.5"
+            orient="auto"
+            markerUnits="strokeWidth"
+          >
+            <polygon points="0 0, 10 3.5, 0 7" fill="#ef4444" />
+          </marker>
+        </defs>
+        
         {dependencies.map((dep, index) => {
           const fromIssue = issues.find(i => i.id === dep.from);
           const toIssue = issues.find(i => i.id === dep.to);
           if (!fromIssue || !toIssue) return null;
           
-          // Calculate positions - simplified for now
           const fromPos = getBarPosition(fromIssue);
           const toPos = getBarPosition(toIssue);
           
@@ -796,54 +849,107 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
             }
           }
           
-          // Calculate actual pixel positions
-          const sidebarWidth = 288; // w-72 = 288px
-          const headerHeight = 56 + 64; // Toolbar + Timeline header
+          // Calculate actual pixel positions with scroll offset consideration
+          const sidebarWidth = 288;
+          const headerHeight = 56 + 64;
           const rowHeight = 40;
           
+          // End of source bar
           const fromX = sidebarWidth + parseFloat(fromPos.left) + parseFloat(fromPos.width);
           const fromY = headerHeight + (fromRowIndex * rowHeight) + (rowHeight / 2);
+          // Start of target bar
           const toX = sidebarWidth + parseFloat(toPos.left);
           const toY = headerHeight + (toRowIndex * rowHeight) + (rowHeight / 2);
           
-          // Draw curved line
-          const midX = (fromX + toX) / 2;
+          // Notion-style bezier curve: horizontal exit, then curve to target
+          const horizontalOffset = Math.min(Math.abs(toX - fromX) / 3, 40);
+          const verticalDistance = Math.abs(toY - fromY);
+          
+          // Control points for smooth S-curve like Notion
+          let pathD: string;
+          
+          if (toX > fromX) {
+            // Target is to the right (normal case)
+            const cp1x = fromX + horizontalOffset;
+            const cp1y = fromY;
+            const cp2x = toX - horizontalOffset;
+            const cp2y = toY;
+            pathD = `M ${fromX} ${fromY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${toX} ${toY}`;
+          } else {
+            // Target is to the left - need to go around
+            const loopOffset = Math.max(40, verticalDistance / 2);
+            const midY = (fromY + toY) / 2;
+            
+            pathD = `M ${fromX} ${fromY} 
+                     C ${fromX + loopOffset} ${fromY}, 
+                       ${fromX + loopOffset} ${midY}, 
+                       ${(fromX + toX) / 2} ${midY}
+                     C ${toX - loopOffset} ${midY}, 
+                       ${toX - loopOffset} ${toY}, 
+                       ${toX} ${toY}`;
+          }
           
           return (
-            <g key={`dep-${index}`} className="pointer-events-auto">
+            <g key={`dep-${index}`} className="pointer-events-auto group/dep">
+              {/* Invisible wider path for easier clicking */}
               <path
-                d={`M ${fromX} ${fromY} C ${midX} ${fromY}, ${midX} ${toY}, ${toX} ${toY}`}
+                d={pathD}
                 fill="none"
-                stroke="#f59e0b"
-                strokeWidth="2"
-                strokeDasharray="5,3"
-                className="cursor-pointer hover:stroke-red-500 transition-colors"
+                stroke="transparent"
+                strokeWidth="12"
+                className="cursor-pointer"
                 onClick={() => {
-                  // Remove dependency
                   setDependencies(prev => prev.filter((_, i) => i !== index));
                 }}
               />
-              {/* Arrow head */}
-              <polygon
-                points={`${toX},${toY} ${toX - 8},${toY - 4} ${toX - 8},${toY + 4}`}
-                fill="#f59e0b"
-                className="hover:fill-red-500 transition-colors"
+              {/* Visible path */}
+              <path
+                d={pathD}
+                fill="none"
+                stroke="#f59e0b"
+                strokeWidth="2"
+                markerEnd="url(#arrowhead)"
+                className="group-hover/dep:stroke-red-500 transition-colors"
+                style={{ pointerEvents: 'none' }}
+              />
+              {/* Hover effect line */}
+              <path
+                d={pathD}
+                fill="none"
+                stroke="transparent"
+                strokeWidth="2"
+                markerEnd="url(#arrowhead-hover)"
+                className="opacity-0 group-hover/dep:opacity-100 transition-opacity"
+                style={{ pointerEvents: 'none' }}
               />
             </g>
           );
         })}
         
-        {/* Linking line while dragging */}
-        {linkingFrom && mousePosition.x > 0 && (
-          <line
-            x1={288 + parseFloat(getBarPosition(issues.find(i => i.id === linkingFrom)!)?.left || '0') + parseFloat(getBarPosition(issues.find(i => i.id === linkingFrom)!)?.width || '0')}
-            y1={120 + groupedIssues.flatMap(g => g.issues).findIndex(i => i.id === linkingFrom) * 40 + 20}
-            x2={mousePosition.x}
-            y2={mousePosition.y}
-            stroke="#f59e0b"
-            strokeWidth="2"
-            strokeDasharray="5,3"
-          />
+        {/* Linking line while dragging - smooth bezier to mouse */}
+        {linkingFrom && linkingFromPos && (
+          (() => {
+            const fromX = linkingFromPos.x;
+            const fromY = linkingFromPos.y;
+            const toX = mousePosition.x;
+            const toY = mousePosition.y;
+            
+            const horizontalDist = Math.abs(toX - fromX);
+            const cpOffset = Math.min(horizontalDist / 2, 60);
+            
+            const pathD = `M ${fromX} ${fromY} C ${fromX + cpOffset} ${fromY}, ${toX - cpOffset} ${toY}, ${toX} ${toY}`;
+            
+            return (
+              <path
+                d={pathD}
+                fill="none"
+                stroke="#f59e0b"
+                strokeWidth="2"
+                strokeDasharray="6,4"
+                markerEnd="url(#arrowhead)"
+              />
+            );
+          })()
         )}
       </svg>
 

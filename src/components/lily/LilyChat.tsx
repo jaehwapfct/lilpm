@@ -63,36 +63,48 @@ const MIN_HISTORY_WIDTH = 200;
 const MAX_HISTORY_WIDTH = 400;
 const DEFAULT_HISTORY_WIDTH = 256; // 16rem = 256px
 
-// ThinkingBlock component for Chain of Thought
-function ThinkingBlock({ content, t }: { content: string; t: (key: string, fallback?: string) => string }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+// ThinkingBlock component for Chain of Thought (Claude/Gemini style)
+function ThinkingBlock({ content, t, isStreaming = false }: { content: string; t: (key: string, fallback?: string) => string; isStreaming?: boolean }) {
+  const [isExpanded, setIsExpanded] = useState(true); // Default expanded like Claude
   
   if (!content.trim()) return null;
   
   return (
-    <div className="border border-border/50 rounded-md bg-muted/30 overflow-hidden">
+    <div className="rounded-lg border border-violet-500/30 bg-gradient-to-r from-violet-500/5 to-purple-500/5 overflow-hidden mb-3">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:bg-muted/50 transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-violet-500/5 transition-colors"
       >
-        {isExpanded ? (
-          <ChevronDown className="h-3 w-3" />
-        ) : (
-          <ChevronRight className="h-3 w-3" />
+        <div className={cn(
+          "p-1 rounded-md",
+          isStreaming ? "bg-violet-500/20 animate-pulse" : "bg-violet-500/10"
+        )}>
+          <Brain className="h-3.5 w-3.5 text-violet-500" />
+        </div>
+        <span className="font-medium text-violet-600 dark:text-violet-400">
+          {isStreaming ? t('lily.thinking', 'Thinking...') : t('lily.thoughtProcess', 'Thought process')}
+        </span>
+        {isStreaming && (
+          <Loader2 className="h-3 w-3 animate-spin text-violet-500 ml-1" />
         )}
-        <Brain className="h-3 w-3 text-violet-500" />
-        <span className="font-medium">{t('lily.chainOfThought', 'Thinking Process')}</span>
-        {!isExpanded && (
-          <span className="text-muted-foreground/70 truncate flex-1 text-left">
-            {content.slice(0, 50)}...
-          </span>
+        <div className="flex-1" />
+        {isExpanded ? (
+          <ChevronDown className="h-4 w-4 text-violet-500/70" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-violet-500/70" />
         )}
       </button>
-      {isExpanded && (
-        <div className="px-3 pb-3 pt-1 text-xs text-muted-foreground whitespace-pre-wrap border-t border-border/30">
-          {content}
+      
+      <div className={cn(
+        "overflow-hidden transition-all duration-200",
+        isExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+      )}>
+        <div className="px-3 pb-3 border-t border-violet-500/20">
+          <div className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed pl-2 border-l-2 border-violet-500/30">
+            {content}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -309,6 +321,7 @@ export function LilyChat() {
   const [canvasViewMode, setCanvasViewMode] = useState<'code' | 'preview'>('code');
   const [canvasCode, setCanvasCode] = useState('');
   const [canvasError, setCanvasError] = useState<string | null>(null);
+  const [showCanvasPanel, setShowCanvasPanel] = useState(false); // Only show panel when code detected
 
   // Initialize MCP connectors
   useEffect(() => {
@@ -357,9 +370,21 @@ export function LilyChat() {
       if (extractedCode && extractedCode !== canvasCode) {
         setCanvasCode(extractedCode);
         setCanvasError(null);
+        // Open the canvas panel when code is detected
+        if (!showCanvasPanel) {
+          setShowCanvasPanel(true);
+        }
       }
     }
-  }, [messages, canvasMode, canvasCode]);
+  }, [messages, canvasMode, canvasCode, showCanvasPanel]);
+  
+  // Reset canvas panel when canvas mode is turned off
+  useEffect(() => {
+    if (!canvasMode) {
+      setShowCanvasPanel(false);
+      setCanvasCode('');
+    }
+  }, [canvasMode]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -369,6 +394,7 @@ export function LilyChat() {
     await sendMessage(message, { 
       teamId: currentTeam?.id,
       mcpConnectors: connectors,
+      canvasMode: canvasMode,
     });
   };
 
@@ -838,22 +864,14 @@ export function LilyChat() {
                   variant="outline" 
                   size="icon" 
                   className={cn(
-                    "h-11 w-11 flex-shrink-0 relative",
-                    getActiveConnectors().length > 0 && "border-green-500/50"
+                    "h-11 w-11 flex-shrink-0",
+                    getActiveConnectors().length > 0 && "border-green-500 bg-green-500/10"
                   )}
                 >
                   <Plug className={cn(
                     "h-4 w-4",
                     getActiveConnectors().length > 0 && "text-green-500"
                   )} />
-                  {getActiveConnectors().length > 0 && (
-                    <>
-                      <span className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 text-white text-[10px] rounded-full flex items-center justify-center">
-                        {getActiveConnectors().length}
-                      </span>
-                      <span className="absolute bottom-0 right-0 h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-                    </>
-                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-72">
@@ -965,13 +983,13 @@ export function LilyChat() {
         </div>
       </div>
 
-      {/* Artifact Panel - Real-time Preview */}
-      {(showArtifact && artifact) || canvasMode ? (
+      {/* Artifact Panel - Real-time Preview (only show when code detected or artifact exists) */}
+      {(showArtifact && artifact) || showCanvasPanel ? (
         <div className="w-[450px] border-l border-border flex flex-col bg-background">
           {/* Artifact Header */}
           <div className="h-12 flex items-center justify-between px-4 border-b border-border">
             <div className="flex items-center gap-2">
-              {canvasMode ? (
+              {showCanvasPanel ? (
                 <>
                   <Code className="h-4 w-4 text-amber-500" />
                   <span className="font-medium text-sm">{t('lily.canvas', 'Canvas')}</span>
@@ -991,7 +1009,7 @@ export function LilyChat() {
               )}
             </div>
             <div className="flex items-center gap-1">
-              {canvasMode && (
+              {showCanvasPanel && (
                 <div className="flex rounded-md border border-border mr-2">
                   <Button
                     variant={canvasViewMode === 'code' ? 'default' : 'ghost'}
@@ -1018,7 +1036,7 @@ export function LilyChat() {
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => {
-                  const contentToCopy = canvasMode ? canvasCode : artifact?.content;
+                  const contentToCopy = showCanvasPanel ? canvasCode : artifact?.content;
                   if (contentToCopy) {
                     navigator.clipboard.writeText(contentToCopy);
                     toast.success(t('common.copied', 'Copied!'));
@@ -1032,8 +1050,9 @@ export function LilyChat() {
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => {
-                  if (canvasMode) {
+                  if (showCanvasPanel) {
                     setCanvasMode(false);
+                    setShowCanvasPanel(false);
                     setCanvasCode('');
                     setCanvasError(null);
                   } else {
@@ -1049,7 +1068,7 @@ export function LilyChat() {
           {/* Canvas/Artifact Content */}
           <ScrollArea className="flex-1">
             <div className="p-4">
-              {canvasMode ? (
+              {showCanvasPanel ? (
                 canvasViewMode === 'code' ? (
                   <div className="space-y-2">
                     {canvasCode ? (
@@ -1146,7 +1165,7 @@ export function LilyChat() {
           {/* Artifact Footer */}
           <div className="border-t border-border p-3">
             <div className="flex gap-2">
-              {canvasMode ? (
+              {showCanvasPanel ? (
                 <>
                   <Button 
                     size="sm" 
