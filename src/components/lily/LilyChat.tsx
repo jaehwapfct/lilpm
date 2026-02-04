@@ -852,6 +852,58 @@ export function LilyChat() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Canvas Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-11 w-11 flex-shrink-0">
+                  <Code className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuLabel className="flex items-center gap-2">
+                  <Code className="h-4 w-4" />
+                  {t('lily.canvas', 'Canvas')}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    setInput(`${input}\n\n[CANVAS: React Component]\n// Write a React component here`);
+                    inputRef.current?.focus();
+                  }}
+                >
+                  <Code className="h-4 w-4 mr-2 text-blue-500" />
+                  React Component
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setInput(`${input}\n\n[CANVAS: Python Script]\n# Write a Python script here`);
+                    inputRef.current?.focus();
+                  }}
+                >
+                  <Code className="h-4 w-4 mr-2 text-green-500" />
+                  Python Script
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setInput(`${input}\n\n[CANVAS: HTML/CSS]\n<!-- Write HTML/CSS here -->`);
+                    inputRef.current?.focus();
+                  }}
+                >
+                  <Code className="h-4 w-4 mr-2 text-orange-500" />
+                  HTML/CSS
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setInput(`${input}\n\n[CANVAS: SQL Query]\n-- Write SQL here`);
+                    inputRef.current?.focus();
+                  }}
+                >
+                  <Code className="h-4 w-4 mr-2 text-purple-500" />
+                  SQL Query
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             
             <Textarea
               ref={inputRef}
