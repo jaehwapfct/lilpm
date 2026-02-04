@@ -23,10 +23,15 @@ import {
   FileText,
   FolderKanban,
   Loader2,
+  Users,
+  Check,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/lib/supabase';
+import { teamInviteService } from '@/lib/services';
+import { toast } from 'sonner';
 import type { Profile } from '@/types/database';
 
 export type InboxItemType = 
@@ -36,21 +41,26 @@ export type InboxItemType =
   | 'comment_added'
   | 'prd_mentioned'
   | 'status_changed'
-  | 'due_date_reminder';
+  | 'due_date_reminder'
+  | 'team_invite'
+  | 'invite_accepted'
+  | 'invite_rejected';
 
 export interface InboxItem {
   id: string;
   user_id: string;
   type: InboxItemType;
   title: string;
-  body: string;
+  message?: string; // Changed from body
+  body?: string; // For backward compatibility
   actor_id?: string;
   actor?: Profile | null;
-  entity_type: 'issue' | 'prd' | 'project' | 'comment';
-  entity_id: string;
+  entity_type?: 'issue' | 'prd' | 'project' | 'comment';
+  entity_id?: string;
   entity_identifier?: string;
   read: boolean;
   created_at: string;
+  data?: any; // For invite tokens and other metadata
 }
 
 const INBOX_STORAGE_KEY = 'lily-inbox';
@@ -63,6 +73,9 @@ const ITEM_TYPE_ICONS: Record<InboxItemType, React.ElementType> = {
   prd_mentioned: FileText,
   status_changed: AlertCircle,
   due_date_reminder: Clock,
+  team_invite: Users,
+  invite_accepted: CheckCheck,
+  invite_rejected: X,
 };
 
 const ITEM_TYPE_COLORS: Record<InboxItemType, string> = {
@@ -73,6 +86,9 @@ const ITEM_TYPE_COLORS: Record<InboxItemType, string> = {
   prd_mentioned: 'bg-indigo-500/10 text-indigo-500',
   status_changed: 'bg-yellow-500/10 text-yellow-500',
   due_date_reminder: 'bg-red-500/10 text-red-500',
+  team_invite: 'bg-cyan-500/10 text-cyan-500',
+  invite_accepted: 'bg-green-500/10 text-green-500',
+  invite_rejected: 'bg-red-500/10 text-red-500',
 };
 
 export function InboxPage() {
@@ -90,33 +106,54 @@ export function InboxPage() {
     
     setIsLoading(true);
     try {
-      // Load from localStorage for now (can be migrated to database later)
-      const stored = localStorage.getItem(`${INBOX_STORAGE_KEY}_${user.id}`);
-      if (stored) {
-        const parsed = JSON.parse(stored) as InboxItem[];
-        
+      // Load from database notifications table
+      const { data: notifications, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(100);
+      
+      if (error) throw error;
+      
+      if (notifications && notifications.length > 0) {
         // Fetch actor profiles
-        const actorIds = [...new Set(parsed.map(i => i.actor_id).filter(Boolean))];
+        const actorIds = [...new Set(notifications.map((n: any) => n.actor_id).filter(Boolean))];
+        let profilesMap = new Map();
+        
         if (actorIds.length > 0) {
           const { data: profiles } = await supabase
             .from('profiles')
             .select('*')
             .in('id', actorIds);
           
-          const profilesMap = new Map((profiles || []).map(p => [p.id, p]));
-          
-          const enriched = parsed.map(item => ({
-            ...item,
-            actor: item.actor_id ? profilesMap.get(item.actor_id) || null : null,
-          }));
-          
-          setItems(enriched);
-        } else {
-          setItems(parsed);
+          profilesMap = new Map((profiles || []).map(p => [p.id, p]));
         }
+        
+        const enriched = notifications.map((notif: any) => ({
+          id: notif.id,
+          user_id: notif.user_id,
+          type: notif.type as InboxItemType,
+          title: notif.title,
+          message: notif.message,
+          body: notif.message, // For backward compatibility
+          actor_id: notif.actor_id,
+          actor: notif.actor_id ? profilesMap.get(notif.actor_id) || null : null,
+          entity_type: notif.entity_type,
+          entity_id: notif.entity_id,
+          entity_identifier: notif.entity_identifier,
+          read: notif.read || false,
+          created_at: notif.created_at,
+          data: notif.data,
+        }));
+        
+        setItems(enriched);
+      } else {
+        setItems([]);
       }
     } catch (error) {
       console.error('Failed to load inbox items:', error);
+      toast.error('Failed to load notifications');
     } finally {
       setIsLoading(false);
     }
@@ -149,16 +186,23 @@ export function InboxPage() {
   }, {} as Record<string, InboxItem[]>);
 
   const handleItemClick = async (item: InboxItem) => {
+    // Don't navigate for team_invite type - handled by buttons
+    if (item.type === 'team_invite') {
+      // Mark as read but don't navigate
+      if (!item.read && user?.id) {
+        await markAsRead(item.id);
+      }
+      return;
+    }
+    
     // Mark as read
     if (!item.read && user?.id) {
-      const updated = items.map(i => 
-        i.id === item.id ? { ...i, read: true } : i
-      );
-      setItems(updated);
-      localStorage.setItem(`${INBOX_STORAGE_KEY}_${user.id}`, JSON.stringify(updated));
+      await markAsRead(item.id);
     }
 
     // Navigate to entity
+    if (!item.entity_type || !item.entity_id) return;
+    
     switch (item.entity_type) {
       case 'issue':
         navigate(`/issue/${item.entity_id}`);
@@ -176,24 +220,105 @@ export function InboxPage() {
     }
   };
 
-  const markAllAsRead = () => {
-    if (!user?.id) return;
-    const updated = items.map(i => ({ ...i, read: true }));
-    setItems(updated);
-    localStorage.setItem(`${INBOX_STORAGE_KEY}_${user.id}`, JSON.stringify(updated));
+  const markAsRead = async (itemId: string) => {
+    try {
+      await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', itemId);
+      
+      setItems(prev => prev.map(i => 
+        i.id === itemId ? { ...i, read: true } : i
+      ));
+    } catch (error) {
+      console.error('Failed to mark as read:', error);
+    }
   };
 
-  const deleteItem = (itemId: string) => {
-    if (!user?.id) return;
-    const updated = items.filter(i => i.id !== itemId);
-    setItems(updated);
-    localStorage.setItem(`${INBOX_STORAGE_KEY}_${user.id}`, JSON.stringify(updated));
+  const handleAcceptInvite = async (item: InboxItem) => {
+    if (!item.data?.token) {
+      toast.error('Invalid invite token');
+      return;
+    }
+
+    try {
+      await teamInviteService.acceptInvite(item.data.token);
+      toast.success(`You've joined ${item.data.teamName}!`);
+      
+      // Remove or update the notification
+      await deleteItem(item.id);
+      
+      // Reload to refresh teams
+      window.location.reload();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to accept invite');
+    }
   };
 
-  const clearAll = () => {
+  const handleRejectInvite = async (item: InboxItem) => {
+    if (!item.data?.token) {
+      toast.error('Invalid invite token');
+      return;
+    }
+
+    try {
+      await teamInviteService.rejectInvite(item.data.token);
+      toast.success('Invite declined');
+      
+      // Remove the notification
+      await deleteItem(item.id);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to decline invite');
+    }
+  };
+
+  const markAllAsRead = async () => {
     if (!user?.id) return;
-    setItems([]);
-    localStorage.removeItem(`${INBOX_STORAGE_KEY}_${user.id}`);
+    
+    try {
+      await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+      
+      setItems(prev => prev.map(i => ({ ...i, read: true })));
+      toast.success('All notifications marked as read');
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
+      toast.error('Failed to mark all as read');
+    }
+  };
+
+  const deleteItem = async (itemId: string) => {
+    try {
+      await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', itemId);
+      
+      setItems(prev => prev.filter(i => i.id !== itemId));
+    } catch (error) {
+      console.error('Failed to delete notification:', error);
+      toast.error('Failed to delete notification');
+    }
+  };
+
+  const clearAll = async () => {
+    if (!user?.id) return;
+    
+    try {
+      await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', user.id);
+      
+      setItems([]);
+      toast.success('All notifications cleared');
+    } catch (error) {
+      console.error('Failed to clear notifications:', error);
+      toast.error('Failed to clear notifications');
+    }
   };
 
   const getDateLabel = (dateStr: string) => {
@@ -337,8 +462,37 @@ export function InboxPage() {
                                   </p>
                                 </div>
                                 <p className="text-sm text-muted-foreground line-clamp-2">
-                                  {item.body}
+                                  {item.message || item.body}
                                 </p>
+                                
+                                {/* Team Invite Actions */}
+                                {item.type === 'team_invite' && (
+                                  <div className="flex items-center gap-2 mt-3">
+                                    <Button
+                                      size="sm"
+                                      className="gap-2"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleAcceptInvite(item);
+                                      }}
+                                    >
+                                      <Check className="h-3.5 w-3.5" />
+                                      Accept
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-2"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRejectInvite(item);
+                                      }}
+                                    >
+                                      <X className="h-3.5 w-3.5" />
+                                      Decline
+                                    </Button>
+                                  </div>
+                                )}
                               </div>
                               
                               <div className="flex items-center gap-2 flex-shrink-0">
