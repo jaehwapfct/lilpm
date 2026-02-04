@@ -597,7 +597,7 @@ export function LilyChat() {
 
         {/* Input */}
         <div className="border-t border-border p-3 sm:p-4">
-          <div className="max-w-3xl mx-auto flex gap-2">
+          <div className="flex gap-2">
             <Textarea
               ref={inputRef}
               value={input}

@@ -196,6 +196,7 @@ export interface PRDDocument {
   created_by: string;
   title: string;
   overview: string | null;
+  content: string | null; // Rich text content (HTML)
   goals: Json;
   user_stories: Json;
   requirements: Json;
