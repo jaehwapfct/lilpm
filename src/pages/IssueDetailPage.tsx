@@ -57,6 +57,11 @@ import {
   XCircle,
   Timer,
   Check,
+  Sparkles,
+  PanelRightOpen,
+  PanelRightClose,
+  Bot,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -111,6 +116,13 @@ export function IssueDetailPage() {
   const [isSendingComment, setIsSendingComment] = useState(false);
   const [members, setMembers] = useState<Profile[]>([]);
   const [showMobileProperties, setShowMobileProperties] = useState(false);
+  
+  // AI Assistant Panel state
+  const [showAIPanel, setShowAIPanel] = useState(false);
+  const [aiMessages, setAiMessages] = useState<{ id: string; role: 'user' | 'assistant'; content: string; timestamp: Date }[]>([]);
+  const [aiInput, setAiInput] = useState('');
+  const [isAILoading, setIsAILoading] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<'anthropic' | 'openai' | 'gemini' | 'lovable'>('anthropic');
 
   // Track focus for collaboration
   useIssueFocus(issueId || null);
@@ -266,6 +278,114 @@ export function IssueDetailPage() {
     toast.success(t('issues.linkCopied'));
   };
 
+  // AI Assistant handler
+  const handleAISend = async () => {
+    if (!aiInput.trim() || isAILoading || !issue) return;
+    
+    const userMessage = {
+      id: Date.now().toString(),
+      role: 'user' as const,
+      content: aiInput.trim(),
+      timestamp: new Date(),
+    };
+    setAiMessages(prev => [...prev, userMessage]);
+    const userQuery = aiInput.trim();
+    setAiInput('');
+    setIsAILoading(true);
+    
+    const assistantMessageId = (Date.now() + 1).toString();
+    setAiMessages(prev => [...prev, {
+      id: assistantMessageId,
+      role: 'assistant' as const,
+      content: '',
+      timestamp: new Date(),
+    }]);
+    
+    try {
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://lbzjnhlribtfwnoydpdv.supabase.co';
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/lily-chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            { 
+              role: 'system', 
+              content: `You are an issue editing assistant. Help the user with their issue.
+              
+Current Issue:
+- Title: ${issue.title}
+- Description: ${issue.description || 'No description'}
+- Status: ${issue.status}
+- Priority: ${issue.priority}
+- Type: ${(issue as any).type || 'task'}
+
+Help the user understand the issue, suggest improvements, or answer questions about it.
+Respond in the same language as the user's message.`
+            },
+            ...aiMessages.slice(-10).map(m => ({ role: m.role, content: m.content })),
+            { role: 'user', content: userQuery }
+          ],
+          provider: selectedProvider,
+          stream: true,
+        }),
+      });
+      
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+      
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') continue;
+              
+              try {
+                const parsed = JSON.parse(data);
+                const delta = parsed.choices?.[0]?.delta?.content || 
+                             parsed.delta?.text || 
+                             parsed.content || 
+                             parsed.text || '';
+                if (delta) {
+                  fullContent += delta;
+                  setAiMessages(prev => prev.map(m => 
+                    m.id === assistantMessageId ? { ...m, content: fullContent } : m
+                  ));
+                }
+              } catch {
+                if (line.trim() && !line.startsWith(':')) {
+                  fullContent += data;
+                  setAiMessages(prev => prev.map(m => 
+                    m.id === assistantMessageId ? { ...m, content: fullContent } : m
+                  ));
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('AI request failed:', error);
+      setAiMessages(prev => prev.map(m => 
+        m.id === assistantMessageId ? { 
+          ...m, 
+          content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+        } : m
+      ));
+    } finally {
+      setIsAILoading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -313,7 +433,30 @@ export function IssueDetailPage() {
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <IssueTypeIcon type={issueType} />
+                {/* Issue Type Icon with Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 px-2 gap-1.5">
+                      <IssueTypeIcon type={issueType} />
+                      <span className="sr-only">{t('issues.changeType', 'Change type')}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="z-[100]">
+                    {allIssueTypes.map((type) => (
+                      <DropdownMenuItem 
+                        key={type} 
+                        onClick={() => {
+                          const typeField = issueTypeConfig[type]?.typeField;
+                          if (typeField) {
+                            handleUpdateIssue({ issue_type: typeField } as any);
+                          }
+                        }}
+                      >
+                        <IssueTypeIcon type={type} showLabel />
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <span className="text-xs sm:text-sm text-muted-foreground font-mono">
                   {issue.identifier}
                 </span>
@@ -336,6 +479,16 @@ export function IssueDetailPage() {
                 <Button variant="ghost" size="sm" onClick={handleCopyLink} className="hidden sm:flex">
                   <Copy className="h-4 w-4 mr-1" />
                   Link
+                </Button>
+                <Button 
+                  variant={showAIPanel ? "secondary" : "ghost"} 
+                  size="sm" 
+                  onClick={() => setShowAIPanel(!showAIPanel)}
+                  className="gap-1.5"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span className="hidden sm:inline">AI</span>
+                  {showAIPanel ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -418,7 +571,7 @@ export function IssueDetailPage() {
           )}
 
           {/* Issue Content */}
-          <div className="p-4 sm:p-6 max-w-3xl">
+          <div className="p-4 sm:p-6 w-full">
             {/* Title - Click to edit */}
             <div className="relative group">
               {isEditingTitle ? (
@@ -766,7 +919,80 @@ export function IssueDetailPage() {
                 <SelectItem value="unassigned">
                   <span className="text-muted-foreground">{t('issues.unassigned')}</span>
                 </SelectItem>
-                {members.map((member) => (
+                {/* Assign to myself */}
+                {user && (
+                  <SelectItem value={user.id}>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-5 w-5">
+                        <AvatarFallback className="text-xs bg-primary text-primary-foreground">
+                          {user.email?.charAt(0).toUpperCase() || '?'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium">{t('issues.assignToMe', 'Assign to me')}</span>
+                    </div>
+                  </SelectItem>
+                )}
+                {members.filter(m => m.id !== user?.id).map((member) => (
+                  <SelectItem key={member.id} value={member.id}>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage src={member.avatar_url || undefined} />
+                        <AvatarFallback className="text-xs">{member.name?.charAt(0) || '?'}</AvatarFallback>
+                      </Avatar>
+                      {member.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Reporter */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground uppercase">{t('issues.reporter', 'Reporter')}</label>
+            <Select 
+              value={(issue as any).reporter_id || issue.created_by || 'unassigned'} 
+              onValueChange={(v) => handleUpdateIssue({ reporter_id: v === 'unassigned' ? null : v } as any)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t('issues.unassigned')}>
+                  {(() => {
+                    const reporterId = (issue as any).reporter_id || issue.created_by;
+                    const reporter = members.find(m => m.id === reporterId);
+                    return reporterId ? (
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-5 w-5">
+                          <AvatarImage src={reporter?.avatar_url || undefined} />
+                          <AvatarFallback className="text-xs">
+                            {reporter?.name?.charAt(0) || '?'}
+                          </AvatarFallback>
+                        </Avatar>
+                        {reporter?.name || 'Unknown'}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">{t('issues.unassigned')}</span>
+                    );
+                  })()}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unassigned">
+                  <span className="text-muted-foreground">{t('issues.unassigned')}</span>
+                </SelectItem>
+                {/* Set myself as reporter */}
+                {user && (
+                  <SelectItem value={user.id}>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-5 w-5">
+                        <AvatarFallback className="text-xs bg-primary text-primary-foreground">
+                          {user.email?.charAt(0).toUpperCase() || '?'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium">{t('issues.setMeAsReporter', 'Set me as reporter')}</span>
+                    </div>
+                  </SelectItem>
+                )}
+                {members.filter(m => m.id !== user?.id).map((member) => (
                   <SelectItem key={member.id} value={member.id}>
                     <div className="flex items-center gap-2">
                       <Avatar className="h-5 w-5">
@@ -907,6 +1133,116 @@ export function IssueDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* AI Assistant Panel */}
+        {showAIPanel && (
+          <div className="w-80 border-l border-border flex flex-col bg-muted/30">
+            {/* AI Panel Header */}
+            <div className="p-3 border-b border-border flex items-center justify-between bg-background">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="font-medium text-sm">AI Assistant</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Select value={selectedProvider} onValueChange={(v: 'anthropic' | 'openai' | 'gemini' | 'lovable') => setSelectedProvider(v)}>
+                  <SelectTrigger className="h-7 w-[90px] text-[10px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="anthropic" className="text-xs">Claude</SelectItem>
+                    <SelectItem value="openai" className="text-xs">GPT-4o</SelectItem>
+                    <SelectItem value="gemini" className="text-xs">Gemini</SelectItem>
+                    <SelectItem value="lovable" className="text-xs">Lovable</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setShowAIPanel(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-3">
+              {aiMessages.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Bot className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm font-medium">Ask AI about this issue</p>
+                  <p className="text-xs mt-1">Get suggestions, improvements, or answers</p>
+                </div>
+              ) : (
+                aiMessages.map((msg) => (
+                  <div key={msg.id} className={cn(
+                    "flex gap-2",
+                    msg.role === 'user' && "flex-row-reverse"
+                  )}>
+                    <Avatar className="h-6 w-6 flex-shrink-0">
+                      <AvatarFallback className={cn(
+                        "text-[10px]",
+                        msg.role === 'assistant' && "bg-primary text-primary-foreground"
+                      )}>
+                        {msg.role === 'assistant' ? <Bot className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className={cn(
+                      "rounded-lg px-2.5 py-1.5 text-xs max-w-[85%]",
+                      msg.role === 'user' 
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-background border"
+                    )}>
+                      <p className="whitespace-pre-wrap">{msg.content || '...'}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+              {isAILoading && !aiMessages.find(m => m.content === '') && (
+                <div className="flex gap-2">
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-[10px]">
+                      <Bot className="h-3 w-3" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="bg-background border rounded-lg px-2.5 py-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span className="text-xs text-muted-foreground">Thinking...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Input */}
+            <div className="p-3 border-t border-border bg-background">
+              <div className="flex gap-2">
+                <Textarea
+                  value={aiInput}
+                  onChange={(e) => setAiInput(e.target.value)}
+                  placeholder="Ask AI about this issue..."
+                  className="min-h-[60px] max-h-[100px] text-xs resize-none"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleAISend();
+                    }
+                  }}
+                />
+                <Button
+                  size="icon"
+                  className="h-[60px] w-10"
+                  onClick={handleAISend}
+                  disabled={isAILoading || !aiInput.trim()}
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AppLayout>
   );

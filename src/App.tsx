@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { useTeamStore } from "@/stores/teamStore";
 import { useMCPStore } from "@/stores/mcpStore";
+import { useThemeStore } from "@/stores/themeStore";
 import { useEffect } from "react";
 
 // Pages
@@ -198,16 +199,36 @@ function AppRoutes() {
   );
 }
 
+// Theme wrapper component that applies the theme class
+function ThemeWrapper({ children }: { children: React.ReactNode }) {
+  const { theme } = useThemeStore();
+  
+  // Apply theme to document on mount and when theme changes
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove('light', 'dark');
+    
+    if (theme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      root.classList.add(systemTheme);
+    } else {
+      root.classList.add(theme);
+    }
+  }, [theme]);
+  
+  return <>{children}</>;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <div className="dark">
+      <ThemeWrapper>
         <Toaster />
         <Sonner />
         <BrowserRouter>
           <AppRoutes />
         </BrowserRouter>
-      </div>
+      </ThemeWrapper>
     </TooltipProvider>
   </QueryClientProvider>
 );

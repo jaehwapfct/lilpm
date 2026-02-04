@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useTranslation } from 'react-i18next';
 import { 
   Send, 
@@ -505,7 +506,7 @@ export function LilyChat() {
                     </p>
                     {conversations.filter(c => pinnedConversations.includes(c.id)).map((conv) => (
                       <ConversationItem 
-                        key={conv.id}
+                  key={conv.id}
                         conv={conv}
                         isPinned={true}
                         isSelected={currentConversationId === conv.id}
@@ -574,7 +575,7 @@ export function LilyChat() {
                         onEditingTitleChange={setEditingTitle}
                       />
                     ))}
-                  </div>
+                </div>
                 )}
               </>
             )}
@@ -771,56 +772,63 @@ export function LilyChat() {
                     message.role === 'user' && "flex-row-reverse"
                   )}>
                     <Avatar className="h-6 w-6 flex-shrink-0">
-                      <AvatarFallback className={cn(
+                  <AvatarFallback className={cn(
                         "text-xs",
-                        message.role === 'assistant' && "bg-primary text-primary-foreground"
-                      )}>
-                        {message.role === 'assistant' ? (
+                    message.role === 'assistant' && "bg-primary text-primary-foreground"
+                  )}>
+                    {message.role === 'assistant' ? (
                           <Bot className="h-3 w-3" />
-                        ) : (
+                    ) : (
                           <User className="h-3 w-3" />
-                        )}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div
-                      className={cn(
+                    )}
+                  </AvatarFallback>
+                </Avatar>
+                <div
+                  className={cn(
                         "rounded-lg px-3 py-1.5 max-w-[85%]",
-                        message.role === 'user' 
+                    message.role === 'user' 
                           ? "bg-primary text-primary-foreground text-[13px]" 
-                          : "bg-muted"
-                      )}
-                    >
-                      {message.role === 'assistant' ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none text-[13px] leading-relaxed
-                          [&_p]:my-2 [&_p]:leading-relaxed
-                          [&_ul]:my-2 [&_ul]:pl-4 [&_ul]:list-disc
-                          [&_ol]:my-2 [&_ol]:pl-4 [&_ol]:list-decimal
-                          [&_li]:my-1 [&_li]:leading-relaxed
-                          [&_h1]:text-base [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2
-                          [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-2 [&_h2]:text-foreground
-                          [&_h3]:text-sm [&_h3]:font-medium [&_h3]:mt-2 [&_h3]:mb-1
-                          [&_code]:text-xs [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:font-mono
-                          [&_pre]:my-3 [&_pre]:bg-muted [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto
-                          [&_pre_code]:bg-transparent [&_pre_code]:p-0
-                          [&_blockquote]:border-l-2 [&_blockquote]:border-primary/50 [&_blockquote]:pl-3 [&_blockquote]:my-2 [&_blockquote]:italic [&_blockquote]:text-muted-foreground
+                      : "bg-muted"
+                  )}
+                >
+                  {message.role === 'assistant' ? (
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed
+                          [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
+                          [&_p]:my-3 [&_p]:leading-7
+                          [&_ul]:my-3 [&_ul]:pl-6 [&_ul]:list-disc [&_ul]:space-y-1
+                          [&_ol]:my-3 [&_ol]:pl-6 [&_ol]:list-decimal [&_ol]:space-y-1
+                          [&_li]:leading-7 [&_li]:pl-1
+                          [&_li_p]:my-1
+                          [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mt-6 [&_h1]:mb-3 [&_h1]:border-b [&_h1]:border-border [&_h1]:pb-2
+                          [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-foreground
+                          [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-foreground
+                          [&_h4]:text-sm [&_h4]:font-medium [&_h4]:mt-3 [&_h4]:mb-1
+                          [&_code]:text-xs [&_code]:bg-muted/70 [&_code]:text-primary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:font-mono
+                          [&_pre]:my-4 [&_pre]:bg-zinc-900 [&_pre]:dark:bg-zinc-950 [&_pre]:text-zinc-100 [&_pre]:p-4 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:border [&_pre]:border-border
+                          [&_pre_code]:bg-transparent [&_pre_code]:text-inherit [&_pre_code]:p-0 [&_pre_code]:text-xs
+                          [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:pl-4 [&_blockquote]:my-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground [&_blockquote]:bg-muted/30 [&_blockquote]:py-2 [&_blockquote]:pr-4 [&_blockquote]:rounded-r-lg
                           [&_strong]:font-semibold [&_strong]:text-foreground
-                          [&_em]:italic
-                          [&_hr]:my-4 [&_hr]:border-border
-                          [&_table]:my-2 [&_table]:w-full [&_table]:text-xs
-                          [&_th]:border [&_th]:border-border [&_th]:p-1.5 [&_th]:bg-muted [&_th]:font-medium
-                          [&_td]:border [&_td]:border-border [&_td]:p-1.5
-                          [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2
+                          [&_em]:italic [&_em]:text-foreground/90
+                          [&_hr]:my-6 [&_hr]:border-border
+                          [&_table]:my-4 [&_table]:w-full [&_table]:text-sm [&_table]:border-collapse
+                          [&_thead]:bg-muted/50
+                          [&_th]:border [&_th]:border-border [&_th]:p-2.5 [&_th]:font-semibold [&_th]:text-left
+                          [&_td]:border [&_td]:border-border [&_td]:p-2.5
+                          [&_tr:hover]:bg-muted/30
+                          [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_a]:font-medium hover:[&_a]:text-primary/80
+                          [&_img]:rounded-lg [&_img]:my-4
+                          [&_del]:line-through [&_del]:text-muted-foreground
                         ">
-                          <ReactMarkdown>{cleanContent || t('lily.generating', 'Generating...')}</ReactMarkdown>
-                        </div>
-                      ) : (
-                        <p className="text-[13px] whitespace-pre-wrap leading-relaxed">{cleanContent}</p>
-                      )}
-                      <span className="text-[9px] opacity-60 mt-0.5 block">
-                        {new Date(message.timestamp).toLocaleTimeString()}
-                      </span>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanContent || t('lily.generating', 'Generating...')}</ReactMarkdown>
                     </div>
-                  </div>
+                  ) : (
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed">{cleanContent}</p>
+                  )}
+                      <span className="text-[9px] opacity-60 mt-0.5 block">
+                    {new Date(message.timestamp).toLocaleTimeString()}
+                  </span>
+                </div>
+              </div>
                 </div>
               );
             })}
@@ -989,11 +997,11 @@ export function LilyChat() {
               rows={1}
             />
             {isLoading ? (
-              <Button 
+            <Button 
                 onClick={stopGeneration}
                 variant="destructive"
-                size="icon"
-                className="h-11 w-11 flex-shrink-0"
+              size="icon"
+              className="h-11 w-11 flex-shrink-0"
                 title={t('lily.stop', 'Stop')}
               >
                 <Square className="h-4 w-4" />
@@ -1006,7 +1014,7 @@ export function LilyChat() {
                 className="h-11 w-11 flex-shrink-0"
               >
                 <Send className="h-4 w-4" />
-              </Button>
+            </Button>
             )}
           </div>
           <p className="text-center text-xs text-muted-foreground mt-2 hidden sm:block">
@@ -1039,7 +1047,7 @@ export function LilyChat() {
                   )}
                 </>
               )}
-            </div>
+    </div>
             <div className="flex items-center gap-1">
               {showCanvasPanel && (
                 <div className="flex rounded-md border border-border mr-2">
@@ -1200,8 +1208,21 @@ export function LilyChat() {
                   <code>{artifact.content}</code>
                 </pre>
               ) : artifact && (
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown>{artifact.content}</ReactMarkdown>
+                <div className="prose prose-sm dark:prose-invert max-w-none
+                  [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
+                  [&_p]:my-3 [&_p]:leading-7
+                  [&_ul]:my-3 [&_ul]:pl-6 [&_ul]:list-disc
+                  [&_ol]:my-3 [&_ol]:pl-6 [&_ol]:list-decimal
+                  [&_li]:leading-7
+                  [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mt-6 [&_h1]:mb-3
+                  [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-5 [&_h2]:mb-2
+                  [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2
+                  [&_code]:text-xs [&_code]:bg-muted/70 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md
+                  [&_pre]:my-4 [&_pre]:bg-zinc-900 [&_pre]:p-4 [&_pre]:rounded-lg
+                  [&_pre_code]:bg-transparent [&_pre_code]:p-0
+                  [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:pl-4 [&_blockquote]:my-4 [&_blockquote]:italic
+                ">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{artifact.content}</ReactMarkdown>
                 </div>
               )}
             </div>

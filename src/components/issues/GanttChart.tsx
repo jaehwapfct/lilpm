@@ -147,15 +147,27 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
     // Filter issues that have at least a due date
     const issuesWithDates = issues.filter(issue => issue.dueDate || issue.createdAt);
 
+    // Sort by sortOrder first, then by due date
+    const sortIssues = (issueList: Issue[]) => {
+      return [...issueList].sort((a, b) => {
+        // Primary sort: sortOrder (if defined)
+        if (a.sortOrder !== undefined && b.sortOrder !== undefined) {
+          return a.sortOrder - b.sortOrder;
+        }
+        if (a.sortOrder !== undefined) return -1;
+        if (b.sortOrder !== undefined) return 1;
+        // Fallback: sort by due date
+        const dateA = new Date(a.dueDate || a.createdAt);
+        const dateB = new Date(b.dueDate || b.createdAt);
+        return dateA.getTime() - dateB.getTime();
+      });
+    };
+
     if (groupBy === 'none') {
       return [{
         key: 'all',
         label: t('gantt.allIssues', 'All Issues'),
-        issues: issuesWithDates.sort((a, b) => {
-          const dateA = new Date(a.dueDate || a.createdAt);
-          const dateB = new Date(b.dueDate || b.createdAt);
-          return dateA.getTime() - dateB.getTime();
-        }),
+        issues: sortIssues(issuesWithDates),
         isCollapsed: false,
       }];
     }
@@ -196,11 +208,7 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
              groupBy === 'project' && key === 'no-project' ? t('gantt.noProject', 'No Project') :
              groupBy === 'assignee' && key === 'unassigned' ? t('gantt.unassigned', 'Unassigned') :
              key.slice(0, 12),
-      issues: groupIssues.sort((a, b) => {
-        const dateA = new Date(a.dueDate || a.createdAt);
-        const dateB = new Date(b.dueDate || b.createdAt);
-        return dateA.getTime() - dateB.getTime();
-      }),
+      issues: sortIssues(groupIssues),
       isCollapsed: collapsedGroups.has(key),
     }));
   }, [issues, groupBy, collapsedGroups, t]);
@@ -601,39 +609,78 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
                       key={issue.id}
                       draggable
                       onDragStart={(e) => {
-                        e.dataTransfer.setData('text/plain', JSON.stringify({ issueId: issue.id, groupKey: group.key }));
+                        e.dataTransfer.setData('text/plain', JSON.stringify({ 
+                          issueId: issue.id, 
+                          groupKey: group.key,
+                          originalIndex: issueIndex 
+                        }));
                         e.dataTransfer.effectAllowed = 'move';
-                        (e.currentTarget as HTMLElement).classList.add('opacity-50');
+                        (e.currentTarget as HTMLElement).classList.add('opacity-50', 'scale-95');
                       }}
                       onDragEnd={(e) => {
-                        (e.currentTarget as HTMLElement).classList.remove('opacity-50');
+                        (e.currentTarget as HTMLElement).classList.remove('opacity-50', 'scale-95');
+                        // Remove any drop indicators
+                        document.querySelectorAll('.gantt-drop-indicator').forEach(el => {
+                          el.classList.remove('gantt-drop-indicator', 'border-t-2', 'border-b-2', 'border-primary');
+                        });
                       }}
                       onDragOver={(e) => {
                         e.preventDefault();
                         e.dataTransfer.dropEffect = 'move';
-                        (e.currentTarget as HTMLElement).classList.add('border-t-2', 'border-primary');
+                        // Determine drop position based on mouse Y position
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        const midY = rect.top + rect.height / 2;
+                        const isAbove = e.clientY < midY;
+                        
+                        // Remove previous indicators
+                        document.querySelectorAll('.gantt-drop-indicator').forEach(el => {
+                          el.classList.remove('gantt-drop-indicator', 'border-t-2', 'border-b-2', 'border-primary');
+                        });
+                        
+                        // Add indicator
+                        (e.currentTarget as HTMLElement).classList.add('gantt-drop-indicator');
+                        if (isAbove) {
+                          (e.currentTarget as HTMLElement).classList.add('border-t-2', 'border-primary');
+                          (e.currentTarget as HTMLElement).classList.remove('border-b-2');
+                        } else {
+                          (e.currentTarget as HTMLElement).classList.add('border-b-2', 'border-primary');
+                          (e.currentTarget as HTMLElement).classList.remove('border-t-2');
+                        }
                       }}
                       onDragLeave={(e) => {
-                        (e.currentTarget as HTMLElement).classList.remove('border-t-2', 'border-primary');
+                        (e.currentTarget as HTMLElement).classList.remove('gantt-drop-indicator', 'border-t-2', 'border-b-2', 'border-primary');
                       }}
                       onDrop={(e) => {
                         e.preventDefault();
-                        (e.currentTarget as HTMLElement).classList.remove('border-t-2', 'border-primary');
+                        const element = e.currentTarget as HTMLElement;
+                        element.classList.remove('gantt-drop-indicator', 'border-t-2', 'border-b-2', 'border-primary');
+                        
                         try {
                           const data = JSON.parse(e.dataTransfer.getData('text/plain'));
                           if (data.issueId && data.issueId !== issue.id && onIssueUpdate) {
+                            // Determine if dropping above or below
+                            const rect = element.getBoundingClientRect();
+                            const midY = rect.top + rect.height / 2;
+                            const isAbove = e.clientY < midY;
+                            
                             // Calculate new sort order
-                            const targetOrder = issue.sortOrder || issueIndex;
-                            onIssueUpdate(data.issueId, { sortOrder: targetOrder });
+                            // Use timestamp-based sort order for unique values
+                            const baseSortOrder = issue.sortOrder !== undefined ? issue.sortOrder : issueIndex * 1000;
+                            const newSortOrder = isAbove 
+                              ? baseSortOrder - 1 // Insert above
+                              : baseSortOrder + 1; // Insert below
+                            
+                            console.log(`Moving issue ${data.issueId} to position ${newSortOrder} (${isAbove ? 'above' : 'below'} ${issue.identifier})`);
+                            onIssueUpdate(data.issueId, { sortOrder: newSortOrder });
                           }
                         } catch (err) {
                           console.error('Drop error:', err);
                         }
                       }}
-                      className="h-10 px-3 flex items-center gap-2 border-b border-border/50 cursor-grab hover:bg-muted/30 transition-colors active:cursor-grabbing"
+                      className="h-10 px-3 flex items-center gap-2 border-b border-border/50 cursor-grab hover:bg-muted/30 transition-all active:cursor-grabbing select-none"
                       onClick={() => handleIssueClick(issue)}
                     >
-                      <GripVertical className="h-3 w-3 text-muted-foreground/50 flex-shrink-0" />
+                      <GripVertical className="h-4 w-4 text-muted-foreground hover:text-foreground flex-shrink-0 cursor-grab active:cursor-grabbing" />
                       <IssueTypeIcon type={(issue as any).type || 'task'} size="sm" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm truncate" title={issue.title}>

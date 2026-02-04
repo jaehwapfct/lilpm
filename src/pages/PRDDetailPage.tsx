@@ -181,6 +181,7 @@ export function PRDDetailPage() {
   const [isAILoading, setIsAILoading] = useState(false);
   const [pendingSuggestion, setPendingSuggestion] = useState<AISuggestion | null>(null);
   const aiMessagesEndRef = useRef<HTMLDivElement>(null);
+  const [selectedProvider, setSelectedProvider] = useState<'anthropic' | 'openai' | 'gemini' | 'lovable'>('anthropic');
   
   // Version history for undo
   const [versionHistory, setVersionHistory] = useState<VersionEntry[]>([]);
@@ -352,7 +353,7 @@ export function PRDDetailPage() {
     toast.success('Link copied to clipboard');
   };
 
-  // Handle AI message send
+  // Handle AI message send with streaming
   const handleAISend = async () => {
     if (!aiInput.trim() || isAILoading) return;
     
@@ -363,11 +364,20 @@ export function PRDDetailPage() {
       timestamp: new Date(),
     };
     setAiMessages(prev => [...prev, userMessage]);
+    const userQuery = aiInput.trim();
     setAiInput('');
     setIsAILoading(true);
     
+    // Create initial assistant message for streaming
+    const assistantMessageId = (Date.now() + 1).toString();
+    setAiMessages(prev => [...prev, {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+    }]);
+    
     try {
-      // Call AI to suggest PRD changes
       const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://lbzjnhlribtfwnoydpdv.supabase.co';
       const response = await fetch(`${SUPABASE_URL}/functions/v1/lily-chat`, {
         method: 'POST',
@@ -390,21 +400,70 @@ When the user asks for changes, respond with a JSON block like this:
 [/PRD_EDIT]
 
 Always preserve the HTML structure and formatting. Make the requested changes while keeping the rest intact.
-If the user asks a question, answer it helpfully without the PRD_EDIT block.`
+If the user asks a question, answer it helpfully without the PRD_EDIT block.
+Respond in the same language as the user's message.`
             },
-            { role: 'user', content: userMessage.content }
+            ...aiMessages.slice(-10).map(m => ({ role: m.role, content: m.content })),
+            { role: 'user', content: userQuery }
           ],
-          provider: 'anthropic',
+          provider: selectedProvider,
+          stream: true,
         }),
       });
       
-      const data = await response.json();
-      const aiContent = data.content || data.message || '';
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      // Handle streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
       
-      // Parse PRD edit suggestion
-      const editMatch = aiContent.match(/\[PRD_EDIT\]([\s\S]*?)\[\/PRD_EDIT\]/);
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') continue;
+              
+              try {
+                const parsed = JSON.parse(data);
+                const delta = parsed.choices?.[0]?.delta?.content || 
+                             parsed.delta?.text || 
+                             parsed.content || 
+                             parsed.text ||
+                             '';
+                if (delta) {
+                  fullContent += delta;
+                  setAiMessages(prev => prev.map(m => 
+                    m.id === assistantMessageId ? { ...m, content: fullContent } : m
+                  ));
+                }
+              } catch {
+                // Not JSON, might be raw text
+                if (line.trim() && !line.startsWith(':')) {
+                  fullContent += data;
+                  setAiMessages(prev => prev.map(m => 
+                    m.id === assistantMessageId ? { ...m, content: fullContent } : m
+                  ));
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // Parse PRD edit suggestion from final content
+      const editMatch = fullContent.match(/\[PRD_EDIT\]([\s\S]*?)\[\/PRD_EDIT\]/);
       let suggestion: AISuggestion | undefined;
-      let cleanContent = aiContent;
+      let cleanContent = fullContent;
       
       if (editMatch) {
         try {
@@ -417,30 +476,25 @@ If the user asks a question, answer it helpfully without the PRD_EDIT block.`
             status: 'pending',
           };
           setPendingSuggestion(suggestion);
-          cleanContent = aiContent.replace(/\[PRD_EDIT\][\s\S]*?\[\/PRD_EDIT\]/, '').trim();
+          cleanContent = fullContent.replace(/\[PRD_EDIT\][\s\S]*?\[\/PRD_EDIT\]/, '').trim();
           cleanContent = cleanContent || `I suggest the following change: ${editData.description}`;
         } catch (e) {
           console.error('Failed to parse PRD edit:', e);
         }
       }
       
-      const assistantMessage: AIMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: cleanContent,
-        timestamp: new Date(),
-        suggestion,
-      };
-      setAiMessages(prev => [...prev, assistantMessage]);
+      // Update final message with suggestion
+      setAiMessages(prev => prev.map(m => 
+        m.id === assistantMessageId ? { ...m, content: cleanContent, suggestion } : m
+      ));
     } catch (error) {
       console.error('AI request failed:', error);
-      const errorMessage: AIMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date(),
-      };
-      setAiMessages(prev => [...prev, errorMessage]);
+      setAiMessages(prev => prev.map(m => 
+        m.id === assistantMessageId ? { 
+          ...m, 
+          content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.` 
+        } : m
+      ));
     } finally {
       setIsAILoading(false);
     }
@@ -741,14 +795,28 @@ If the user asks a question, answer it helpfully without the PRD_EDIT block.`
                   <Sparkles className="h-4 w-4 text-primary" />
                   <span className="font-medium text-sm">AI Assistant</span>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => setShowAIPanel(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  {/* Model Selector */}
+                  <Select value={selectedProvider} onValueChange={(v: 'anthropic' | 'openai' | 'gemini' | 'lovable') => setSelectedProvider(v)}>
+                    <SelectTrigger className="h-7 w-[100px] text-[10px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="anthropic" className="text-xs">Claude</SelectItem>
+                      <SelectItem value="openai" className="text-xs">GPT-4o</SelectItem>
+                      <SelectItem value="gemini" className="text-xs">Gemini</SelectItem>
+                      <SelectItem value="lovable" className="text-xs">Lovable</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setShowAIPanel(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
               {/* Pending Suggestion Alert */}

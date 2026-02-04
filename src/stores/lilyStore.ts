@@ -783,13 +783,26 @@ Provide a summary in 2-3 paragraphs.`
           if (convId && fullContent) {
             try {
               await messageService.createMessage(convId, 'assistant', fullContent);
-              // Update conversation title if this is the first response
+              // Update conversation title if this is the first response (title is null, empty, or "Untitled")
               const conversation = get().conversations.find(c => c.id === convId);
-              if (conversation && !conversation.title) {
+              const needsTitle = conversation && (!conversation.title || conversation.title === 'Untitled' || conversation.title.trim() === '');
+              if (needsTitle) {
                 // Generate a title from the first user message
                 const firstUserMsg = get().messages.find(m => m.role === 'user');
                 if (firstUserMsg) {
-                  const title = firstUserMsg.content.slice(0, 50) + (firstUserMsg.content.length > 50 ? '...' : '');
+                  // Create a meaningful title from the first message
+                  let title = firstUserMsg.content
+                    .replace(/\n/g, ' ')  // Replace newlines with spaces
+                    .replace(/\s+/g, ' ') // Collapse multiple spaces
+                    .trim();
+                  // Limit to 50 characters
+                  if (title.length > 50) {
+                    title = title.slice(0, 47) + '...';
+                  }
+                  // Ensure title is not empty
+                  if (title.length === 0) {
+                    title = 'New conversation';
+                  }
                   await conversationService.updateConversation(convId, { title });
                   set(state => ({
                     conversations: state.conversations.map(c => 
