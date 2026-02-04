@@ -90,10 +90,13 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
     originalCreatedAt: null,
   });
   const [dragDelta, setDragDelta] = useState(0); // Visual offset during drag (in pixels)
+  const [snappedDelta, setSnappedDelta] = useState(0); // Snapped to cell boundaries
   const [linkingFrom, setLinkingFrom] = useState<string | null>(null);
   const [linkingFromPos, setLinkingFromPos] = useState<{ x: number; y: number } | null>(null);
+  const [linkingFromSide, setLinkingFromSide] = useState<'left' | 'right'>('right');
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [dependencies, setDependencies] = useState<Dependency[]>([]);
+  const [hoverTarget, setHoverTarget] = useState<{ issueId: string; side: 'left' | 'right' } | null>(null); // For snapping dependency lines
   
   // Calculate the cell width based on view mode
   const cellWidth = useMemo(() => {
@@ -282,19 +285,32 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
     
     const deltaX = e.clientX - dragState.startX;
     
-    // Update visual drag delta immediately for smooth feedback
+    // Update raw drag delta for visual feedback
     setDragDelta(deltaX);
-  }, [dragState, linkingFrom]);
+    
+    // Calculate snapped delta (snaps to cell boundaries)
+    const snappedDays = Math.round(deltaX / cellWidth);
+    setSnappedDelta(snappedDays * cellWidth);
+  }, [dragState, linkingFrom, cellWidth]);
 
   const handleMouseUp = useCallback(() => {
+    // Handle linking completion
+    if (linkingFrom && hoverTarget) {
+      // Create dependency when dropping on a target
+      setDependencies(prev => [...prev, { from: linkingFrom, to: hoverTarget.issueId }]);
+      onDependencyCreate?.(linkingFrom, hoverTarget.issueId);
+    }
+    
     if (linkingFrom) {
       setLinkingFrom(null);
       setLinkingFromPos(null);
+      setLinkingFromSide('right');
+      setHoverTarget(null);
     }
     
-    // Commit the drag changes
-    if (dragState.issueId && dragState.mode && dragDelta !== 0) {
-      const daysDelta = Math.round(dragDelta / cellWidth);
+    // Commit the drag changes using snapped delta
+    if (dragState.issueId && dragState.mode && snappedDelta !== 0) {
+      const daysDelta = Math.round(snappedDelta / cellWidth);
       
       if (daysDelta !== 0) {
         const issue = issues.find(i => i.id === dragState.issueId);
@@ -312,6 +328,7 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
     }
     
     setDragDelta(0);
+    setSnappedDelta(0);
     setDragState({
       issueId: null,
       mode: null,
@@ -319,12 +336,13 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
       originalDueDate: null,
       originalCreatedAt: null,
     });
-  }, [linkingFrom, dragState, dragDelta, cellWidth, issues, onIssueUpdate]);
+  }, [linkingFrom, hoverTarget, dragState, snappedDelta, cellWidth, issues, onIssueUpdate, onDependencyCreate]);
 
   const handleStartLinking = useCallback((e: React.MouseEvent, issueId: string, side: 'left' | 'right') => {
     e.preventDefault();
     e.stopPropagation();
     setLinkingFrom(issueId);
+    setLinkingFromSide(side);
     // Store the exact position where the linking started
     const rect = (e.target as HTMLElement).getBoundingClientRect();
     setLinkingFromPos({ 
@@ -334,14 +352,20 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
     setMousePosition({ x: e.clientX, y: e.clientY });
   }, []);
 
-  const handleBarMouseEnter = useCallback((issueId: string) => {
+  // Handle hovering over a connection point while linking
+  const handleLinkPointEnter = useCallback((issueId: string, side: 'left' | 'right') => {
     if (linkingFrom && linkingFrom !== issueId) {
-      // Create dependency
-      setDependencies(prev => [...prev, { from: linkingFrom, to: issueId }]);
-      onDependencyCreate?.(linkingFrom, issueId);
-      setLinkingFrom(null);
+      setHoverTarget({ issueId, side });
     }
-  }, [linkingFrom, onDependencyCreate]);
+  }, [linkingFrom]);
+
+  const handleLinkPointLeave = useCallback(() => {
+    setHoverTarget(null);
+  }, []);
+
+  const handleBarMouseEnter = useCallback((issueId: string) => {
+    // No longer auto-create dependency on bar enter - must hover on link point
+  }, []);
 
   // Add global mouse event listeners
   useEffect(() => {
@@ -685,77 +709,124 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
                         
                         {/* Issue Bar */}
                         {barPos.isVisible && (() => {
-                          // Calculate visual offset for dragged bar
                           const isDragging = dragState.issueId === issue.id;
-                          const visualOffset = isDragging ? dragDelta : 0;
-                          const visualWidth = isDragging && dragState.mode === 'resize-end' 
-                            ? `${Math.max(60, parseFloat(barPos.width) + dragDelta)}px`
-                            : barPos.width;
+                          const isLinkingFromThis = linkingFrom === issue.id;
+                          const isLinkTarget = hoverTarget?.issueId === issue.id;
+                          
+                          // Calculate snapped visual position during drag
+                          const baseLeft = parseFloat(barPos.left);
+                          const baseWidth = parseFloat(barPos.width);
+                          
+                          // Snapped position (where it will land)
+                          const snappedLeft = isDragging && dragState.mode === 'move'
+                            ? baseLeft + snappedDelta : baseLeft;
+                          const snappedWidth = isDragging && dragState.mode === 'resize-end' 
+                            ? Math.max(60, baseWidth + snappedDelta) : baseWidth;
+                          
+                          // Current visual position (follows mouse smoothly)
                           const visualLeft = isDragging && dragState.mode === 'move'
-                            ? `${parseFloat(barPos.left) + dragDelta}px`
-                            : barPos.left;
+                            ? baseLeft + dragDelta : baseLeft;
+                          const visualWidth = isDragging && dragState.mode === 'resize-end' 
+                            ? Math.max(60, baseWidth + dragDelta) : baseWidth;
                           
                           return (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
+                          <>
+                            {/* Ghost bar showing snapped position */}
+                            {isDragging && (snappedDelta !== 0 || dragDelta !== 0) && (
                               <div
                                 className={cn(
-                                  "absolute top-1/2 -translate-y-1/2 h-6 rounded shadow-sm group/bar select-none",
-                                  getStatusColor(issue.status),
-                                  !barPos.hasDueDate && "opacity-60 border-2 border-dashed border-white/30",
-                                  isDragging && "ring-2 ring-white ring-opacity-50 z-30 transition-none",
-                                  !isDragging && "transition-all",
-                                  linkingFrom === issue.id && "ring-2 ring-yellow-400 z-30"
+                                  "absolute top-1/2 -translate-y-1/2 h-6 rounded border-2 border-dashed pointer-events-none z-25",
+                                  getStatusColor(issue.status)
                                 )}
                                 style={{ 
-                                  left: visualLeft, 
-                                  width: visualWidth,
+                                  left: `${snappedLeft}px`, 
+                                  width: `${snappedWidth}px`,
                                   minWidth: '60px',
-                                  cursor: isDragging ? 'grabbing' : 'grab',
+                                  opacity: 0.4,
                                 }}
-                                onMouseDown={(e) => handleBarMouseDown(e, issue, 'move')}
-                                onMouseEnter={() => handleBarMouseEnter(issue.id)}
-                                onDoubleClick={() => handleIssueClick(issue)}
-                              >
-                                {/* Left resize handle */}
-                                <div 
-                                  className="absolute left-0 top-0 bottom-0 w-3 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 bg-white/20 rounded-l flex items-center justify-center z-10"
-                                  onMouseDown={(e) => { e.stopPropagation(); handleBarMouseDown(e, issue, 'resize-start'); }}
+                              />
+                            )}
+                            
+                            {/* Main dragging bar */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className={cn(
+                                    "absolute top-1/2 -translate-y-1/2 h-6 rounded shadow-sm group/bar select-none",
+                                    getStatusColor(issue.status),
+                                    !barPos.hasDueDate && "border-2 border-dashed border-white/30",
+                                    isDragging && "z-30 cursor-grabbing shadow-lg",
+                                    !isDragging && "transition-all cursor-grab",
+                                    isLinkingFromThis && "ring-2 ring-yellow-400 z-30",
+                                    isLinkTarget && "ring-2 ring-green-400 z-30 scale-105"
+                                  )}
+                                  style={{ 
+                                    left: `${visualLeft}px`, 
+                                    width: `${visualWidth}px`,
+                                    minWidth: '60px',
+                                    opacity: isDragging ? 0.7 : (barPos.hasDueDate ? 1 : 0.6),
+                                  }}
+                                  onMouseDown={(e) => handleBarMouseDown(e, issue, 'move')}
+                                  onMouseEnter={() => handleBarMouseEnter(issue.id)}
+                                  onDoubleClick={() => handleIssueClick(issue)}
                                 >
-                                  <GripVertical className="h-3 w-3 text-white/70" />
+                                  {/* Left resize handle */}
+                                  <div 
+                                    className="absolute left-0 top-0 bottom-0 w-3 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 bg-white/30 rounded-l flex items-center justify-center z-10"
+                                    onMouseDown={(e) => { e.stopPropagation(); handleBarMouseDown(e, issue, 'resize-start'); }}
+                                  >
+                                    <GripVertical className="h-3 w-3 text-white/80" />
+                                  </div>
+                                  
+                                  {/* Bar content */}
+                                  <div className="h-full flex items-center px-3 overflow-hidden pointer-events-none">
+                                    <StatusIcon status={issue.status} className="h-3 w-3 mr-1.5 flex-shrink-0 text-white" />
+                                    <span className="text-[10px] text-white font-medium truncate">
+                                      {issue.identifier}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Right resize handle */}
+                                  <div 
+                                    className="absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 bg-white/30 rounded-r flex items-center justify-center z-10"
+                                    onMouseDown={(e) => { e.stopPropagation(); handleBarMouseDown(e, issue, 'resize-end'); }}
+                                  >
+                                    <GripVertical className="h-3 w-3 text-white/80" />
+                                  </div>
+                                  
+                                  {/* Link points - show when hovering or when actively linking */}
+                                  <div 
+                                    className={cn(
+                                      "absolute -left-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-2 border-white cursor-crosshair flex items-center justify-center z-20 transition-all",
+                                      linkingFrom 
+                                        ? (isLinkTarget && hoverTarget?.side === 'left' 
+                                            ? "opacity-100 bg-green-500 scale-125" 
+                                            : "opacity-70 bg-yellow-400")
+                                        : "opacity-0 group-hover/bar:opacity-100 bg-yellow-400 hover:scale-110"
+                                    )}
+                                    onMouseDown={(e) => { e.stopPropagation(); handleStartLinking(e, issue.id, 'left'); }}
+                                    onMouseEnter={() => handleLinkPointEnter(issue.id, 'left')}
+                                    onMouseLeave={handleLinkPointLeave}
+                                  >
+                                    <Link2 className="h-2.5 w-2.5 text-yellow-900" />
+                                  </div>
+                                  <div 
+                                    className={cn(
+                                      "absolute -right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-2 border-white cursor-crosshair flex items-center justify-center z-20 transition-all",
+                                      linkingFrom 
+                                        ? (isLinkTarget && hoverTarget?.side === 'right' 
+                                            ? "opacity-100 bg-green-500 scale-125" 
+                                            : "opacity-70 bg-yellow-400")
+                                        : "opacity-0 group-hover/bar:opacity-100 bg-yellow-400 hover:scale-110"
+                                    )}
+                                    onMouseDown={(e) => { e.stopPropagation(); handleStartLinking(e, issue.id, 'right'); }}
+                                    onMouseEnter={() => handleLinkPointEnter(issue.id, 'right')}
+                                    onMouseLeave={handleLinkPointLeave}
+                                  >
+                                    <Link2 className="h-2.5 w-2.5 text-yellow-900" />
+                                  </div>
                                 </div>
-                                
-                                {/* Bar content */}
-                                <div className="h-full flex items-center px-3 overflow-hidden pointer-events-none">
-                                  <StatusIcon status={issue.status} className="h-3 w-3 mr-1.5 flex-shrink-0 text-white" />
-                                  <span className="text-[10px] text-white font-medium truncate">
-                                    {issue.identifier}
-                                  </span>
-                                </div>
-                                
-                                {/* Right resize handle */}
-                                <div 
-                                  className="absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 bg-white/20 rounded-r flex items-center justify-center z-10"
-                                  onMouseDown={(e) => { e.stopPropagation(); handleBarMouseDown(e, issue, 'resize-end'); }}
-                                >
-                                  <GripVertical className="h-3 w-3 text-white/70" />
-                                </div>
-                                
-                                {/* Link points */}
-                                <div 
-                                  className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-yellow-400 border-2 border-white opacity-0 group-hover/bar:opacity-100 cursor-crosshair flex items-center justify-center z-20"
-                                  onMouseDown={(e) => { e.stopPropagation(); handleStartLinking(e, issue.id, 'left'); }}
-                                >
-                                  <Link2 className="h-2 w-2 text-yellow-900" />
-                                </div>
-                                <div 
-                                  className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-yellow-400 border-2 border-white opacity-0 group-hover/bar:opacity-100 cursor-crosshair flex items-center justify-center z-20"
-                                  onMouseDown={(e) => { e.stopPropagation(); handleStartLinking(e, issue.id, 'right'); }}
-                                >
-                                  <Link2 className="h-2 w-2 text-yellow-900" />
-                                </div>
-                              </div>
-                            </TooltipTrigger>
+                              </TooltipTrigger>
                             <TooltipContent side="top" className="max-w-xs">
                               <div className="space-y-1">
                                 <p className="font-medium text-sm">{issue.title}</p>
@@ -775,6 +846,7 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
                               </div>
                             </TooltipContent>
                           </Tooltip>
+                          </>
                           );
                         })()}
                       </div>
@@ -926,13 +998,38 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
           );
         })}
         
-        {/* Linking line while dragging - smooth bezier to mouse */}
+        {/* Linking line while dragging - smooth bezier to mouse or snap target */}
         {linkingFrom && linkingFromPos && (
           (() => {
             const fromX = linkingFromPos.x;
             const fromY = linkingFromPos.y;
-            const toX = mousePosition.x;
-            const toY = mousePosition.y;
+            
+            // If hovering over a target, snap to it
+            let toX = mousePosition.x;
+            let toY = mousePosition.y;
+            let isSnapped = false;
+            
+            if (hoverTarget) {
+              const targetIssue = issues.find(i => i.id === hoverTarget.issueId);
+              if (targetIssue) {
+                const targetPos = getBarPosition(targetIssue);
+                let targetRowIndex = 0;
+                let currentRow = 0;
+                for (const group of groupedIssues) {
+                  for (const issue of group.issues) {
+                    if (issue.id === hoverTarget.issueId) targetRowIndex = currentRow;
+                    currentRow++;
+                  }
+                }
+                const sidebarWidth = 288;
+                const headerHeight = 56 + 64;
+                const rowHeight = 40;
+                
+                toX = sidebarWidth + parseFloat(targetPos.left) + (hoverTarget.side === 'right' ? parseFloat(targetPos.width) : 0);
+                toY = headerHeight + (targetRowIndex * rowHeight) + (rowHeight / 2);
+                isSnapped = true;
+              }
+            }
             
             const horizontalDist = Math.abs(toX - fromX);
             const cpOffset = Math.min(horizontalDist / 2, 60);
@@ -943,8 +1040,9 @@ export function GanttChart({ issues, onIssueClick, onIssueUpdate, onDependencyCr
               <path
                 d={pathD}
                 fill="none"
-                stroke="#f59e0b"
-                strokeWidth="2"
+                stroke={isSnapped ? "#22c55e" : "#f59e0b"}
+                strokeWidth={isSnapped ? 3 : 2}
+                opacity={isSnapped ? 0.9 : 0.6}
                 strokeDasharray="6,4"
                 markerEnd="url(#arrowhead)"
               />

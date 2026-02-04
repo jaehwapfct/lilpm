@@ -63,44 +63,54 @@ const MIN_HISTORY_WIDTH = 200;
 const MAX_HISTORY_WIDTH = 400;
 const DEFAULT_HISTORY_WIDTH = 256; // 16rem = 256px
 
-// ThinkingBlock component for Chain of Thought (Claude/Gemini style)
-function ThinkingBlock({ content, t, isStreaming = false }: { content: string; t: (key: string, fallback?: string) => string; isStreaming?: boolean }) {
-  const [isExpanded, setIsExpanded] = useState(true); // Default expanded like Claude
+// Timeline ThinkingBlock component - renders OUTSIDE speech bubble like Claude/Gemini
+function TimelineThinkingBlock({ content, t, isStreaming = false }: { content: string; t: (key: string, options?: any) => string; isStreaming?: boolean }) {
+  const [isExpanded, setIsExpanded] = useState(false); // Collapsed by default
   
   if (!content.trim()) return null;
   
   return (
-    <div className="rounded-lg border border-violet-500/30 bg-gradient-to-r from-violet-500/5 to-purple-500/5 overflow-hidden mb-3">
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-violet-500/5 transition-colors"
-      >
+    <div className="flex gap-3 py-2">
+      {/* Timeline icon with connector */}
+      <div className="flex flex-col items-center">
         <div className={cn(
-          "p-1 rounded-md",
-          isStreaming ? "bg-violet-500/20 animate-pulse" : "bg-violet-500/10"
+          "w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors",
+          isStreaming 
+            ? "border-violet-500 bg-violet-500/20" 
+            : "border-violet-500/50 bg-violet-500/10"
         )}>
-          <Brain className="h-3.5 w-3.5 text-violet-500" />
+          <Brain className={cn(
+            "h-4 w-4 text-violet-500",
+            isStreaming && "animate-pulse"
+          )} />
         </div>
-        <span className="font-medium text-violet-600 dark:text-violet-400">
-          {isStreaming ? t('lily.thinking', 'Thinking...') : t('lily.thoughtProcess', 'Thought process')}
-        </span>
-        {isStreaming && (
-          <Loader2 className="h-3 w-3 animate-spin text-violet-500 ml-1" />
-        )}
-        <div className="flex-1" />
-        {isExpanded ? (
-          <ChevronDown className="h-4 w-4 text-violet-500/70" />
-        ) : (
-          <ChevronRight className="h-4 w-4 text-violet-500/70" />
-        )}
-      </button>
+        {/* Connector line */}
+        <div className="w-0.5 flex-1 bg-gradient-to-b from-violet-500/30 to-transparent min-h-[12px]" />
+      </div>
       
-      <div className={cn(
-        "overflow-hidden transition-all duration-200",
-        isExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
-      )}>
-        <div className="px-3 pb-3 border-t border-violet-500/20">
-          <div className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed pl-2 border-l-2 border-violet-500/30">
+      {/* Content */}
+      <div className="flex-1 min-w-0 pb-2">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-2 text-sm hover:opacity-80 transition-opacity group"
+        >
+          <span className="font-medium text-violet-600 dark:text-violet-400">
+            {isStreaming ? t('lily.thinking', 'Thinking...') : t('lily.thoughtProcess', 'Thought process')}
+          </span>
+          {isStreaming ? (
+            <Loader2 className="h-3 w-3 animate-spin text-violet-500" />
+          ) : (
+            <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+              {isExpanded ? '▼' : '▶'}
+            </span>
+          )}
+        </button>
+        
+        <div className={cn(
+          "overflow-hidden transition-all duration-300 ease-out",
+          isExpanded ? "max-h-[400px] opacity-100 mt-2" : "max-h-0 opacity-0"
+        )}>
+          <div className="text-sm text-muted-foreground/80 whitespace-pre-wrap leading-relaxed pl-3 border-l-2 border-violet-500/20 bg-violet-500/5 rounded-r-md py-2 pr-3">
             {content}
           </div>
         </div>
@@ -117,7 +127,7 @@ interface ConversationItemProps {
   isEditing: boolean;
   editingTitle: string;
   dateLocale: Locale;
-  t: (key: string, fallback?: string) => string;
+  t: (key: string, options?: any) => string;
   onSelect: () => void;
   onDelete: () => void;
   onPin: () => void;
@@ -351,6 +361,9 @@ export function LilyChat() {
     }
   }, [messages]);
 
+  // Track previous loading state for auto-preview
+  const prevIsLoading = useRef(isLoading);
+  
   // Extract canvas code from latest assistant message when in canvas mode
   useEffect(() => {
     if (!canvasMode || messages.length === 0) return;
@@ -361,22 +374,32 @@ export function LilyChat() {
     
     const content = lastAssistantMessage.content;
     
-    // Try to extract code blocks from the message
-    // Match ```jsx, ```tsx, ```javascript, ```typescript, ```python, etc.
-    const codeBlockMatch = content.match(/```(?:jsx?|tsx?|javascript|typescript|python|html|css|react)?\n([\s\S]*?)```/);
+    // Try to extract code blocks from the message (including partial blocks during streaming)
+    // Match ```jsx, ```tsx, ```javascript, ```typescript, etc.
+    const codeBlockMatch = content.match(/```(?:jsx?|tsx?|javascript|typescript|html|css|react)?\n([\s\S]*?)(?:```|$)/);
     
     if (codeBlockMatch) {
       const extractedCode = codeBlockMatch[1].trim();
-      if (extractedCode && extractedCode !== canvasCode) {
+      if (extractedCode) {
         setCanvasCode(extractedCode);
         setCanvasError(null);
         // Open the canvas panel when code is detected
         if (!showCanvasPanel) {
           setShowCanvasPanel(true);
+          setCanvasViewMode('code'); // Start in code view to show generation
         }
       }
     }
-  }, [messages, canvasMode, canvasCode, showCanvasPanel]);
+    
+    // Auto-switch to preview when generation completes
+    if (prevIsLoading.current && !isLoading && canvasCode) {
+      // Delay preview switch slightly to ensure code is fully rendered
+      setTimeout(() => {
+        setCanvasViewMode('preview');
+      }, 500);
+    }
+    prevIsLoading.current = isLoading;
+  }, [messages, canvasMode, showCanvasPanel, isLoading, canvasCode]);
   
   // Reset canvas panel when canvas mode is turned off
   useEffect(() => {
@@ -716,82 +739,71 @@ export function LilyChat() {
               </div>
             )}
 
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={cn(
-                  "flex gap-3",
-                  message.role === 'user' && "flex-row-reverse"
-                )}
-              >
-                <Avatar className="h-8 w-8 flex-shrink-0">
-                  <AvatarFallback className={cn(
-                    message.role === 'assistant' && "bg-primary text-primary-foreground"
+            {messages.map((message) => {
+              // Extract thinking content from message
+              let thinkingContent = message.thinking || '';
+              let cleanContent = message.content;
+              
+              // Extract thinking from content if present
+              const thinkingMatch = cleanContent.match(/<thinking>([\s\S]*?)<\/thinking>/);
+              if (thinkingMatch) {
+                thinkingContent = thinkingMatch[1];
+                cleanContent = cleanContent.replace(/<thinking>[\s\S]*?<\/thinking>/g, '').trim();
+              }
+              
+              // Remove [CANVAS:...] blocks and template text
+              cleanContent = cleanContent
+                .replace(/\[CANVAS:[^\]]*\][\s\S]*?(?=\n\n|$)/g, '')
+                .replace(/\/\/ Write a [^\n]*\n?/g, '')
+                .replace(/```[\s\S]*?```/g, '') // Also remove code blocks from chat when canvas mode
+                .trim();
+              
+              return (
+                <div key={message.id}>
+                  {/* Timeline Thinking Block - OUTSIDE the speech bubble */}
+                  {message.role === 'assistant' && thinkingContent && (
+                    <TimelineThinkingBlock content={thinkingContent} t={t} />
+                  )}
+                  
+                  {/* Message bubble */}
+                  <div className={cn(
+                    "flex gap-3",
+                    message.role === 'user' && "flex-row-reverse"
                   )}>
-                    {message.role === 'assistant' ? (
-                      <Bot className="h-4 w-4" />
-                    ) : (
-                      <User className="h-4 w-4" />
-                    )}
-                  </AvatarFallback>
-                </Avatar>
-                <div
-                  className={cn(
-                    "rounded-lg px-4 py-2 max-w-[80%]",
-                    message.role === 'user' 
-                      ? "bg-primary text-primary-foreground" 
-                      : "bg-muted"
-                  )}
-                >
-                  {message.role === 'assistant' ? (
-                    <div className="space-y-2">
-                      {/* Chain of Thought UI */}
-                      {message.thinking && (
-                        <ThinkingBlock content={message.thinking} t={t} />
+                    <Avatar className="h-8 w-8 flex-shrink-0">
+                      <AvatarFallback className={cn(
+                        message.role === 'assistant' && "bg-primary text-primary-foreground"
+                      )}>
+                        {message.role === 'assistant' ? (
+                          <Bot className="h-4 w-4" />
+                        ) : (
+                          <User className="h-4 w-4" />
+                        )}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div
+                      className={cn(
+                        "rounded-lg px-4 py-2 max-w-[80%]",
+                        message.role === 'user' 
+                          ? "bg-primary text-primary-foreground" 
+                          : "bg-muted"
                       )}
-                      {/* Parse thinking from content if present */}
-                      {(() => {
-                        // Clean content: remove <thinking> tags and [CANVAS:...] blocks
-                        let cleanContent = message.content;
-                        
-                        // Extract and remove thinking
-                        const thinkingMatch = cleanContent.match(/<thinking>([\s\S]*?)<\/thinking>/);
-                        if (thinkingMatch) {
-                          cleanContent = cleanContent.replace(/<thinking>[\s\S]*?<\/thinking>/g, '').trim();
-                        }
-                        
-                        // Remove [CANVAS:...] blocks and following template text
-                        cleanContent = cleanContent
-                          .replace(/\[CANVAS:[^\]]*\][\s\S]*?(?=\n\n|$)/g, '')  // Remove canvas block and its content
-                          .replace(/\/\/ Write a [^\n]*\n?/g, '')  // Remove template comments
-                          .trim();
-                        
-                        return (
-                          <>
-                            {thinkingMatch && (
-                              <ThinkingBlock content={thinkingMatch[1]} t={t} />
-                            )}
-                            <div className="prose prose-sm dark:prose-invert max-w-none">
-                              <ReactMarkdown>{cleanContent}</ReactMarkdown>
-                            </div>
-                          </>
-                        );
-                      })()}
+                    >
+                      {message.role === 'assistant' ? (
+                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                          <ReactMarkdown>{cleanContent || t('lily.generating', 'Generating...')}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="text-sm whitespace-pre-wrap">{cleanContent}</p>
+                      )}
+                      <span className="text-[10px] opacity-70 mt-1 block">
+                        {new Date(message.timestamp).toLocaleTimeString()}
+                      </span>
                     </div>
-                  ) : (
-                    <p className="text-sm whitespace-pre-wrap">
-                      {message.content
-                        .replace(/\[CANVAS:[^\]]*\][\s\S]*?(?=\n\n|$)/g, '')
-                        .replace(/\/\/ Write a [^\n]*\n?/g, '')
-                        .trim()}
-                    </p>
-                  )}
-                  <span className="text-[10px] opacity-70 mt-1 block">
-                    {new Date(message.timestamp).toLocaleTimeString()}
-                  </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {isLoading && (
               <div className="flex gap-3">
@@ -1095,50 +1107,63 @@ export function LilyChat() {
                     ) : canvasCode ? (
                       <div className="border rounded-lg bg-white dark:bg-zinc-900 overflow-hidden min-h-[300px]">
                         <iframe
-                          srcDoc={`
-                            <!DOCTYPE html>
-                            <html>
-                              <head>
-                                <meta charset="utf-8">
-                                <meta name="viewport" content="width=device-width, initial-scale=1">
-                                <script src="https://cdn.tailwindcss.com"></script>
-                                <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-                                <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-                                <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-                                <style>
-                                  body { 
-                                    font-family: system-ui, -apple-system, sans-serif;
-                                    padding: 1rem;
-                                    margin: 0;
-                                  }
-                                </style>
-                              </head>
-                              <body>
-                                <div id="root"></div>
-                                <script type="text/babel">
-                                  try {
-                                    ${canvasCode}
-                                    
-                                    // Try to find and render the component
-                                    const componentMatch = \`${canvasCode}\`.match(/(?:function|const|class)\\s+(\\w+)/);
-                                    if (componentMatch) {
-                                      const ComponentName = eval(componentMatch[1]);
-                                      ReactDOM.createRoot(document.getElementById('root')).render(
-                                        React.createElement(ComponentName)
-                                      );
-                                    }
-                                  } catch (e) {
-                                    document.getElementById('root').innerHTML = 
-                                      '<div style="color: red; padding: 1rem;">' + 
-                                      '<strong>Error:</strong> ' + e.message + 
-                                      '</div>';
-                                  }
-                                </script>
-                              </body>
-                            </html>
-                          `}
-                          className="w-full h-[400px] border-0"
-                          sandbox="allow-scripts"
+                          srcDoc={(() => {
+                            // Check if the code is a complete HTML document
+                            const isCompleteHTML = canvasCode.trim().toLowerCase().startsWith('<!doctype') || 
+                                                   canvasCode.trim().toLowerCase().startsWith('<html');
+                            
+                            if (isCompleteHTML) {
+                              // Render complete HTML document directly
+                              return canvasCode;
+                            } else {
+                              // Wrap component code in HTML shell
+                              return `
+                                <!DOCTYPE html>
+                                <html>
+                                  <head>
+                                    <meta charset="utf-8">
+                                    <meta name="viewport" content="width=device-width, initial-scale=1">
+                                    <script src="https://cdn.tailwindcss.com"></script>
+                                    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+                                    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+                                    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+                                    <style>
+                                      body { 
+                                        font-family: system-ui, -apple-system, sans-serif;
+                                        padding: 1rem;
+                                        margin: 0;
+                                        background: #fafafa;
+                                      }
+                                    </style>
+                                  </head>
+                                  <body>
+                                    <div id="root"></div>
+                                    <script type="text/babel">
+                                      try {
+                                        ${canvasCode}
+                                        
+                                        // Try to find and render the component
+                                        const componentMatch = \`${canvasCode}\`.match(/(?:function|const|class)\\s+(\\w+)/);
+                                        if (componentMatch) {
+                                          const ComponentName = eval(componentMatch[1]);
+                                          ReactDOM.createRoot(document.getElementById('root')).render(
+                                            React.createElement(ComponentName)
+                                          );
+                                        }
+                                      } catch (e) {
+                                        document.getElementById('root').innerHTML = 
+                                          '<div style="color: red; padding: 1rem; font-family: monospace;">' + 
+                                          '<strong>Error:</strong> ' + e.message + 
+                                          '</div>';
+                                      }
+                                    </script>
+                                  </body>
+                                </html>
+                              `;
+                            }
+                          })()}
+                          className="w-full h-[500px] border-0"
+                          sandbox="allow-scripts allow-same-origin"
                           title="Canvas Preview"
                         />
                       </div>

@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 // Bump this string to verify which deployment is actually running.
-const FUNCTION_VERSION = "2026-02-04.5";
+const FUNCTION_VERSION = "2026-02-04.6";
 const DEPLOYED_AT = new Date().toISOString();
 
 // AI Provider configurations
@@ -413,12 +413,42 @@ function generateSystemPrompt(mcpTools?: MCPToolInfo[], canvasMode?: boolean): s
   // Add canvas mode instructions
   if (canvasMode) {
     prompt += `\n\n---\n\n## 🎨 캔버스 모드 (Canvas Mode) 활성화됨\n\n`;
-    prompt += `사용자가 캔버스 모드를 활성화했습니다. 코드 생성 요청 시:\n\n`;
-    prompt += `1. **간결한 응답**: 채팅 메시지는 "만들어 드릴게요! 🎨" 또는 "코드를 작성할게요!" 정도로 간단하게\n`;
-    prompt += `2. **코드 블록 제공**: \`\`\`jsx 또는 \`\`\`tsx 로 감싼 완성된 코드를 제공\n`;
-    prompt += `3. **완료 메시지**: 코드 작성 후 "완성했어요! ✨ 미리보기에서 확인해 보세요." 라고 마무리\n\n`;
-    prompt += `예시 응답:\n`;
-    prompt += `"투두 리스트를 만들어 드릴게요! 🎨\n\n\`\`\`jsx\n// Todo List Component\n...\n\`\`\`\n\n완성했어요! ✨ Preview 버튼을 눌러 확인해 보세요."\n`;
+    prompt += `사용자가 캔버스 모드를 활성화했습니다. **완전히 동작하는 HTML 문서**를 생성해야 합니다.\n\n`;
+    prompt += `### 필수 규칙:\n`;
+    prompt += `1. **간결한 응답**: 채팅에는 "만들어 드릴게요! 🎨" 정도로만 짧게\n`;
+    prompt += `2. **완전한 HTML 문서**: 아래 형식의 독립 실행 가능한 HTML을 생성\n`;
+    prompt += `3. **완료 메시지**: "완성했어요! ✨"\n\n`;
+    prompt += `### HTML 템플릿 (반드시 이 구조를 사용):\n`;
+    prompt += `\`\`\`html\n`;
+    prompt += `<!DOCTYPE html>\n`;
+    prompt += `<html lang="ko">\n`;
+    prompt += `<head>\n`;
+    prompt += `  <meta charset="UTF-8">\n`;
+    prompt += `  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n`;
+    prompt += `  <title>Canvas App</title>\n`;
+    prompt += `  <script src="https://cdn.tailwindcss.com"></script>\n`;
+    prompt += `  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>\n`;
+    prompt += `  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>\n`;
+    prompt += `  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>\n`;
+    prompt += `  <style>/* 여기에 커스텀 스타일 */</style>\n`;
+    prompt += `</head>\n`;
+    prompt += `<body class="bg-gray-100 min-h-screen">\n`;
+    prompt += `  <div id="root"></div>\n`;
+    prompt += `  <script type="text/babel">\n`;
+    prompt += `    function App() {\n`;
+    prompt += `      // React 컴포넌트 코드\n`;
+    prompt += `      return (<div>내용</div>);\n`;
+    prompt += `    }\n`;
+    prompt += `    ReactDOM.createRoot(document.getElementById('root')).render(<App />);\n`;
+    prompt += `  </script>\n`;
+    prompt += `</body>\n`;
+    prompt += `</html>\n`;
+    prompt += `\`\`\`\n\n`;
+    prompt += `### 주의사항:\n`;
+    prompt += `- React 훅 (useState, useEffect 등)은 \`React.useState\`, \`React.useEffect\`로 사용\n`;
+    prompt += `- Tailwind CSS로 스타일링\n`;
+    prompt += `- 모든 기능이 독립적으로 동작해야 함\n`;
+    prompt += `- 아름답고 현대적인 UI 디자인 적용\n`;
   }
   
   if (mcpTools && mcpTools.length > 0) {
