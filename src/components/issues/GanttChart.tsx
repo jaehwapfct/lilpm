@@ -729,18 +729,29 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                           setRowDropTargetIndex(globalIndex);
                           setRowDropPosition(isAbove ? 'above' : 'below');
                         }}
-                        onDragLeave={(e) => {
-                          // Only clear if we're actually leaving the element
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          if (
-                            e.clientX < rect.left || 
-                            e.clientX > rect.right || 
-                            e.clientY < rect.top || 
-                            e.clientY > rect.bottom
-                          ) {
-                            setRowDropTargetIndex(null);
-                            setRowDropPosition(null);
+                                                onDragLeave={(e) => {
+                          // Only clear if we're actually leaving the entire row area
+                          const relatedTarget = e.relatedTarget as HTMLElement;
+                          const currentTarget = e.currentTarget as HTMLElement;
+                          
+                          // Check if the related target is still within the current row or a child
+                          if (relatedTarget && (currentTarget.contains(relatedTarget) || relatedTarget === currentTarget)) {
+                            return;
                           }
+                          
+                          // Additional check: Only clear if mouse is outside bounds
+                          const rect = currentTarget.getBoundingClientRect();
+                          if (
+                            e.clientX >= rect.left &&
+                            e.clientX <= rect.right &&
+                            e.clientY >= rect.top &&
+                            e.clientY <= rect.bottom
+                          ) {
+                            return;
+                          }
+                          
+                          setRowDropTargetIndex(null);
+                          setRowDropPosition(null);
                         }}
                         onDrop={(e) => {
                           e.preventDefault();
@@ -1076,26 +1087,11 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                               />
                             )}
                             
-                            {/* Main dragging bar */}
+                            {/* Main bar - NO draggable, only date drag via mousedown */}
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div
                                   data-bar-id={issue.id}
-                                  draggable
-                                  onDragStart={(e) => {
-                                    e.dataTransfer.setData('text/plain', JSON.stringify({ 
-                                      issueId: issue.id, 
-                                      groupKey: group.key,
-                                      originalIndex: issueIndex 
-                                    }));
-                                    e.dataTransfer.effectAllowed = 'move';
-                                    setRowDragIssueId(issue.id);
-                                  }}
-                                  onDragEnd={() => {
-                                    setRowDragIssueId(null);
-                                    setRowDropTargetIndex(null);
-                                    setRowDropPosition(null);
-                                  }}
                                   className={cn(
                                     "absolute top-1/2 -translate-y-1/2 h-6 rounded shadow-sm group/bar select-none",
                                     getStatusColor(issue.status),
@@ -1113,18 +1109,30 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                                     opacity: isDragging ? 0.7 : (rowDragIssueId === issue.id ? 0.5 : (barPos.hasDueDate ? 1 : 0.6)),
                                   }}
                                   onMouseDown={(e) => {
-                                    // Allow date drag with mousedown on the bar
-                                    handleBarMouseDown(e, issue, 'move');
+                                    // Only handle bar date drag on center area (not handles)
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    const relativeX = e.clientX - rect.left;
+                                    const isOnLeftHandle = relativeX < 12; // Left 12px
+                                    const isOnRightHandle = relativeX > rect.width - 12; // Right 12px
+                                    
+                                    if (!isOnLeftHandle && !isOnRightHandle) {
+                                      handleBarMouseDown(e, issue, 'move');
+                                    }
                                   }}
                                   onMouseEnter={() => handleBarMouseEnter(issue.id)}
                                   onDoubleClick={() => handleIssueClick(issue)}
                                 >
-                                  {/* Left resize handle */}
+                                  {/* Left resize handle - wider hit area */}
                                   <div 
-                                    className="absolute left-0 top-0 bottom-0 w-3 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 bg-white/30 rounded-l flex items-center justify-center z-10"
-                                    onMouseDown={(e) => { e.stopPropagation(); handleBarMouseDown(e, issue, 'resize-start'); }}
+                                    className="absolute left-0 top-0 bottom-0 w-4 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 bg-white/20 hover:bg-white/40 rounded-l flex items-center justify-center z-20 transition-all"
+                                    onMouseDown={(e) => { 
+                                      e.stopPropagation(); 
+                                      e.preventDefault();
+                                      handleBarMouseDown(e, issue, 'resize-start'); 
+                                    }}
+                                    title="Drag to resize start date"
                                   >
-                                    <GripVertical className="h-3 w-3 text-white/80" />
+                                    <div className="w-0.5 h-3 bg-white/80 rounded" />
                                   </div>
                                   
                                   {/* Bar content */}
@@ -1135,38 +1143,55 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                                     </span>
                                   </div>
                                   
-                                  {/* Right resize handle */}
+                                  {/* Right resize handle - wider hit area */}
                                   <div 
-                                    className="absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 bg-white/30 rounded-r flex items-center justify-center z-10"
-                                    onMouseDown={(e) => { e.stopPropagation(); handleBarMouseDown(e, issue, 'resize-end'); }}
+                                    className="absolute right-0 top-0 bottom-0 w-4 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 bg-white/20 hover:bg-white/40 rounded-r flex items-center justify-center z-20 transition-all"
+                                    onMouseDown={(e) => { 
+                                      e.stopPropagation(); 
+                                      e.preventDefault();
+                                      handleBarMouseDown(e, issue, 'resize-end'); 
+                                    }}
+                                    title="Drag to resize end date"
                                   >
-                                    <GripVertical className="h-3 w-3 text-white/80" />
+                                    <div className="w-0.5 h-3 bg-white/80 rounded" />
                                   </div>
                                   
-                                  {/* Link points - show when hovering or when actively linking (smaller size) */}
+                                  {/* Link points - show when hovering or when actively linking */}
                                   <div 
+                                    data-link-point="left"
+                                    data-issue-id={issue.id}
                                     className={cn(
-                                      "absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full border border-white/80 cursor-crosshair z-20 transition-all",
+                                      "absolute -left-1 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-white/90 cursor-crosshair z-30 transition-all",
                                       linkingFrom 
                                         ? (isLinkTarget && hoverTarget?.side === 'left' 
-                                            ? "opacity-100 bg-green-500 scale-150 w-3 h-3" 
-                                            : "opacity-80 bg-amber-500")
-                                        : "opacity-0 group-hover/bar:opacity-100 bg-amber-500 hover:scale-125"
+                                            ? "opacity-100 bg-green-500 scale-[2] border-green-300 shadow-lg shadow-green-500/50" 
+                                            : "opacity-100 bg-amber-500")
+                                        : "opacity-0 group-hover/bar:opacity-100 bg-amber-500 hover:scale-150 hover:bg-amber-400"
                                     )}
-                                    onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); handleStartLinking(e, issue.id, 'left'); }}
+                                    onMouseDown={(e) => { 
+                                      e.stopPropagation(); 
+                                      e.preventDefault(); 
+                                      handleStartLinking(e, issue.id, 'left'); 
+                                    }}
                                     onMouseEnter={() => handleLinkPointEnter(issue.id, 'left')}
                                     onMouseLeave={handleLinkPointLeave}
                                   />
                                   <div 
+                                    data-link-point="right"
+                                    data-issue-id={issue.id}
                                     className={cn(
-                                      "absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full border border-white/80 cursor-crosshair z-20 transition-all",
+                                      "absolute -right-1 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-white/90 cursor-crosshair z-30 transition-all",
                                       linkingFrom 
                                         ? (isLinkTarget && hoverTarget?.side === 'right' 
-                                            ? "opacity-100 bg-green-500 scale-150 w-3 h-3" 
-                                            : "opacity-80 bg-amber-500")
-                                        : "opacity-0 group-hover/bar:opacity-100 bg-amber-500 hover:scale-125"
+                                            ? "opacity-100 bg-green-500 scale-[2] border-green-300 shadow-lg shadow-green-500/50" 
+                                            : "opacity-100 bg-amber-500")
+                                        : "opacity-0 group-hover/bar:opacity-100 bg-amber-500 hover:scale-150 hover:bg-amber-400"
                                     )}
-                                    onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); handleStartLinking(e, issue.id, 'right'); }}
+                                    onMouseDown={(e) => { 
+                                      e.stopPropagation(); 
+                                      e.preventDefault(); 
+                                      handleStartLinking(e, issue.id, 'right'); 
+                                    }}
                                     onMouseEnter={() => handleLinkPointEnter(issue.id, 'right')}
                                     onMouseLeave={handleLinkPointLeave}
                                   />

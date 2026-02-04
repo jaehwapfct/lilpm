@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { AppLayout } from '@/components/layout';
 import { useTeamStore } from '@/stores/teamStore';
 import { teamMemberService, teamInviteService, type TeamMemberWithProfile } from '@/lib/services/teamService';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -115,8 +116,52 @@ export function TeamMembersPage() {
     }
   };
 
+  // Set up realtime subscription for team members and invites
   useEffect(() => {
+    if (!currentTeam) return;
+
     loadData();
+
+    // Subscribe to team_members changes
+    const memberSubscription = supabase
+      .channel(`team_members:${currentTeam.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'team_members',
+          filter: `team_id=eq.${currentTeam.id}`,
+        },
+        (payload) => {
+          console.log('Team member change:', payload);
+          loadData(); // Reload data on any change
+        }
+      )
+      .subscribe();
+
+    // Subscribe to team_invites changes
+    const inviteSubscription = supabase
+      .channel(`team_invites:${currentTeam.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'team_invites',
+          filter: `team_id=eq.${currentTeam.id}`,
+        },
+        (payload) => {
+          console.log('Team invite change:', payload);
+          loadData(); // Reload data on any change
+        }
+      )
+      .subscribe();
+
+    return () => {
+      memberSubscription.unsubscribe();
+      inviteSubscription.unsubscribe();
+    };
   }, [currentTeam?.id]);
 
   const handleInvite = async () => {

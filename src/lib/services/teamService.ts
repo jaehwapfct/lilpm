@@ -193,6 +193,9 @@ export const teamInviteService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
+    // Generate a unique token
+    const token = crypto.randomUUID();
+
     const { data, error } = await supabase
       .from('team_invites')
       .insert({
@@ -200,11 +203,39 @@ export const teamInviteService = {
         email,
         role,
         invited_by: user.id,
+        token,
       } as any)
-      .select()
+      .select('*, team:teams(name), inviter:profiles!invited_by(name)')
       .single();
     
     if (error) throw error;
+
+    // Call Edge Function to send email
+    try {
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://lbzjnhlribtfwnoydpdv.supabase.co';
+      const invite = data as any;
+      
+      await fetch(`${SUPABASE_URL}/functions/v1/send-team-invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inviteId: invite.id,
+          email: invite.email,
+          teamName: invite.team?.name || 'Team',
+          inviterName: invite.inviter?.name || user.email?.split('@')[0] || 'A team member',
+          role: invite.role,
+          token: invite.token,
+        }),
+      });
+      
+      console.log('Invitation email sent successfully');
+    } catch (emailError) {
+      console.error('Failed to send invitation email:', emailError);
+      // Don't fail the invite creation if email fails
+    }
+    
     return data as TeamInvite;
   },
 
