@@ -79,19 +79,29 @@ async function callMCPServer(
   params: Record<string, unknown>
 ): Promise<{ success: boolean; data?: unknown; error?: string }> {
   try {
-    // Determine the endpoint
-    let endpoint = connector.apiEndpoint;
+    // Extract base URL and API key from mcpConfig
+    let baseUrl = connector.apiEndpoint || '';
+    let apiKey = connector.apiKey || '';
     
-    // If mcpConfig exists, extract endpoint from args
     if (connector.mcpConfig?.args) {
+      // Find URL in args
       const urlArg = connector.mcpConfig.args.find((arg: string) => arg.startsWith('http'));
       if (urlArg) {
-        // For SSE endpoints, use the base URL for RPC calls
-        endpoint = urlArg.replace('/sse', '/rpc');
+        // Remove /sse suffix to get base URL
+        baseUrl = urlArg.replace(/\/sse$/, '');
+      }
+      
+      // Find API key from Authorization header
+      const authIndex = connector.mcpConfig.args.findIndex((arg: string) => arg === '--header');
+      if (authIndex !== -1 && connector.mcpConfig.args[authIndex + 1]) {
+        const authHeader = connector.mcpConfig.args[authIndex + 1];
+        if (authHeader.startsWith('Authorization: Bearer ')) {
+          apiKey = authHeader.replace('Authorization: Bearer ', '');
+        }
       }
     }
     
-    if (!endpoint) {
+    if (!baseUrl) {
       return { success: false, error: 'No API endpoint configured' };
     }
     
@@ -100,40 +110,68 @@ async function callMCPServer(
       'Content-Type': 'application/json',
     };
     
-    if (connector.apiKey) {
-      headers['Authorization'] = `Bearer ${connector.apiKey}`;
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`;
     }
     
-    // MCP JSON-RPC 2.0 request
-    const rpcRequest = {
-      jsonrpc: '2.0',
-      id: Date.now(),
-      method: `tools/${action}`,
-      params: params,
-    };
+    console.log('[MCP] Base URL:', baseUrl);
+    console.log('[MCP] Action:', action);
+    console.log('[MCP] Params:', params);
     
-    console.log('[MCP] Calling:', endpoint, rpcRequest);
+    // Try multiple endpoint patterns
+    const endpointPatterns = [
+      // Pattern 1: Direct tools endpoint
+      { url: `${baseUrl}/tools/${action}`, method: 'POST', body: params },
+      // Pattern 2: JSON-RPC style
+      { url: `${baseUrl}/rpc`, method: 'POST', body: { jsonrpc: '2.0', id: Date.now(), method: action, params } },
+      // Pattern 3: Call endpoint with method in body
+      { url: `${baseUrl}/call`, method: 'POST', body: { method: action, params } },
+      // Pattern 4: Tools call endpoint
+      { url: `${baseUrl}/tools/call`, method: 'POST', body: { name: action, arguments: params } },
+      // Pattern 5: API endpoint
+      { url: `${baseUrl}/api/${action}`, method: 'POST', body: params },
+    ];
     
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(rpcRequest),
-    });
+    let lastError = '';
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[MCP] Error response:', response.status, errorText);
-      return { success: false, error: `MCP server error: ${response.status}` };
+    for (const pattern of endpointPatterns) {
+      try {
+        console.log('[MCP] Trying:', pattern.url);
+        
+        const response = await fetch(pattern.url, {
+          method: pattern.method,
+          headers,
+          body: JSON.stringify(pattern.body),
+        });
+        
+        console.log('[MCP] Response status:', response.status);
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('[MCP] Success:', result);
+          
+          // Handle different response formats
+          if (result.error) {
+            lastError = result.error.message || JSON.stringify(result.error);
+            continue;
+          }
+          
+          return { 
+            success: true, 
+            data: result.result || result.data || result 
+          };
+        } else {
+          const errorText = await response.text();
+          lastError = `${response.status}: ${errorText.substring(0, 200)}`;
+          console.log('[MCP] Error:', lastError);
+        }
+      } catch (e) {
+        lastError = e instanceof Error ? e.message : 'Request failed';
+        console.log('[MCP] Exception:', lastError);
+      }
     }
     
-    const result = await response.json();
-    console.log('[MCP] Response:', result);
-    
-    if (result.error) {
-      return { success: false, error: result.error.message || 'MCP error' };
-    }
-    
-    return { success: true, data: result.result };
+    return { success: false, error: `All endpoints failed. Last error: ${lastError}` };
   } catch (error) {
     console.error('[MCP] Call failed:', error);
     return { 

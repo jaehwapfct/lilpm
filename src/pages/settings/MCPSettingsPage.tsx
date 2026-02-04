@@ -194,15 +194,15 @@ export function MCPSettingsPage() {
     setTestResult(null);
     
     try {
-      // Determine endpoint
-      let endpoint = editingConnector.apiEndpoint;
-      let apiKey = editingConnector.apiKey;
+      // Extract base URL and API key from mcpConfig
+      let baseUrl = editingConnector.apiEndpoint || '';
+      let apiKey = editingConnector.apiKey || '';
       
       if (editingConnector.mcpConfig?.args) {
         const urlArg = editingConnector.mcpConfig.args.find((arg: string) => arg.startsWith('http'));
         if (urlArg) {
-          // Try both /rpc and base endpoint
-          endpoint = urlArg.replace('/sse', '');
+          // Remove /sse suffix to get base URL
+          baseUrl = urlArg.replace(/\/sse$/, '');
         }
         
         const authIndex = editingConnector.mcpConfig.args.findIndex((arg: string) => arg === '--header');
@@ -214,7 +214,7 @@ export function MCPSettingsPage() {
         }
       }
       
-      if (!endpoint) {
+      if (!baseUrl) {
         setTestResult({ success: false, message: 'No endpoint configured' });
         return;
       }
@@ -226,46 +226,53 @@ export function MCPSettingsPage() {
         headers['Authorization'] = `Bearer ${apiKey}`;
       }
       
-      console.log('[MCP Test] Endpoint:', endpoint);
-      console.log('[MCP Test] Headers:', { ...headers, Authorization: apiKey ? 'Bearer ***' : undefined });
+      console.log('[MCP Test] Base URL:', baseUrl);
+      console.log('[MCP Test] API Key:', apiKey ? `${apiKey.substring(0, 20)}...` : 'none');
       
-      // Try tools/list first (MCP standard)
+      // Try multiple endpoint patterns
       const testEndpoints = [
-        { url: `${endpoint}/tools/list`, method: 'GET' },
-        { url: `${endpoint}/rpc`, method: 'POST', body: { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} } },
-        { url: endpoint, method: 'GET' },
+        { url: `${baseUrl}/tools/list`, method: 'GET', desc: 'GET /tools/list' },
+        { url: `${baseUrl}/tools/list`, method: 'POST', body: {}, desc: 'POST /tools/list' },
+        { url: `${baseUrl}/rpc`, method: 'POST', body: { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }, desc: 'JSON-RPC tools/list' },
+        { url: `${baseUrl}/api/tools`, method: 'GET', desc: 'GET /api/tools' },
+        { url: `${baseUrl}/health`, method: 'GET', desc: 'Health check' },
+        { url: baseUrl, method: 'GET', desc: 'Base URL' },
+        { url: `${baseUrl}/sse`, method: 'GET', desc: 'SSE endpoint' },
       ];
       
-      let lastError = '';
+      const results: string[] = [];
+      let anySuccess = false;
+      
       for (const test of testEndpoints) {
         try {
-          console.log('[MCP Test] Trying:', test.url, test.method);
+          console.log('[MCP Test] Trying:', test.desc, test.url);
           const response = await fetch(test.url, {
             method: test.method,
             headers,
             ...(test.body ? { body: JSON.stringify(test.body) } : {}),
           });
           
-          console.log('[MCP Test] Response status:', response.status);
+          const status = response.status;
+          const statusText = response.ok ? '✅' : '❌';
           
           if (response.ok) {
+            anySuccess = true;
             const data = await response.text();
-            console.log('[MCP Test] Response:', data.substring(0, 500));
-            setTestResult({ 
-              success: true, 
-              message: `✅ Connected! (${test.url})\n\nResponse: ${data.substring(0, 200)}${data.length > 200 ? '...' : ''}` 
-            });
-            return;
+            results.push(`${statusText} ${test.desc}: ${status}\n   Response: ${data.substring(0, 100)}${data.length > 100 ? '...' : ''}`);
           } else {
-            lastError = `${response.status}: ${await response.text().then(t => t.substring(0, 100))}`;
+            const errorText = await response.text();
+            results.push(`${statusText} ${test.desc}: ${status} - ${errorText.substring(0, 50)}`);
           }
         } catch (e) {
-          lastError = e instanceof Error ? e.message : 'Unknown error';
-          console.log('[MCP Test] Error:', lastError);
+          const error = e instanceof Error ? e.message : 'Unknown error';
+          results.push(`❌ ${test.desc}: ${error}`);
         }
       }
       
-      setTestResult({ success: false, message: `Connection failed: ${lastError}` });
+      setTestResult({ 
+        success: anySuccess, 
+        message: `Base URL: ${baseUrl}\nAPI Key: ${apiKey ? 'Configured' : 'Not set'}\n\n--- Test Results ---\n${results.join('\n\n')}` 
+      });
     } catch (error) {
       setTestResult({ 
         success: false, 
