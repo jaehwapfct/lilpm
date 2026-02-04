@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { AppLayout } from '@/components/layout';
 import { prdService, type PRDWithRelations } from '@/lib/services/prdService';
 import { BlockEditor } from '@/components/editor';
@@ -53,6 +55,8 @@ import {
   ChevronDown,
   ChevronRight,
   X,
+  Cloud,
+  CloudOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -60,6 +64,38 @@ import { cn } from '@/lib/utils';
 import { userAISettingsService } from '@/lib/services/conversationService';
 import { useAuthStore } from '@/stores/authStore';
 import type { AIProvider } from '@/types';
+
+// Timeline Thinking Block Component (like Gemini/Claude)
+const TimelineThinkingBlock = ({ content, isExpanded = false }: { content: string; isExpanded?: boolean }) => {
+  const [expanded, setExpanded] = useState(isExpanded);
+  
+  if (!content) return null;
+  
+  return (
+    <div className="flex gap-2 mb-3">
+      <div className="flex flex-col items-center">
+        <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center">
+          <Sparkles className="h-3 w-3 text-amber-500" />
+        </div>
+        <div className="w-px flex-1 bg-border" />
+      </div>
+      <div className="flex-1 pb-2">
+        <button 
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center gap-2 text-xs text-amber-600 hover:text-amber-500 font-medium mb-1"
+        >
+          {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          Thinking...
+        </button>
+        {expanded && (
+          <div className="text-xs text-muted-foreground bg-amber-500/5 border border-amber-500/20 rounded-lg p-2 mt-1">
+            {content}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 // Version history entry
 interface VersionEntry {
@@ -210,7 +246,7 @@ export function PRDDetailPage() {
           } else if (providers.length > 0) {
             setSelectedProvider(providers[0]);
           }
-        } catch (error) {
+    } catch (error) {
           console.error('Failed to fetch AI providers:', error);
           setAvailableProviders(['anthropic']); // Fallback
         }
@@ -646,7 +682,7 @@ Respond in the same language as the user's message.`
                   ))}
                 </SelectContent>
               </Select>
-
+              
               {/* Undo/Redo buttons */}
               <div className="flex items-center gap-1">
                 <Button
@@ -668,8 +704,8 @@ Respond in the same language as the user's message.`
                   title="Redo"
                 >
                   <Redo2 className="h-4 w-4" />
-                </Button>
-              </div>
+              </Button>
+            </div>
 
               {/* AI Panel toggle */}
               <Button
@@ -707,35 +743,25 @@ Respond in the same language as the user's message.`
                 </DropdownMenuContent>
               </DropdownMenu>
               
-              {/* Save button */}
-              <Button 
-                onClick={handleSave} 
-                disabled={isSaving || !title.trim() || !hasChanges} 
-                size="sm"
-                variant={hasChanges ? "default" : "secondary"}
-              >
+{/* Auto-save status indicator (Google Docs style) */}
+              <div className="flex items-center gap-2 text-xs">
                 {isSaving ? (
-                  <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {t('common.saving', 'Saving...')}
-                  </>
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span>{t('common.saving', 'Saving...')}</span>
+                  </div>
                 ) : hasChanges ? (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    {t('common.save')}
-                  </>
-                ) : (
-                  <>
-                    <Check className="h-4 w-4 mr-2 text-green-500" />
-                    {t('common.saved', 'Saved')}
-                  </>
-                )}
-              </Button>
-              {lastSaved && !hasChanges && (
-                <span className="text-xs text-muted-foreground ml-2">
-                  {formatDistanceToNow(lastSaved, { addSuffix: true })}
-                </span>
-              )}
+                  <div className="flex items-center gap-1.5 text-amber-500">
+                    <CloudOff className="h-3.5 w-3.5" />
+                    <span>{t('common.unsavedChanges', 'Unsaved changes')}</span>
+                  </div>
+                ) : lastSaved ? (
+                  <div className="flex items-center gap-1.5 text-green-500">
+                    <Cloud className="h-3.5 w-3.5" />
+                    <span>{t('common.allChangesSaved', 'All changes saved')}</span>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
@@ -750,7 +776,7 @@ Respond in the same language as the user's message.`
             <div className="w-full p-6 sm:p-8 lg:p-12">
               {/* Title */}
               <div className="mb-8">
-                {isEditingTitle ? (
+              {isEditingTitle ? (
                   <Input
                     value={title}
                     onChange={(e) => handleTitleChange(e.target.value)}
@@ -765,11 +791,11 @@ Respond in the same language as the user's message.`
                     placeholder={t('prd.titlePlaceholder', 'Untitled PRD')}
                     className="text-3xl sm:text-4xl font-bold border-none px-0 focus-visible:ring-0 h-auto py-2 bg-transparent"
                   />
-                ) : (
+              ) : (
                   <h1 
                     className="text-3xl sm:text-4xl font-bold cursor-text hover:bg-muted/30 rounded px-2 py-2 -mx-2 transition-colors group flex items-center gap-3"
-                    onClick={() => setIsEditingTitle(true)}
-                  >
+                  onClick={() => setIsEditingTitle(true)}
+                >
                     {title || t('prd.titlePlaceholder', 'Untitled PRD')}
                     <Pencil className="h-5 w-5 opacity-0 group-hover:opacity-30 transition-opacity" />
                   </h1>
@@ -792,7 +818,7 @@ Respond in the same language as the user's message.`
                     <span className="ml-1">{statusConfig[status].label}</span>
                   </Badge>
                 </div>
-              </div>
+            </div>
 
               {/* Block Editor */}
               <div className="min-h-[500px]">
@@ -803,7 +829,7 @@ Respond in the same language as the user's message.`
                   editable={true}
                   autoFocus={false}
                 />
-              </div>
+                  </div>
 
               {/* Footer actions */}
               <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -830,7 +856,7 @@ Respond in the same language as the user's message.`
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-primary" />
                   <span className="font-medium text-sm">AI Assistant</span>
-                </div>
+              </div>
                 <div className="flex items-center gap-2">
                   {/* Model Selector */}
                   <Select value={selectedProvider} onValueChange={(v: AIProvider) => setSelectedProvider(v)}>
@@ -849,8 +875,8 @@ Respond in the same language as the user's message.`
                       )}
                     </SelectContent>
                   </Select>
-                  <Button
-                    variant="ghost"
+                  <Button 
+                    variant="ghost" 
                     size="icon"
                     className="h-7 w-7"
                     onClick={() => setShowAIPanel(false)}
@@ -875,7 +901,7 @@ Respond in the same language as the user's message.`
                     >
                       <CheckCircle2 className="h-3 w-3" />
                       Allow
-                    </Button>
+              </Button>
                     <Button
                       size="sm"
                       variant="outline"
@@ -891,70 +917,111 @@ Respond in the same language as the user's message.`
 
               {/* Messages */}
               <ScrollArea className="flex-1 p-3">
-                {aiMessages.length === 0 ? (
+{aiMessages.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-30" />
                     <p className="text-sm font-medium">Ask AI to edit your PRD</p>
                     <p className="text-xs mt-1">Try: "Add a section about security requirements"</p>
-                  </div>
+              </div>
                 ) : (
                   <div className="space-y-3">
-                    {aiMessages.map((msg) => (
-                      <div key={msg.id} className={cn(
-                        "flex gap-2",
-                        msg.role === 'user' && "flex-row-reverse"
-                      )}>
-                        <Avatar className="h-6 w-6 flex-shrink-0">
-                          <AvatarFallback className={cn(
-                            "text-[10px]",
-                            msg.role === 'assistant' && "bg-primary text-primary-foreground"
+                    {aiMessages.map((msg) => {
+                      // Extract thinking content
+                      let thinkingContent = '';
+                      let cleanContent = msg.content;
+                      const thinkingMatch = cleanContent.match(/<thinking>([\s\S]*?)<\/thinking>/);
+                      if (thinkingMatch) {
+                        thinkingContent = thinkingMatch[1];
+                        cleanContent = cleanContent.replace(/<thinking>[\s\S]*?<\/thinking>/g, '').trim();
+                      }
+                      
+                      return (
+                        <div key={msg.id}>
+                          {/* Timeline Thinking Block */}
+                          {msg.role === 'assistant' && thinkingContent && (
+                            <TimelineThinkingBlock content={thinkingContent} />
+                          )}
+                          
+                          <div className={cn(
+                            "flex gap-2",
+                            msg.role === 'user' && "flex-row-reverse"
                           )}>
-                            {msg.role === 'assistant' ? <Bot className="h-3 w-3" /> : <User className="h-3 w-3" />}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className={cn(
-                          "rounded-lg px-2.5 py-1.5 text-xs max-w-[85%]",
-                          msg.role === 'user' 
-                            ? "bg-primary text-primary-foreground" 
-                            : "bg-background border"
-                        )}>
-                          <p className="whitespace-pre-wrap">{msg.content}</p>
-                          {msg.suggestion && (
-                            <div className="mt-2 pt-2 border-t border-border/50">
-                              {msg.suggestion.status === 'pending' ? (
-                                <div className="flex gap-1.5">
-                                  <Button
-                                    size="sm"
-                                    variant="default"
-                                    className="flex-1 gap-1 h-6 text-[10px] bg-green-600 hover:bg-green-700"
-                                    onClick={() => handleAcceptSuggestion(msg.suggestion!)}
-                                  >
-                                    <CheckCircle2 className="h-2.5 w-2.5" />
-                                    Allow
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="flex-1 gap-1 h-6 text-[10px]"
-                                    onClick={() => handleRejectSuggestion(msg.suggestion!)}
-                                  >
-                                    <XCircle className="h-2.5 w-2.5" />
-                                    Deny
-                                  </Button>
+                            <Avatar className="h-6 w-6 flex-shrink-0">
+                              <AvatarFallback className={cn(
+                                "text-[10px]",
+                                msg.role === 'assistant' && "bg-primary text-primary-foreground"
+                              )}>
+                                {msg.role === 'assistant' ? <Bot className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className={cn(
+                              "rounded-lg px-2.5 py-1.5 max-w-[85%]",
+                              msg.role === 'user' 
+                                ? "bg-primary text-primary-foreground text-xs" 
+                                : "bg-background border"
+                            )}>
+                              {msg.role === 'assistant' ? (
+                                <div className="prose prose-sm dark:prose-invert max-w-none text-xs leading-relaxed
+                                  [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
+                                  [&_p]:my-2 [&_p]:leading-6
+                                  [&_ul]:my-2 [&_ul]:pl-4 [&_ul]:list-disc
+                                  [&_ol]:my-2 [&_ol]:pl-4 [&_ol]:list-decimal
+                                  [&_li]:leading-6
+                                  [&_h1]:text-sm [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2
+                                  [&_h2]:text-xs [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1
+                                  [&_h3]:text-xs [&_h3]:font-medium [&_h3]:mt-2 [&_h3]:mb-1
+                                  [&_code]:text-[10px] [&_code]:bg-muted/70 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded
+                                  [&_pre]:my-2 [&_pre]:bg-zinc-900 [&_pre]:p-2 [&_pre]:rounded [&_pre]:text-[10px]
+                                  [&_blockquote]:border-l-2 [&_blockquote]:border-primary/40 [&_blockquote]:pl-2 [&_blockquote]:my-2 [&_blockquote]:italic
+                                  [&_table]:my-2 [&_table]:text-[10px] [&_table]:border-collapse
+                                  [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1 [&_th]:bg-muted/50
+                                  [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1
+                                ">
+                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {cleanContent || 'Thinking...'}
+                                  </ReactMarkdown>
                                 </div>
                               ) : (
-                                <Badge variant={msg.suggestion.status === 'accepted' ? 'default' : 'secondary'} className="text-[10px]">
-                                  {msg.suggestion.status === 'accepted' ? '✓ Applied' : '✗ Rejected'}
-                                </Badge>
+                                <p className="whitespace-pre-wrap text-xs">{cleanContent}</p>
                               )}
-                            </div>
-                          )}
-                          <span className="text-[9px] opacity-50 mt-1 block">
-                            {format(msg.timestamp, 'h:mm a')}
-                          </span>
-                        </div>
+                              {msg.suggestion && (
+                                <div className="mt-2 pt-2 border-t border-border/50">
+                                  {msg.suggestion.status === 'pending' ? (
+                                    <div className="flex gap-1.5">
+                                      <Button
+                                        size="sm"
+                                        variant="default"
+                                        className="flex-1 gap-1 h-6 text-[10px] bg-green-600 hover:bg-green-700"
+                                        onClick={() => handleAcceptSuggestion(msg.suggestion!)}
+                                      >
+                                        <CheckCircle2 className="h-2.5 w-2.5" />
+                                        Allow
+                                      </Button>
+                    <Button 
+                                        size="sm"
+                                        variant="outline"
+                                        className="flex-1 gap-1 h-6 text-[10px]"
+                                        onClick={() => handleRejectSuggestion(msg.suggestion!)}
+                                      >
+                                        <XCircle className="h-2.5 w-2.5" />
+                                        Deny
+                    </Button>
+                  </div>
+                                  ) : (
+                                    <Badge variant={msg.suggestion.status === 'accepted' ? 'default' : 'secondary'} className="text-[10px]">
+                                      {msg.suggestion.status === 'accepted' ? '✓ Applied' : '✗ Rejected'}
+                                    </Badge>
+                                  )}
                       </div>
-                    ))}
+                              )}
+                              <span className="text-[9px] opacity-50 mt-1 block">
+                                {format(msg.timestamp, 'h:mm a')}
+                              </span>
+                      </div>
+                      </div>
+                    </div>
+                      );
+                    })}
                     {isAILoading && (
                       <div className="flex gap-2">
                         <Avatar className="h-6 w-6">
@@ -968,10 +1035,10 @@ Respond in the same language as the user's message.`
                             <span className="text-xs text-muted-foreground">Thinking...</span>
                           </div>
                         </div>
-                      </div>
-                    )}
+                    </div>
+                  )}
                     <div ref={aiMessagesEndRef} />
-                  </div>
+                </div>
                 )}
               </ScrollArea>
 
@@ -1003,8 +1070,8 @@ Respond in the same language as the user's message.`
                   Press Enter to send • Shift+Enter for new line
                 </p>
               </div>
-            </div>
-          )}
+                    </div>
+                  )}
 
           {/* Version History Panel */}
           {showVersionHistory && (
@@ -1014,15 +1081,15 @@ Respond in the same language as the user's message.`
                   <History className="h-4 w-4" />
                   <span className="font-medium text-sm">Version History</span>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
                   className="h-7 w-7"
                   onClick={() => setShowVersionHistory(false)}
                 >
                   <X className="h-4 w-4" />
-                </Button>
-              </div>
+                  </Button>
+                </div>
               <ScrollArea className="h-[calc(100%-48px)]">
                 <div className="p-2 space-y-1">
                   {versionHistory.length === 0 ? (
@@ -1052,10 +1119,10 @@ Respond in the same language as the user's message.`
                         </button>
                       );
                     })
-                  )}
-                </div>
+                )}
+              </div>
               </ScrollArea>
-            </div>
+          </div>
           )}
         </div>
       </div>

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { AppLayout } from '@/components/layout';
 import { useIssueStore } from '@/stores/issueStore';
 import { useTeamStore } from '@/stores/teamStore';
@@ -62,6 +64,10 @@ import {
   PanelRightClose,
   Bot,
   X,
+  Cloud,
+  CloudOff,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -71,6 +77,38 @@ import type { Issue, IssueStatus, IssuePriority, CommentWithUser, ActivityWithUs
 import type { AIProvider } from '@/types';
 import { StatusIcon, PriorityIcon } from '@/components/issues/IssueIcons';
 import { IssueTypeIcon, issueTypeConfig, allIssueTypes } from '@/components/issues/IssueTypeIcon';
+
+// Timeline Thinking Block Component (like Gemini/Claude)
+const TimelineThinkingBlock = ({ content, isExpanded = false }: { content: string; isExpanded?: boolean }) => {
+  const [expanded, setExpanded] = useState(isExpanded);
+  
+  if (!content) return null;
+  
+  return (
+    <div className="flex gap-2 mb-3">
+      <div className="flex flex-col items-center">
+        <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center">
+          <Sparkles className="h-3 w-3 text-amber-500" />
+        </div>
+        <div className="w-px flex-1 bg-border" />
+      </div>
+      <div className="flex-1 pb-2">
+        <button 
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center gap-2 text-xs text-amber-600 hover:text-amber-500 font-medium mb-1"
+        >
+          {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          Thinking...
+        </button>
+        {expanded && (
+          <div className="text-xs text-muted-foreground bg-amber-500/5 border border-amber-500/20 rounded-lg p-2 mt-1">
+            {content}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export function IssueDetailPage() {
   const { issueId } = useParams<{ issueId: string }>();
@@ -493,6 +531,20 @@ Respond in the same language as the user's message.`
                 <span className="text-xs sm:text-sm text-muted-foreground font-mono">
                   {issue.identifier}
                 </span>
+                {/* Save Status Indicator (Google Docs style) */}
+                <div className="hidden sm:flex items-center gap-1.5 text-xs ml-2">
+                  {(isSavingTitle || isSavingDescription) ? (
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span>Saving...</span>
+                    </div>
+                  ) : (titleSaved || descriptionSaved) ? (
+                    <div className="flex items-center gap-1 text-green-500">
+                      <Cloud className="h-3 w-3" />
+                      <span>Saved</span>
+                    </div>
+                  ) : null}
+                </div>
                 <div className="hidden sm:flex items-center gap-2">
                   <IssueFocusIndicator issueId={issue.id} />
                   {issueId && <EditingIndicator issueId={issueId} />}
@@ -1213,29 +1265,70 @@ Respond in the same language as the user's message.`
                   <p className="text-xs mt-1">Get suggestions, improvements, or answers</p>
                 </div>
               ) : (
-                aiMessages.map((msg) => (
-                  <div key={msg.id} className={cn(
-                    "flex gap-2",
-                    msg.role === 'user' && "flex-row-reverse"
-                  )}>
-                    <Avatar className="h-6 w-6 flex-shrink-0">
-                      <AvatarFallback className={cn(
-                        "text-[10px]",
-                        msg.role === 'assistant' && "bg-primary text-primary-foreground"
+                aiMessages.map((msg) => {
+                  // Extract thinking content
+                  let thinkingContent = '';
+                  let cleanContent = msg.content;
+                  const thinkingMatch = cleanContent.match(/<thinking>([\s\S]*?)<\/thinking>/);
+                  if (thinkingMatch) {
+                    thinkingContent = thinkingMatch[1];
+                    cleanContent = cleanContent.replace(/<thinking>[\s\S]*?<\/thinking>/g, '').trim();
+                  }
+                  
+                  return (
+                    <div key={msg.id}>
+                      {/* Timeline Thinking Block */}
+                      {msg.role === 'assistant' && thinkingContent && (
+                        <TimelineThinkingBlock content={thinkingContent} />
+                      )}
+                      
+                      <div className={cn(
+                        "flex gap-2",
+                        msg.role === 'user' && "flex-row-reverse"
                       )}>
-                        {msg.role === 'assistant' ? <Bot className="h-3 w-3" /> : <User className="h-3 w-3" />}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className={cn(
-                      "rounded-lg px-2.5 py-1.5 text-xs max-w-[85%]",
-                      msg.role === 'user' 
-                        ? "bg-primary text-primary-foreground" 
-                        : "bg-background border"
-                    )}>
-                      <p className="whitespace-pre-wrap">{msg.content || '...'}</p>
+                        <Avatar className="h-6 w-6 flex-shrink-0">
+                          <AvatarFallback className={cn(
+                            "text-[10px]",
+                            msg.role === 'assistant' && "bg-primary text-primary-foreground"
+                          )}>
+                            {msg.role === 'assistant' ? <Bot className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className={cn(
+                          "rounded-lg px-2.5 py-1.5 max-w-[85%]",
+                          msg.role === 'user' 
+                            ? "bg-primary text-primary-foreground text-xs" 
+                            : "bg-background border"
+                        )}>
+                          {msg.role === 'assistant' ? (
+                            <div className="prose prose-sm dark:prose-invert max-w-none text-xs leading-relaxed
+                              [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
+                              [&_p]:my-2 [&_p]:leading-6
+                              [&_ul]:my-2 [&_ul]:pl-4 [&_ul]:list-disc
+                              [&_ol]:my-2 [&_ol]:pl-4 [&_ol]:list-decimal
+                              [&_li]:leading-6
+                              [&_h1]:text-sm [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2
+                              [&_h2]:text-xs [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1
+                              [&_h3]:text-xs [&_h3]:font-medium [&_h3]:mt-2 [&_h3]:mb-1
+                              [&_code]:text-[10px] [&_code]:bg-muted/70 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded
+                              [&_pre]:my-2 [&_pre]:bg-zinc-900 [&_pre]:p-2 [&_pre]:rounded [&_pre]:text-[10px]
+                              [&_blockquote]:border-l-2 [&_blockquote]:border-primary/40 [&_blockquote]:pl-2 [&_blockquote]:my-2 [&_blockquote]:italic
+                              [&_table]:my-2 [&_table]:text-[10px] [&_table]:border-collapse
+                              [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1 [&_th]:bg-muted/50
+                              [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1
+                            ">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {cleanContent || 'Thinking...'}
+                              </ReactMarkdown>
+                            </div>
+                          ) : (
+                            <p className="whitespace-pre-wrap text-xs">{cleanContent}</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
               {isAILoading && !aiMessages.find(m => m.content === '') && (
                 <div className="flex gap-2">

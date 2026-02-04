@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, useRef, DragEvent } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import TaskList from '@tiptap/extension-task-list';
@@ -57,6 +57,117 @@ import {
 } from '@/components/ui/popover';
 
 const lowlight = createLowlight(common);
+
+// Resizable Image Component
+const ResizableImageComponent = ({ node, updateAttributes, selected }: NodeViewProps) => {
+  const [isResizing, setIsResizing] = useState(false);
+  const [widthInput, setWidthInput] = useState(node.attrs.width?.toString() || '');
+  const imageRef = useRef<HTMLImageElement>(null);
+  const startX = useRef(0);
+  const startWidth = useRef(0);
+  
+  const handleMouseDown = (e: React.MouseEvent, direction: 'left' | 'right') => {
+    e.preventDefault();
+    setIsResizing(true);
+    startX.current = e.clientX;
+    startWidth.current = imageRef.current?.offsetWidth || 0;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      const diff = direction === 'right' ? e.clientX - startX.current : startX.current - e.clientX;
+      const newWidth = Math.max(50, startWidth.current + diff);
+      updateAttributes({ width: newWidth });
+      setWidthInput(newWidth.toString());
+    };
+    
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+  
+  const handleWidthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setWidthInput(value);
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue >= 50) {
+      updateAttributes({ width: numValue });
+    }
+  };
+  
+  return (
+    <NodeViewWrapper className="relative inline-block my-2 group">
+      <div className={cn(
+        "relative inline-block",
+        selected && "ring-2 ring-primary rounded-lg",
+        isResizing && "select-none"
+      )}>
+        <img
+          ref={imageRef}
+          src={node.attrs.src}
+          alt={node.attrs.alt || ''}
+          style={{ width: node.attrs.width ? `${node.attrs.width}px` : 'auto' }}
+          className="rounded-lg max-w-full"
+          draggable={false}
+        />
+        
+        {/* Resize handles */}
+        {selected && (
+          <>
+            {/* Left handle */}
+            <div 
+              className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity rounded-l-lg"
+              onMouseDown={(e) => handleMouseDown(e, 'left')}
+            />
+            {/* Right handle */}
+            <div 
+              className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity rounded-r-lg"
+              onMouseDown={(e) => handleMouseDown(e, 'right')}
+            />
+            
+            {/* Width input at bottom center */}
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full pt-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+              <div className="flex items-center gap-1 bg-background border border-border rounded px-1.5 py-0.5 shadow-sm">
+                <input
+                  type="number"
+                  value={widthInput}
+                  onChange={handleWidthChange}
+                  className="w-14 text-xs text-center bg-transparent border-none focus:outline-none"
+                  placeholder="Width"
+                  min="50"
+                />
+                <span className="text-xs text-muted-foreground">px</span>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </NodeViewWrapper>
+  );
+};
+
+// Custom Resizable Image Extension
+const ResizableImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: null,
+        renderHTML: attributes => {
+          if (!attributes.width) return {};
+          return { style: `width: ${attributes.width}px` };
+        },
+      },
+    };
+  },
+  
+  addNodeView() {
+    return ReactNodeViewRenderer(ResizableImageComponent);
+  },
+});
 
 interface BlockEditorProps {
   content: string;
@@ -242,7 +353,7 @@ export function BlockEditor({
       TableRow,
       TableHeader,
       TableCell,
-      Image.configure({
+      ResizableImage.configure({
         HTMLAttributes: {
           class: 'rounded-lg max-w-full',
         },
