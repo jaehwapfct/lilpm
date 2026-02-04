@@ -145,11 +145,11 @@ export function MyIssuesPage() {
               {t('nav.myIssues')}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {t('myIssues.description', '나에게 할당된 모든 이슈를 확인하세요')}
+              {t('myIssues.description')}
             </p>
           </div>
           <Badge variant="secondary" className="text-base px-3 py-1">
-            {filteredIssues.length} {t('issues.issues', '이슈')}
+            {filteredIssues.length} {t('issues.issues')}
           </Badge>
         </div>
 
@@ -158,14 +158,14 @@ export function MyIssuesPage() {
           <TabsList>
             <TabsTrigger value="active" className="gap-2">
               <AlertCircle className="h-4 w-4" />
-              {t('myIssues.active', '진행중')} ({issues.filter(i => !['done', 'cancelled'].includes(i.status)).length})
+              {t('myIssues.active')} ({issues.filter(i => !['done', 'cancelled'].includes(i.status)).length})
             </TabsTrigger>
             <TabsTrigger value="done" className="gap-2">
               <CheckCircle2 className="h-4 w-4" />
-              {t('myIssues.done', '완료')} ({issues.filter(i => i.status === 'done').length})
+              {t('myIssues.done')} ({issues.filter(i => i.status === 'done').length})
             </TabsTrigger>
             <TabsTrigger value="all">
-              {t('myIssues.all', '전체')} ({issues.length})
+              {t('myIssues.all')} ({issues.length})
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -180,10 +180,10 @@ export function MyIssuesPage() {
             <CardContent className="flex flex-col items-center justify-center py-16">
               <User className="h-12 w-12 text-muted-foreground/50 mb-4" />
               <h3 className="text-lg font-medium mb-2">
-                {t('myIssues.noIssues', '할당된 이슈가 없습니다')}
+                {t('myIssues.noIssues')}
               </h3>
               <p className="text-sm text-muted-foreground text-center max-w-md">
-                {t('myIssues.noIssuesDescription', '팀원이 이슈를 할당하면 여기에 표시됩니다.')}
+                {t('myIssues.noIssuesDescription')}
               </p>
             </CardContent>
           </Card>
@@ -234,7 +234,7 @@ export function MyIssuesPage() {
                                     {issue.assigner.name?.charAt(0) || '?'}
                                   </AvatarFallback>
                                 </Avatar>
-                                {t('myIssues.assignedBy', '{{name}}님이 할당', { name: issue.assigner.name })}
+                                {t('myIssues.assignedBy', { name: issue.assigner.name })}
                               </span>
                             )}
                             

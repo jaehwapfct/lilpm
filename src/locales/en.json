@@ -489,7 +489,9 @@
     "suggestedIssues": "Suggested Issues",
     "connect": "Connect",
     "mcpConnections": "MCPs",
-    "viewAllMcp": "View all MCPs"
+    "viewAllMcp": "View all MCPs",
+    "uploadFile": "Upload file",
+    "describeFiles": "Describe what you want to do with the files..."
   },
   "prd": {
     "title": "PRD Documents",
@@ -658,5 +660,41 @@
     "terms": "Terms of Service",
     "privacy": "Privacy Policy",
     "contact": "Contact Us"
+  },
+  "inbox": {
+    "title": "Inbox",
+    "all": "All",
+    "unread": "Unread",
+    "mentions": "Mentions",
+    "empty": "Your inbox is empty",
+    "emptyDescription": "Notifications for issue assignments, mentions, comments, etc. will appear here.",
+    "noUnread": "No unread items",
+    "noMentions": "No mentions",
+    "markAllRead": "Mark all as read",
+    "markRead": "Mark as read",
+    "markUnread": "Mark as unread",
+    "delete": "Delete",
+    "clearAll": "Clear all",
+    "unreadCount": "{{count}} unread item(s)",
+    "allRead": "All items read"
+  },
+  "notifications": {
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "myIssues": {
+    "title": "My Issues",
+    "assigned": "Assigned to Me",
+    "created": "Created by Me",
+    "watching": "Watching",
+    "empty": "No issues found",
+    "emptyDescription": "Issues assigned to you or created by you will appear here.",
+    "description": "View all issues assigned to you",
+    "active": "In Progress",
+    "done": "Done",
+    "all": "All",
+    "noIssues": "No issues assigned",
+    "noIssuesDescription": "Issues will appear here when a team member assigns them to you.",
+    "assignedBy": "Assigned by {{name}}"
   }
 }

@@ -203,10 +203,10 @@ export function InboxPage() {
     yesterday.setDate(yesterday.getDate() - 1);
 
     if (format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')) {
-      return t('notifications.today', '오늘');
+      return t('notifications.today');
     }
     if (format(date, 'yyyy-MM-dd') === format(yesterday, 'yyyy-MM-dd')) {
-      return t('notifications.yesterday', '어제');
+      return t('notifications.yesterday');
     }
     return format(date, 'PPP', { locale });
   };
@@ -223,8 +223,8 @@ export function InboxPage() {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               {unreadCount > 0 
-                ? t('inbox.unreadCount', '{{count}}개의 읽지 않은 항목', { count: unreadCount })
-                : t('inbox.allRead', '모든 항목을 읽었습니다')
+                ? t('inbox.unreadCount', { count: unreadCount })
+                : t('inbox.allRead')
               }
             </p>
           </div>
@@ -237,7 +237,7 @@ export function InboxPage() {
                 onClick={markAllAsRead}
               >
                 <CheckCheck className="h-4 w-4" />
-                {t('inbox.markAllRead', '모두 읽음')}
+                {t('inbox.markAllRead')}
               </Button>
             )}
             <Button
@@ -254,14 +254,14 @@ export function InboxPage() {
         <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
           <TabsList>
             <TabsTrigger value="all">
-              {t('inbox.all', '전체')} ({items.length})
+              {t('inbox.all')} ({items.length})
             </TabsTrigger>
             <TabsTrigger value="unread">
-              {t('inbox.unread', '읽지 않음')} ({unreadCount})
+              {t('inbox.unread')} ({unreadCount})
             </TabsTrigger>
             <TabsTrigger value="mentions" className="gap-1">
               <AtSign className="h-3 w-3" />
-              {t('inbox.mentions', '멘션')} ({mentionCount})
+              {t('inbox.mentions')} ({mentionCount})
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -277,14 +277,14 @@ export function InboxPage() {
               <Inbox className="h-12 w-12 text-muted-foreground/50 mb-4" />
               <h3 className="text-lg font-medium mb-2">
                 {filter === 'unread' 
-                  ? t('inbox.noUnread', '읽지 않은 항목이 없습니다')
+                  ? t('inbox.noUnread')
                   : filter === 'mentions'
-                  ? t('inbox.noMentions', '멘션된 항목이 없습니다')
-                  : t('inbox.empty', '인박스가 비어있습니다')
+                  ? t('inbox.noMentions')
+                  : t('inbox.empty')
                 }
               </h3>
               <p className="text-sm text-muted-foreground text-center max-w-md">
-                {t('inbox.emptyDescription', '이슈 할당, 멘션, 댓글 등의 알림이 여기에 표시됩니다.')}
+                {t('inbox.emptyDescription')}
               </p>
             </CardContent>
           </Card>
@@ -390,7 +390,7 @@ export function InboxPage() {
                   onClick={clearAll}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  {t('inbox.clearAll', '모두 삭제')}
+                  {t('inbox.clearAll')}
                 </Button>
               </div>
             )}

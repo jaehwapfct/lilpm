@@ -32,6 +32,12 @@ import {
   PanelRightOpen,
   Code,
   Copy,
+  Paperclip,
+  Image,
+  File,
+  FileCode,
+  FileSpreadsheet,
+  Film,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -241,6 +247,57 @@ function ConversationItem({
   );
 }
 
+// File upload types
+interface UploadedFile {
+  id: string;
+  file: File;
+  preview?: string;
+  base64?: string;
+  type: 'image' | 'video' | 'pdf' | 'document' | 'code' | 'spreadsheet' | 'other';
+}
+
+// Allowed file types and their categories
+const FILE_TYPE_MAP: Record<string, UploadedFile['type']> = {
+  'image/jpeg': 'image',
+  'image/jpg': 'image',
+  'image/png': 'image',
+  'image/gif': 'image',
+  'image/webp': 'image',
+  'video/mp4': 'video',
+  'video/webm': 'video',
+  'video/quicktime': 'video',
+  'application/pdf': 'pdf',
+  'application/msword': 'document',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'document',
+  'application/vnd.ms-excel': 'spreadsheet',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'spreadsheet',
+  'text/csv': 'spreadsheet',
+  'text/plain': 'code',
+  'text/javascript': 'code',
+  'text/typescript': 'code',
+  'text/html': 'code',
+  'text/css': 'code',
+  'application/json': 'code',
+  'application/xml': 'code',
+  'text/x-python': 'code',
+  'text/x-java': 'code',
+  'text/x-c': 'code',
+  'text/x-cpp': 'code',
+};
+
+// Get file type icon
+function getFileTypeIcon(type: UploadedFile['type']) {
+  switch (type) {
+    case 'image': return <Image className="h-4 w-4" />;
+    case 'video': return <Film className="h-4 w-4" />;
+    case 'pdf': return <FileText className="h-4 w-4" />;
+    case 'document': return <FileText className="h-4 w-4" />;
+    case 'spreadsheet': return <FileSpreadsheet className="h-4 w-4" />;
+    case 'code': return <FileCode className="h-4 w-4" />;
+    default: return <File className="h-4 w-4" />;
+  }
+}
+
 export function LilyChat() {
   const { t, i18n } = useTranslation();
   const [input, setInput] = useState('');
@@ -248,8 +305,10 @@ export function LilyChat() {
   const [isComposing, setIsComposing] = useState(false); // For Korean IME
   const [historyWidth, setHistoryWidth] = useState(DEFAULT_HISTORY_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const dateLocale = i18n.language === 'ko' ? ko : enUS;
 
@@ -410,15 +469,93 @@ export function LilyChat() {
     }
   }, [canvasMode]);
 
+  // File upload handlers
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const newFiles: UploadedFile[] = [];
+
+    for (const file of Array.from(files)) {
+      const type = FILE_TYPE_MAP[file.type] || 'other';
+      const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Read file as base64 for API submission
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          // Remove data URL prefix to get just the base64 content
+          const base64Content = result.split(',')[1] || result;
+          resolve(base64Content);
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // Create preview URL for images
+      let preview: string | undefined;
+      if (type === 'image') {
+        preview = URL.createObjectURL(file);
+      }
+
+      newFiles.push({
+        id,
+        file,
+        preview,
+        base64,
+        type,
+      });
+    }
+
+    setUploadedFiles(prev => [...prev, ...newFiles]);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeFile = (id: string) => {
+    setUploadedFiles(prev => {
+      const file = prev.find(f => f.id === id);
+      if (file?.preview) {
+        URL.revokeObjectURL(file.preview);
+      }
+      return prev.filter(f => f.id !== id);
+    });
+  };
+
+  // Cleanup previews on unmount
+  useEffect(() => {
+    return () => {
+      uploadedFiles.forEach(file => {
+        if (file.preview) {
+          URL.revokeObjectURL(file.preview);
+        }
+      });
+    };
+  }, []);
+
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if ((!input.trim() && uploadedFiles.length === 0) || isLoading) return;
     
     const message = input.trim();
+    const files = uploadedFiles.map(f => ({
+      name: f.file.name,
+      type: f.file.type,
+      size: f.file.size,
+      base64: f.base64,
+      category: f.type,
+    }));
+    
     setInput('');
+    setUploadedFiles([]);
+    
     await sendMessage(message, { 
       teamId: currentTeam?.id,
       mcpConnectors: connectors,
       canvasMode: canvasMode,
+      files: files.length > 0 ? files : undefined,
     });
   };
 
@@ -791,8 +928,8 @@ export function LilyChat() {
                       : "bg-muted"
                   )}
                 >
-                  {message.role === 'assistant' ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed
+                      {message.role === 'assistant' ? (
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed overflow-hidden
                           [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
                           [&_p]:my-3 [&_p]:leading-7
                           [&_ul]:my-3 [&_ul]:pl-6 [&_ul]:list-disc [&_ul]:space-y-1
@@ -810,11 +947,13 @@ export function LilyChat() {
                           [&_strong]:font-semibold [&_strong]:text-foreground
                           [&_em]:italic [&_em]:text-foreground/90
                           [&_hr]:my-6 [&_hr]:border-border
-                          [&_table]:my-4 [&_table]:w-full [&_table]:text-sm [&_table]:border-collapse
-                          [&_thead]:bg-muted/50
-                          [&_th]:border [&_th]:border-border [&_th]:p-2.5 [&_th]:font-semibold [&_th]:text-left
-                          [&_td]:border [&_td]:border-border [&_td]:p-2.5
-                          [&_tr:hover]:bg-muted/30
+                          [&_table]:my-4 [&_table]:w-full [&_table]:text-xs [&_table]:border-collapse [&_table]:border [&_table]:border-border [&_table]:rounded-lg [&_table]:overflow-hidden
+                          [&_thead]:bg-muted/70
+                          [&_th]:border [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_th]:text-left [&_th]:text-foreground [&_th]:bg-muted/50
+                          [&_tbody]:divide-y [&_tbody]:divide-border
+                          [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_td]:text-muted-foreground
+                          [&_tr]:transition-colors
+                          [&_tbody_tr:hover]:bg-muted/30
                           [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_a]:font-medium hover:[&_a]:text-primary/80
                           [&_img]:rounded-lg [&_img]:my-4
                           [&_del]:line-through [&_del]:text-muted-foreground
@@ -968,6 +1107,25 @@ export function LilyChat() {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {/* File Upload Button */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              multiple
+              accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.js,.ts,.jsx,.tsx,.py,.java,.c,.cpp,.html,.css,.json,.xml"
+              className="hidden"
+            />
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="h-11 w-11 flex-shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+              title={t('lily.uploadFile', 'Upload file')}
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
+
             {/* Canvas Toggle Button */}
             <Button 
               variant={canvasMode ? "default" : "outline"} 
@@ -985,17 +1143,46 @@ export function LilyChat() {
               )}
             </Button>
             
-            <Textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onCompositionStart={() => setIsComposing(true)}
-              onCompositionEnd={() => setIsComposing(false)}
-              placeholder={t('lily.placeholder')}
-              className="min-h-[44px] max-h-[200px] resize-none text-sm flex-1"
-              rows={1}
-            />
+            <div className="flex-1 flex flex-col gap-2">
+              {/* Uploaded files preview */}
+              {uploadedFiles.length > 0 && (
+                <div className="flex flex-wrap gap-2 p-2 bg-muted/50 rounded-lg border border-border">
+                  {uploadedFiles.map((file) => (
+                    <div 
+                      key={file.id} 
+                      className="relative group flex items-center gap-2 px-2 py-1 bg-background rounded-md border"
+                    >
+                      {file.preview ? (
+                        <img src={file.preview} alt={file.file.name} className="h-8 w-8 object-cover rounded" />
+                      ) : (
+                        <div className="h-8 w-8 flex items-center justify-center bg-muted rounded">
+                          {getFileTypeIcon(file.type)}
+                        </div>
+                      )}
+                      <span className="text-xs max-w-[100px] truncate">{file.file.name}</span>
+                      <button
+                        onClick={() => removeFile(file.id)}
+                        className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <Textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onCompositionStart={() => setIsComposing(true)}
+                onCompositionEnd={() => setIsComposing(false)}
+                placeholder={uploadedFiles.length > 0 ? t('lily.describeFiles', 'Describe what you want to do with the files...') : t('lily.placeholder')}
+                className="min-h-[44px] max-h-[200px] resize-none text-sm"
+                rows={1}
+              />
+            </div>
             {isLoading ? (
             <Button 
                 onClick={stopGeneration}

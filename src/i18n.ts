@@ -10,21 +10,29 @@ const resources = {
   ko: { translation: ko },
 };
 
+// Get language from language-storage (Zustand persisted state)
+const getStoredLanguage = (): string => {
+  try {
+    const stored = localStorage.getItem('language-storage');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return parsed?.state?.language || 'en';
+    }
+  } catch (e) {
+    // Ignore errors
+  }
+  return 'en';
+};
+
 i18n
-  .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources,
     fallbackLng: 'en',
-    lng: localStorage.getItem('language') || 'en', // Default to English
+    lng: getStoredLanguage(), // Default to English, respect stored preference
     debug: false,
     interpolation: {
       escapeValue: false,
-    },
-    detection: {
-      order: ['localStorage', 'navigator'],
-      caches: ['localStorage'],
-      lookupLocalStorage: 'language',
     },
   });
 

@@ -57,6 +57,9 @@ import {
 import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { userAISettingsService } from '@/lib/services/conversationService';
+import { useAuthStore } from '@/stores/authStore';
+import type { AIProvider } from '@/types';
 
 // Version history entry
 interface VersionEntry {
@@ -181,7 +184,40 @@ export function PRDDetailPage() {
   const [isAILoading, setIsAILoading] = useState(false);
   const [pendingSuggestion, setPendingSuggestion] = useState<AISuggestion | null>(null);
   const aiMessagesEndRef = useRef<HTMLDivElement>(null);
-  const [selectedProvider, setSelectedProvider] = useState<'anthropic' | 'openai' | 'gemini' | 'lovable'>('anthropic');
+  const [selectedProvider, setSelectedProvider] = useState<AIProvider>('anthropic');
+  const [availableProviders, setAvailableProviders] = useState<AIProvider[]>([]);
+  const { user } = useAuthStore();
+
+  // Provider display names
+  const PROVIDER_LABELS: Record<AIProvider, string> = {
+    auto: '✨ Auto',
+    anthropic: '🟣 Claude',
+    openai: '🟢 GPT-4o',
+    gemini: '🔵 Gemini',
+  };
+  
+  // Fetch available AI providers on mount
+  useEffect(() => {
+    async function fetchProviders() {
+      if (user) {
+        try {
+          const providers = await userAISettingsService.getAvailableProviders();
+          setAvailableProviders(providers.length > 0 ? providers : ['anthropic']); // Fallback to anthropic
+          // Set default provider
+          const settings = await userAISettingsService.getSettings();
+          if (settings?.default_provider && providers.includes(settings.default_provider)) {
+            setSelectedProvider(settings.default_provider);
+          } else if (providers.length > 0) {
+            setSelectedProvider(providers[0]);
+          }
+        } catch (error) {
+          console.error('Failed to fetch AI providers:', error);
+          setAvailableProviders(['anthropic']); // Fallback
+        }
+      }
+    }
+    fetchProviders();
+  }, [user]);
   
   // Version history for undo
   const [versionHistory, setVersionHistory] = useState<VersionEntry[]>([]);
@@ -797,15 +833,20 @@ Respond in the same language as the user's message.`
                 </div>
                 <div className="flex items-center gap-2">
                   {/* Model Selector */}
-                  <Select value={selectedProvider} onValueChange={(v: 'anthropic' | 'openai' | 'gemini' | 'lovable') => setSelectedProvider(v)}>
+                  <Select value={selectedProvider} onValueChange={(v: AIProvider) => setSelectedProvider(v)}>
                     <SelectTrigger className="h-7 w-[100px] text-[10px]">
-                      <SelectValue />
+                      <SelectValue placeholder="Model" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="anthropic" className="text-xs">Claude</SelectItem>
-                      <SelectItem value="openai" className="text-xs">GPT-4o</SelectItem>
-                      <SelectItem value="gemini" className="text-xs">Gemini</SelectItem>
-                      <SelectItem value="lovable" className="text-xs">Lovable</SelectItem>
+                      {availableProviders.length > 0 ? (
+                        availableProviders.map(provider => (
+                          <SelectItem key={provider} value={provider} className="text-xs">
+                            {PROVIDER_LABELS[provider] || provider}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="anthropic" className="text-xs">Claude</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                   <Button

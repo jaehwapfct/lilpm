@@ -477,7 +477,130 @@ function generateSystemPrompt(mcpTools?: MCPToolInfo[], canvasMode?: boolean): s
   return prompt;
 }
 
-async function callAnthropic(messages: ChatMessage[], apiKey: string, stream: boolean, systemPrompt: string) {
+// File attachment type
+interface FileAttachment {
+  name: string;
+  mimeType: string;
+  base64?: string;
+  category: string;
+}
+
+// Helper to check if file is an image
+function isImageFile(mimeType: string): boolean {
+  return mimeType.startsWith('image/');
+}
+
+// Helper to create multimodal content for Anthropic
+function createAnthropicContent(text: string, files?: FileAttachment[]): unknown[] {
+  const content: unknown[] = [];
+  
+  // Add image files first
+  if (files && files.length > 0) {
+    for (const file of files) {
+      if (isImageFile(file.mimeType) && file.base64) {
+        content.push({
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: file.mimeType,
+            data: file.base64,
+          },
+        });
+      }
+    }
+    
+    // Add non-image file descriptions to text
+    const nonImageFiles = files.filter(f => !isImageFile(f.mimeType));
+    if (nonImageFiles.length > 0) {
+      const fileDescriptions = nonImageFiles.map(f => `[Attached file: ${f.name} (${f.category})]`).join('\n');
+      text = `${fileDescriptions}\n\n${text}`;
+    }
+  }
+  
+  // Add text content
+  content.push({ type: "text", text });
+  
+  return content;
+}
+
+// Helper to create multimodal content for OpenAI
+function createOpenAIContent(text: string, files?: FileAttachment[]): unknown {
+  if (!files || files.length === 0) {
+    return text;
+  }
+  
+  const content: unknown[] = [];
+  
+  // Add image files
+  for (const file of files) {
+    if (isImageFile(file.mimeType) && file.base64) {
+      content.push({
+        type: "image_url",
+        image_url: {
+          url: `data:${file.mimeType};base64,${file.base64}`,
+          detail: "auto",
+        },
+      });
+    }
+  }
+  
+  // Add non-image file descriptions to text
+  const nonImageFiles = files.filter(f => !isImageFile(f.mimeType));
+  if (nonImageFiles.length > 0) {
+    const fileDescriptions = nonImageFiles.map(f => `[Attached file: ${f.name} (${f.category})]`).join('\n');
+    text = `${fileDescriptions}\n\n${text}`;
+  }
+  
+  // Add text content
+  content.push({ type: "text", text });
+  
+  return content;
+}
+
+// Helper to create multimodal content for Gemini
+function createGeminiParts(text: string, files?: FileAttachment[]): unknown[] {
+  const parts: unknown[] = [];
+  
+  // Add image files
+  if (files && files.length > 0) {
+    for (const file of files) {
+      if (isImageFile(file.mimeType) && file.base64) {
+        parts.push({
+          inline_data: {
+            mime_type: file.mimeType,
+            data: file.base64,
+          },
+        });
+      }
+    }
+    
+    // Add non-image file descriptions to text
+    const nonImageFiles = files.filter(f => !isImageFile(f.mimeType));
+    if (nonImageFiles.length > 0) {
+      const fileDescriptions = nonImageFiles.map(f => `[Attached file: ${f.name} (${f.category})]`).join('\n');
+      text = `${fileDescriptions}\n\n${text}`;
+    }
+  }
+  
+  // Add text content
+  parts.push({ text });
+  
+  return parts;
+}
+
+async function callAnthropic(messages: ChatMessage[], apiKey: string, stream: boolean, systemPrompt: string, files?: FileAttachment[]) {
+  // Build messages with multimodal content for the last user message
+  const processedMessages = messages
+    .filter((m) => m.role !== "system")
+    .map((m, index, arr) => {
+      // Only attach files to the last user message
+      const isLastUserMessage = m.role === "user" && index === arr.length - 1;
+      if (isLastUserMessage && files && files.length > 0) {
+        return { role: m.role, content: createAnthropicContent(m.content, files) };
+      }
+      return { role: m.role, content: m.content };
+    });
+    
   return await fetch(AI_PROVIDERS.anthropic.url, {
     method: "POST",
     headers: {
@@ -489,15 +612,23 @@ async function callAnthropic(messages: ChatMessage[], apiKey: string, stream: bo
       model: AI_PROVIDERS.anthropic.model,
       max_tokens: 4096,
       system: systemPrompt,
-      messages: messages
-        .filter((m) => m.role !== "system")
-        .map((m) => ({ role: m.role, content: m.content })),
+      messages: processedMessages,
       stream,
     }),
   });
 }
 
-async function callOpenAI(messages: ChatMessage[], apiKey: string, stream: boolean, systemPrompt: string) {
+async function callOpenAI(messages: ChatMessage[], apiKey: string, stream: boolean, systemPrompt: string, files?: FileAttachment[]) {
+  // Build messages with multimodal content for the last user message
+  const processedMessages = messages.map((m, index, arr) => {
+    // Only attach files to the last user message
+    const isLastUserMessage = m.role === "user" && index === arr.length - 1;
+    if (isLastUserMessage && files && files.length > 0) {
+      return { role: m.role, content: createOpenAIContent(m.content, files) };
+    }
+    return m;
+  });
+  
   return await fetch(AI_PROVIDERS.openai.url, {
     method: "POST",
     headers: {
@@ -506,17 +637,23 @@ async function callOpenAI(messages: ChatMessage[], apiKey: string, stream: boole
     },
     body: JSON.stringify({
       model: AI_PROVIDERS.openai.model,
-      messages: [{ role: "system", content: systemPrompt }, ...messages],
+      messages: [{ role: "system", content: systemPrompt }, ...processedMessages],
       stream,
     }),
   });
 }
 
-async function callGemini(messages: ChatMessage[], apiKey: string, systemPrompt: string) {
-  const contents = messages.map((m) => ({
-    role: m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }],
-  }));
+async function callGemini(messages: ChatMessage[], apiKey: string, systemPrompt: string, files?: FileAttachment[]) {
+  // Build contents with multimodal parts for the last user message
+  const contents = messages.map((m, index, arr) => {
+    const role = m.role === "assistant" ? "model" : "user";
+    // Only attach files to the last user message
+    const isLastUserMessage = m.role === "user" && index === arr.length - 1;
+    if (isLastUserMessage && files && files.length > 0) {
+      return { role, parts: createGeminiParts(m.content, files) };
+    }
+    return { role, parts: [{ text: m.content }] };
+  });
 
   if (messages[0]?.role !== "system") {
     contents.unshift({
@@ -535,7 +672,20 @@ async function callGemini(messages: ChatMessage[], apiKey: string, systemPrompt:
   });
 }
 
-async function callLovable(messages: ChatMessage[], apiKey: string, stream: boolean, systemPrompt: string) {
+async function callLovable(messages: ChatMessage[], apiKey: string, stream: boolean, systemPrompt: string, files?: FileAttachment[]) {
+  // Lovable/Gateway doesn't support multimodal, so just add file descriptions
+  let processedMessages = messages;
+  if (files && files.length > 0) {
+    const fileDescriptions = files.map(f => `[Attached file: ${f.name} (${f.category})]`).join('\n');
+    processedMessages = messages.map((m, index, arr) => {
+      const isLastUserMessage = m.role === "user" && index === arr.length - 1;
+      if (isLastUserMessage) {
+        return { ...m, content: `${fileDescriptions}\n\n${m.content}` };
+      }
+      return m;
+    });
+  }
+  
   return await fetch(AI_PROVIDERS.lovable.url, {
     method: "POST",
     headers: {
@@ -544,7 +694,7 @@ async function callLovable(messages: ChatMessage[], apiKey: string, stream: bool
     },
     body: JSON.stringify({
       model: AI_PROVIDERS.lovable.model,
-      messages: [{ role: "system", content: systemPrompt }, ...messages],
+      messages: [{ role: "system", content: systemPrompt }, ...processedMessages],
       stream,
     }),
   });
@@ -647,13 +797,13 @@ serve(async (req) => {
       );
     }
 
-    const { messages, provider = "auto", stream = true, conversationId, teamId, mcpTools, canvasMode } = parsedBody;
+    const { messages, provider = "auto", stream = true, conversationId, teamId, mcpTools, canvasMode, files } = parsedBody;
     void conversationId;
     void teamId;
 
     // Generate dynamic system prompt with MCP tools and canvas mode
     const dynamicSystemPrompt = generateSystemPrompt(mcpTools, canvasMode);
-    console.log(`[lily-chat ${FUNCTION_VERSION}] MCP tools: ${mcpTools?.length || 0}, Canvas: ${canvasMode || false}`);
+    console.log(`[lily-chat ${FUNCTION_VERSION}] MCP tools: ${mcpTools?.length || 0}, Canvas: ${canvasMode || false}, Files: ${files?.length || 0}`);
 
     if (!messages || messages.length === 0) {
       return new Response(JSON.stringify({ error: "Messages are required", version: FUNCTION_VERSION }), {
@@ -757,17 +907,17 @@ serve(async (req) => {
 
     switch (selectedProvider) {
       case "anthropic":
-        response = await callAnthropic(messages, apiKey, stream, dynamicSystemPrompt);
+        response = await callAnthropic(messages, apiKey, stream, dynamicSystemPrompt, files);
         break;
       case "openai":
-        response = await callOpenAI(messages, apiKey, stream, dynamicSystemPrompt);
+        response = await callOpenAI(messages, apiKey, stream, dynamicSystemPrompt, files);
         break;
       case "gemini":
-        response = await callGemini(messages, apiKey, dynamicSystemPrompt);
+        response = await callGemini(messages, apiKey, dynamicSystemPrompt, files);
         break;
       case "lovable":
       default:
-        response = await callLovable(messages, apiKey, stream, dynamicSystemPrompt);
+        response = await callLovable(messages, apiKey, stream, dynamicSystemPrompt, files);
         break;
     }
 
@@ -802,7 +952,7 @@ serve(async (req) => {
           version: FUNCTION_VERSION,
         });
 
-        const fallbackResp = await callLovable(messages, envLovable, stream, dynamicSystemPrompt);
+        const fallbackResp = await callLovable(messages, envLovable, stream, dynamicSystemPrompt, files);
         if (fallbackResp.ok) {
           response = fallbackResp;
           finalProvider = "lovable";
@@ -825,7 +975,7 @@ serve(async (req) => {
           );
         }
       } else {
-        return new Response(
+      return new Response(
           JSON.stringify({
             error: `AI provider error: ${response.status}`,
             provider: selectedProvider,

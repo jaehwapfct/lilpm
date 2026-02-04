@@ -66,7 +66,9 @@ import {
 import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ko, enUS } from 'date-fns/locale';
+import { userAISettingsService } from '@/lib/services/conversationService';
 import type { Issue, IssueStatus, IssuePriority, CommentWithUser, ActivityWithUser, Profile, IssueType } from '@/types/database';
+import type { AIProvider } from '@/types';
 import { StatusIcon, PriorityIcon } from '@/components/issues/IssueIcons';
 import { IssueTypeIcon, issueTypeConfig, allIssueTypes } from '@/components/issues/IssueTypeIcon';
 
@@ -122,7 +124,38 @@ export function IssueDetailPage() {
   const [aiMessages, setAiMessages] = useState<{ id: string; role: 'user' | 'assistant'; content: string; timestamp: Date }[]>([]);
   const [aiInput, setAiInput] = useState('');
   const [isAILoading, setIsAILoading] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState<'anthropic' | 'openai' | 'gemini' | 'lovable'>('anthropic');
+  const [selectedProvider, setSelectedProvider] = useState<AIProvider>('anthropic');
+  const [availableProviders, setAvailableProviders] = useState<AIProvider[]>([]);
+
+  // Provider display names
+  const PROVIDER_LABELS: Record<AIProvider, string> = {
+    auto: '✨ Auto',
+    anthropic: '🟣 Claude',
+    openai: '🟢 GPT-4o',
+    gemini: '🔵 Gemini',
+  };
+
+  // Fetch available AI providers on mount
+  useEffect(() => {
+    async function fetchProviders() {
+      if (user) {
+        try {
+          const providers = await userAISettingsService.getAvailableProviders();
+          setAvailableProviders(providers.length > 0 ? providers : ['anthropic']);
+          const settings = await userAISettingsService.getSettings();
+          if (settings?.default_provider && providers.includes(settings.default_provider)) {
+            setSelectedProvider(settings.default_provider);
+          } else if (providers.length > 0) {
+            setSelectedProvider(providers[0]);
+          }
+        } catch (error) {
+          console.error('Failed to fetch AI providers:', error);
+          setAvailableProviders(['anthropic']);
+        }
+      }
+    }
+    fetchProviders();
+  }, [user]);
 
   // Track focus for collaboration
   useIssueFocus(issueId || null);
@@ -1144,15 +1177,20 @@ Respond in the same language as the user's message.`
                 <span className="font-medium text-sm">AI Assistant</span>
               </div>
               <div className="flex items-center gap-2">
-                <Select value={selectedProvider} onValueChange={(v: 'anthropic' | 'openai' | 'gemini' | 'lovable') => setSelectedProvider(v)}>
+                <Select value={selectedProvider} onValueChange={(v: AIProvider) => setSelectedProvider(v)}>
                   <SelectTrigger className="h-7 w-[90px] text-[10px]">
-                    <SelectValue />
+                    <SelectValue placeholder="Model" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="anthropic" className="text-xs">Claude</SelectItem>
-                    <SelectItem value="openai" className="text-xs">GPT-4o</SelectItem>
-                    <SelectItem value="gemini" className="text-xs">Gemini</SelectItem>
-                    <SelectItem value="lovable" className="text-xs">Lovable</SelectItem>
+                    {availableProviders.length > 0 ? (
+                      availableProviders.map(provider => (
+                        <SelectItem key={provider} value={provider} className="text-xs">
+                          {PROVIDER_LABELS[provider] || provider}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="anthropic" className="text-xs">Claude</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
                 <Button

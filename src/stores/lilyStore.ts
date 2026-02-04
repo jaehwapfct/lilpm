@@ -44,8 +44,17 @@ interface LilyStore {
   // Memory/compression state
   conversationMemory: ConversationMemory | null;
   
+  // File attachment type
+  uploadedFiles?: { name: string; type: string; size: number; base64?: string; category: string }[];
+  
   // Actions
-  sendMessage: (message: string, context?: { teamId?: string; projectId?: string; mcpConnectors?: MCPConnector[]; canvasMode?: boolean }) => Promise<void>;
+  sendMessage: (message: string, context?: { 
+    teamId?: string; 
+    projectId?: string; 
+    mcpConnectors?: MCPConnector[]; 
+    canvasMode?: boolean;
+    files?: { name: string; type: string; size: number; base64?: string; category: string }[];
+  }) => Promise<void>;
   stopGeneration: () => void;
   loadConversations: (teamId?: string) => Promise<void>;
   loadConversation: (conversationId: string) => Promise<void>;
@@ -265,11 +274,21 @@ function parseIssueSuggestions(content: string): Partial<Issue>[] {
 }
 
 // Stream chat with AI
+// File attachment type for API
+interface FileAttachment {
+  name: string;
+  type: string;
+  size: number;
+  base64?: string;
+  category: string;
+}
+
 async function streamChat({
   messages,
   provider,
   mcpConnectors,
   canvasMode,
+  files,
   onDelta,
   onDone,
   onError,
@@ -279,6 +298,7 @@ async function streamChat({
   provider: AIProvider;
   mcpConnectors?: MCPConnector[];
   canvasMode?: boolean;
+  files?: FileAttachment[];
   onDelta: (text: string) => void;
   onDone: (fullContent: string) => void;
   onError: (error: string) => void;
@@ -295,6 +315,14 @@ async function streamChat({
     hasMcpConfig: !!c.mcpConfig,
   }));
 
+  // Prepare files for multimodal API
+  const multimodalFiles = files?.map(f => ({
+    name: f.name,
+    mimeType: f.type,
+    base64: f.base64,
+    category: f.category,
+  }));
+
   const resp = await fetch(CHAT_URL, {
     method: 'POST',
     headers: {
@@ -307,6 +335,7 @@ async function streamChat({
       stream: true,
       mcpTools: activeMcpTools,
       canvasMode: canvasMode || false,
+      files: multimodalFiles,
     }),
     signal,
   });
@@ -650,11 +679,24 @@ Provide a summary in 2-3 paragraphs.`
     });
   },
 
-  sendMessage: async (message: string, context?: { teamId?: string; projectId?: string; mcpConnectors?: MCPConnector[]; canvasMode?: boolean }) => {
+  sendMessage: async (message: string, context?: { 
+    teamId?: string; 
+    projectId?: string; 
+    mcpConnectors?: MCPConnector[]; 
+    canvasMode?: boolean;
+    files?: { name: string; type: string; size: number; base64?: string; category: string }[];
+  }) => {
+    // Build user message content - include file descriptions if files are attached
+    let userContent = message;
+    if (context?.files && context.files.length > 0) {
+      const fileDescriptions = context.files.map(f => `[File: ${f.name} (${f.category})]`).join(' ');
+      userContent = message ? `${message}\n\n${fileDescriptions}` : fileDescriptions;
+    }
+    
     const userMessage: LilyMessage = {
       id: Date.now().toString(),
       role: 'user',
-      content: message,
+      content: userContent,
       timestamp: new Date().toISOString(),
     };
 
@@ -738,6 +780,7 @@ Provide a summary in 2-3 paragraphs.`
         provider: get().selectedProvider,
         mcpConnectors: context?.mcpConnectors,
         canvasMode: context?.canvasMode,
+        files: context?.files,
         signal: abortController.signal,
         onDelta: (chunk) => updateAssistantMessage(chunk),
         onDone: async (fullContent) => {
