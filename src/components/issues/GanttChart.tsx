@@ -498,21 +498,70 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
 
       if (dragState.mode === 'row-reorder' && rowDropTargetIndex !== null) {
         const allIssues = groupedIssues.flatMap(g => g.issues);
-        if (rowDropTargetIndex >= 0 && rowDropTargetIndex < allIssues.length) {
-          const targetIssue = allIssues[rowDropTargetIndex];
+        const draggedIssueIndex = allIssues.findIndex(i => i.id === dragState.issueId);
+
+        // Don't do anything if dropped on same position
+        if (draggedIssueIndex === rowDropTargetIndex) {
+          // Reset and return
+        } else if (rowDropTargetIndex >= 0 && rowDropTargetIndex < allIssues.length && draggedIssueIndex !== -1) {
           const issueId = dragState.issueId;
-          const targetSortOrder = targetIssue.sortOrder ?? (rowDropTargetIndex * 1000);
-          let newSortOrder = targetSortOrder;
+
+          // Calculate new sortOrder based on neighbors at the drop position
+          // We need to consider where we're inserting relative to the target
+          let newSortOrder: number;
+
+          // Create a copy of issues array WITHOUT the dragged item to calculate proper positions
+          const issuesWithoutDragged = allIssues.filter(i => i.id !== issueId);
+
+          // Adjust target index if we're moving down (since removing dragged shifts indices)
+          let adjustedTargetIndex = rowDropTargetIndex;
+          if (draggedIssueIndex < rowDropTargetIndex) {
+            adjustedTargetIndex -= 1;
+          }
 
           if (rowDropPosition === 'above') {
-            const prevIssue = rowDropTargetIndex > 0 ? allIssues[rowDropTargetIndex - 1] : null;
-            const prevSort = prevIssue?.sortOrder ?? (targetSortOrder - 1000);
-            newSortOrder = (prevSort + targetSortOrder) / 2;
+            // Insert BEFORE the target
+            if (adjustedTargetIndex === 0) {
+              // First position - use a value smaller than the first item
+              const firstSort = issuesWithoutDragged[0]?.sortOrder ?? 1000;
+              newSortOrder = firstSort - 1000;
+            } else {
+              // Between previous and target
+              const prevSort = issuesWithoutDragged[adjustedTargetIndex - 1]?.sortOrder ?? ((adjustedTargetIndex - 1) * 1000);
+              const targetSort = issuesWithoutDragged[adjustedTargetIndex]?.sortOrder ?? (adjustedTargetIndex * 1000);
+              newSortOrder = Math.floor((prevSort + targetSort) / 2);
+              // If they're too close, use a unique negative offset
+              if (newSortOrder === prevSort || newSortOrder === targetSort) {
+                newSortOrder = prevSort + 1;
+              }
+            }
           } else {
-            const nextIssue = rowDropTargetIndex < allIssues.length - 1 ? allIssues[rowDropTargetIndex + 1] : null;
-            const nextSort = nextIssue?.sortOrder ?? (targetSortOrder + 1000);
-            newSortOrder = (targetSortOrder + nextSort) / 2;
+            // Insert AFTER the target (below)
+            if (adjustedTargetIndex >= issuesWithoutDragged.length - 1) {
+              // Last position
+              const lastSort = issuesWithoutDragged[issuesWithoutDragged.length - 1]?.sortOrder ?? (issuesWithoutDragged.length * 1000);
+              newSortOrder = lastSort + 1000;
+            } else {
+              // Between target and next
+              const targetSort = issuesWithoutDragged[adjustedTargetIndex]?.sortOrder ?? (adjustedTargetIndex * 1000);
+              const nextSort = issuesWithoutDragged[adjustedTargetIndex + 1]?.sortOrder ?? ((adjustedTargetIndex + 1) * 1000);
+              newSortOrder = Math.floor((targetSort + nextSort) / 2);
+              // If they're too close, use a unique offset
+              if (newSortOrder === targetSort || newSortOrder === nextSort) {
+                newSortOrder = targetSort + 1;
+              }
+            }
           }
+
+          console.log('[Gantt Reorder]', {
+            draggedIssueIndex,
+            rowDropTargetIndex,
+            adjustedTargetIndex,
+            rowDropPosition,
+            newSortOrder,
+            issueId
+          });
+
           onIssueUpdate?.(issueId, { sortOrder: newSortOrder });
         }
       } else if (snappedDelta !== 0) {

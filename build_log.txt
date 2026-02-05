@@ -1,0 +1,34 @@
+
+> lil-pm@0.1.0 build
+> vite build
+
+vite v5.4.19 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 1770 modules transformed.
+x Build failed in 1.06s
+error during build:
+[vite:esbuild] Transform failed with 1 error:
+/Users/jaehwajung/LilPM/src/components/issues/GanttChart.tsx:541:5: ERROR: Unexpected ","
+file: /Users/jaehwajung/LilPM/src/components/issues/GanttChart.tsx:541:5
+
+Unexpected ","
+539|        setRowDropTargetIndex(null);
+540|        setRowDropPosition(null);
+541|      }, [linkingFrom, hoverTarget, dragState, snappedDelta, cellWidth, issues, onIssueUpdate, onDependencyCreate, rowDropTargetIndex, rowDropPosition, groupedIssues]);
+   |       ^
+542|  
+543|    const handleStartLinking = useCallback((e: React.MouseEvent, issueId: string, side: 'left' | 'right') => {
+
+    at failureErrorWithLog (/Users/jaehwajung/LilPM/node_modules/esbuild/lib/main.js:1472:15)
+    at /Users/jaehwajung/LilPM/node_modules/esbuild/lib/main.js:755:50
+    at responseCallbacks.<computed> (/Users/jaehwajung/LilPM/node_modules/esbuild/lib/main.js:622:9)
+    at handleIncomingPacket (/Users/jaehwajung/LilPM/node_modules/esbuild/lib/main.js:677:12)
+    at Socket.readFromStdout (/Users/jaehwajung/LilPM/node_modules/esbuild/lib/main.js:600:7)
+    at Socket.emit (node:events:508:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
