@@ -85,12 +85,12 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
   const navigate = useNavigate();
   const dateLocale = i18n.language === 'ko' ? ko : enUS;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [groupBy, setGroupBy] = useState<GroupBy>('none');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-  
+
   // Drag state
   const [dragState, setDragState] = useState<DragState>({
     issueId: null,
@@ -107,16 +107,32 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [dependencies, setDependencies] = useState<Dependency[]>([]);
   const [hoverTarget, setHoverTarget] = useState<{ issueId: string; side: 'left' | 'right' } | null>(null); // For snapping dependency lines
-  
+
+  // Sync dependencies from issues (DB persistence)
+  useEffect(() => {
+    const loadedDependencies: Dependency[] = [];
+    issues.forEach(issue => {
+      if (issue.blocking) {
+        issue.blocking.forEach(dep => {
+          // Avoid duplicates if both sides are present
+          if (!loadedDependencies.some(d => d.from === issue.id && d.to === dep.targetIssueId)) {
+            loadedDependencies.push({ from: issue.id, to: dep.targetIssueId });
+          }
+        });
+      }
+    });
+    setDependencies(loadedDependencies);
+  }, [issues]);
+
   // Row reordering state - enhanced for better snapping
   const [rowDragIssueId, setRowDragIssueId] = useState<string | null>(null);
   const [rowDropTargetIndex, setRowDropTargetIndex] = useState<number | null>(null);
   const [rowDropPosition, setRowDropPosition] = useState<'above' | 'below' | null>(null);
   const [rowDragFromIndex, setRowDragFromIndex] = useState<number | null>(null);
-  
+
   // Ref to track scroll container position for accurate line positioning
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   // Calculate the cell width based on view mode
   const cellWidth = useMemo(() => {
     switch (viewMode) {
@@ -131,7 +147,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
   // Calculate date range based on view mode
   const dateRange = useMemo(() => {
     let start: Date, end: Date;
-    
+
     switch (viewMode) {
       case 'day':
         start = startOfWeek(currentDate, { locale: dateLocale });
@@ -153,10 +169,10 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
         start = startOfMonth(currentDate);
         end = endOfMonth(currentDate);
     }
-    
-    return { 
-      start, 
-      end, 
+
+    return {
+      start,
+      end,
       days: eachDayOfInterval({ start, end })
     };
   }, [currentDate, viewMode, dateLocale]);
@@ -192,11 +208,11 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
     }
 
     const groups = new Map<string, Issue[]>();
-    
+
     issuesWithDates.forEach(issue => {
       let key: string;
       let label: string;
-      
+
       switch (groupBy) {
         case 'project':
           key = issue.projectId || 'no-project';
@@ -214,7 +230,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
           key = 'all';
           label = 'All';
       }
-      
+
       if (!groups.has(key)) {
         groups.set(key, []);
       }
@@ -223,10 +239,10 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
 
     return Array.from(groups.entries()).map(([key, groupIssues]) => ({
       key,
-      label: groupBy === 'status' ? t(`status.${key}`) : 
-             groupBy === 'project' && key === 'no-project' ? t('gantt.noProject', 'No Project') :
-             groupBy === 'assignee' && key === 'unassigned' ? t('gantt.unassigned', 'Unassigned') :
-             key.slice(0, 12),
+      label: groupBy === 'status' ? t(`status.${key}`) :
+        groupBy === 'project' && key === 'no-project' ? t('gantt.noProject', 'No Project') :
+          groupBy === 'assignee' && key === 'unassigned' ? t('gantt.unassigned', 'Unassigned') :
+            key.slice(0, 12),
       issues: sortIssues(groupIssues),
       isCollapsed: collapsedGroups.has(key),
     }));
@@ -291,10 +307,10 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
   const handleBarMouseDown = useCallback((e: React.MouseEvent, issue: Issue, mode: 'move' | 'resize-start' | 'resize-end') => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Get the start date for the issue
     const issueStartDate = (issue as any).startDate || (issue as any).start_date;
-    
+
     setDragState({
       issueId: issue.id,
       mode,
@@ -312,14 +328,14 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
       setMousePosition({ x: e.clientX, y: e.clientY });
       return;
     }
-    
+
     if (!dragState.issueId || !dragState.mode) return;
-    
+
     const deltaX = e.clientX - dragState.startX;
-    
+
     // Update raw drag delta for visual feedback
     setDragDelta(deltaX);
-    
+
     // Calculate snapped delta (snaps to cell boundaries)
     const snappedDays = Math.round(deltaX / cellWidth);
     setSnappedDelta(snappedDays * cellWidth);
@@ -332,36 +348,36 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
       setDependencies(prev => [...prev, { from: linkingFrom, to: hoverTarget.issueId }]);
       onDependencyCreate?.(linkingFrom, hoverTarget.issueId);
     }
-    
+
     if (linkingFrom) {
       setLinkingFrom(null);
       setLinkingFromPos(null);
       setLinkingFromSide('right');
       setHoverTarget(null);
     }
-    
+
     // Commit the drag changes using snapped delta
     if (dragState.issueId && dragState.mode && snappedDelta !== 0) {
       const daysDelta = Math.round(snappedDelta / cellWidth);
-      
+
       if (daysDelta !== 0) {
         const issue = issues.find(i => i.id === dragState.issueId);
         if (issue) {
           const issueStartDateStr = (issue as any).startDate || (issue as any).start_date;
-          const originalStartDate = issueStartDateStr 
-            ? parseISO(issueStartDateStr) 
+          const originalStartDate = issueStartDateStr
+            ? parseISO(issueStartDateStr)
             : parseISO(issue.createdAt);
-          const originalDueDate = dragState.originalDueDate 
-            ? parseISO(dragState.originalDueDate) 
+          const originalDueDate = dragState.originalDueDate
+            ? parseISO(dragState.originalDueDate)
             : addDays(originalStartDate, 3);
-          
+
           if (dragState.mode === 'move') {
             // Move both start and end dates
             const newStartDate = addDays(originalStartDate, daysDelta);
             const newDueDate = addDays(originalDueDate, daysDelta);
-            onIssueUpdate?.(issue.id, { 
+            onIssueUpdate?.(issue.id, {
               startDate: format(newStartDate, 'yyyy-MM-dd'),
-              dueDate: format(newDueDate, 'yyyy-MM-dd') 
+              dueDate: format(newDueDate, 'yyyy-MM-dd')
             });
           } else if (dragState.mode === 'resize-end') {
             // Only change the end date
@@ -381,7 +397,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
         }
       }
     }
-    
+
     setDragDelta(0);
     setSnappedDelta(0);
     setDragState({
@@ -398,22 +414,22 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
     e.stopPropagation();
     setLinkingFrom(issueId);
     setLinkingFromSide(side);
-    
+
     // Get the actual bar element's position for accurate starting point
     const barElement = (e.currentTarget as HTMLElement).closest('[data-bar-id]') as HTMLElement;
     if (barElement) {
       const rect = barElement.getBoundingClientRect();
       // Start from the side of the bar (left or right edge center)
-      setLinkingFromPos({ 
-        x: side === 'right' ? rect.right : rect.left, 
+      setLinkingFromPos({
+        x: side === 'right' ? rect.right : rect.left,
         y: rect.top + rect.height / 2
       });
     } else {
       // Fallback to link dot position
       const rect = (e.target as HTMLElement).getBoundingClientRect();
-      setLinkingFromPos({ 
-        x: rect.left + rect.width / 2, 
-        y: rect.top + rect.height / 2 
+      setLinkingFromPos({
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
       });
     }
     setMousePosition({ x: e.clientX, y: e.clientY });
@@ -449,24 +465,29 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
   const getBarPosition = useCallback((issue: Issue) => {
     const dueDate = issue.dueDate ? parseISO(issue.dueDate) : null;
     const createdDate = parseISO(issue.createdAt);
-    
+
     // Use explicit start_date if available, otherwise fall back to created date
     const issueStartDate = (issue as any).startDate || (issue as any).start_date;
     const startDate = issueStartDate ? parseISO(issueStartDate) : createdDate;
-    
+
+    // Safety check for invalid dates
+    const safeStartDate = isValid(startDate) ? startDate : new Date(); // Fallback to now if invalid
+
     // Use due date as end, or start date + 3 days if no due date
-    const endDate = dueDate && isValid(dueDate) ? dueDate : addDays(startDate, 3);
-    
-    const startIndex = differenceInDays(startDate, dateRange.start);
-    const endIndex = differenceInDays(endDate, dateRange.start);
+    const endDate = dueDate && isValid(dueDate) ? dueDate : addDays(safeStartDate, 3);
+
+    const safeEndDate = isValid(endDate) ? endDate : addDays(safeStartDate, 3);
+
+    const startIndex = differenceInDays(safeStartDate, dateRange.start);
+    const endIndex = differenceInDays(safeEndDate, dateRange.start);
     const totalDays = dateRange.days.length;
-    
+
     // Calculate position
     const left = Math.max(0, startIndex * cellWidth);
     const width = Math.max(cellWidth, (endIndex - startIndex + 1) * cellWidth);
-    
+
     const isVisible = endIndex >= 0 && startIndex < totalDays;
-    
+
     return {
       left: `${left}px`,
       width: `${Math.min(width, (totalDays - Math.max(0, startIndex)) * cellWidth)}px`,
@@ -527,7 +548,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
         currentSpan++;
       }
     });
-    
+
     // Push last month
     if (currentSpan > 0) {
       markers.push({
@@ -560,13 +581,13 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
             {format(currentDate, 'MMMM yyyy', { locale: dateLocale })}
           </span>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {/* Create Cycle Button */}
           {onCycleCreate && (
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="h-8 gap-2"
               onClick={() => {
                 // Create a cycle for the current month view
@@ -580,7 +601,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
               {t('gantt.createCycle', 'New Cycle')}
             </Button>
           )}
-          
+
           {/* Group By */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -609,9 +630,9 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
 
           {/* Zoom Level */}
           <div className="flex items-center border border-border rounded-md">
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="h-8 w-8 rounded-r-none"
               onClick={() => {
                 const modes: ViewMode[] = ['day', 'week', 'month', 'quarter'];
@@ -624,9 +645,9 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
             <span className="px-2 text-xs font-medium min-w-[60px] text-center border-x border-border">
               {t(`gantt.${viewMode}`, viewMode)}
             </span>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="h-8 w-8 rounded-l-none"
               onClick={() => {
                 const modes: ViewMode[] = ['day', 'week', 'month', 'quarter'];
@@ -650,7 +671,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
               {t('gantt.issues', 'Issues')} ({totalIssuesWithDates})
             </span>
           </div>
-          
+
           {/* Issue List */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden">
             {totalIssuesWithDates === 0 ? (
@@ -668,7 +689,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                 <div key={group.key}>
                   {/* Group Header */}
                   {groupBy !== 'none' && (
-                    <div 
+                    <div
                       className="h-8 px-3 flex items-center gap-2 bg-muted/50 border-b border-border cursor-pointer hover:bg-muted/70"
                       onClick={() => toggleGroup(group.key)}
                     >
@@ -680,26 +701,26 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                       <span className="text-xs text-muted-foreground">({group.issues.length})</span>
                     </div>
                   )}
-                  
+
                   {/* Group Issues - Draggable for reordering */}
                   {!group.isCollapsed && group.issues.map((issue, issueIndex) => {
                     const isSidebarDragging = rowDragIssueId === issue.id;
                     const isSidebarDropTarget = rowDropTargetIndex === issueIndex;
-                    
+
                     return (
                       <div
                         key={issue.id}
                         draggable
-                                                onDragStart={(e) => {
+                        onDragStart={(e) => {
                           const globalIndex = group.issues.slice(0, issueIndex).reduce((acc, iss) => acc + 1, 0) +
                             groupedIssues.slice(0, groupedIssues.findIndex(g => g.key === group.key))
                               .reduce((acc, g) => acc + g.issues.length, 0);
-                          
-                          e.dataTransfer.setData('text/plain', JSON.stringify({ 
-                            issueId: issue.id, 
+
+                          e.dataTransfer.setData('text/plain', JSON.stringify({
+                            issueId: issue.id,
                             groupKey: group.key,
                             originalIndex: issueIndex,
-                            globalIndex 
+                            globalIndex
                           }));
                           e.dataTransfer.effectAllowed = 'move';
                           setRowDragIssueId(issue.id);
@@ -715,30 +736,30 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                           if (!rowDragIssueId || rowDragIssueId === issue.id) return;
                           e.preventDefault();
                           e.dataTransfer.dropEffect = 'move';
-                          
+
                           const rect = e.currentTarget.getBoundingClientRect();
                           const midY = rect.top + rect.height / 2;
                           const dragY = e.clientY;
                           const isAbove = dragY < midY;
-                          
+
                           // Calculate global index for target
                           const globalIndex = group.issues.slice(0, issueIndex).reduce((acc, iss) => acc + 1, 0) +
                             groupedIssues.slice(0, groupedIssues.findIndex(g => g.key === group.key))
                               .reduce((acc, g) => acc + g.issues.length, 0);
-                          
+
                           setRowDropTargetIndex(globalIndex);
                           setRowDropPosition(isAbove ? 'above' : 'below');
                         }}
-                                                onDragLeave={(e) => {
+                        onDragLeave={(e) => {
                           // Only clear if we're actually leaving the entire row area
                           const relatedTarget = e.relatedTarget as HTMLElement;
                           const currentTarget = e.currentTarget as HTMLElement;
-                          
+
                           // Check if the related target is still within the current row or a child
                           if (relatedTarget && (currentTarget.contains(relatedTarget) || relatedTarget === currentTarget)) {
                             return;
                           }
-                          
+
                           // Additional check: Only clear if mouse is outside bounds
                           const rect = currentTarget.getBoundingClientRect();
                           if (
@@ -749,25 +770,25 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                           ) {
                             return;
                           }
-                          
+
                           setRowDropTargetIndex(null);
                           setRowDropPosition(null);
                         }}
                         onDrop={(e) => {
                           e.preventDefault();
                           if (!rowDragIssueId || rowDragIssueId === issue.id || !onIssueUpdate) return;
-                          
+
                           const rect = e.currentTarget.getBoundingClientRect();
                           const midY = rect.top + rect.height / 2;
                           const isAbove = e.clientY < midY;
-                          
+
                           // Get the target issue's sort order
                           const targetSortOrder = issue.sortOrder !== undefined ? issue.sortOrder : issueIndex * 1000;
-                          
+
                           // Find all issues in the same group
                           const allIssues = groupedIssues.flatMap(g => g.issues);
                           const targetIdx = allIssues.findIndex(i => i.id === issue.id);
-                          
+
                           // Calculate new sort order based on position
                           let newSortOrder: number;
                           if (isAbove) {
@@ -787,16 +808,16 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                               newSortOrder = targetSortOrder + 500;
                             }
                           }
-                          
+
                           console.log(`Moving issue ${rowDragIssueId} ${isAbove ? 'above' : 'below'} ${issue.identifier} (new sortOrder: ${newSortOrder})`);
                           onIssueUpdate(rowDragIssueId, { sortOrder: newSortOrder });
-                          
+
                           setRowDragIssueId(null);
                           setRowDropTargetIndex(null);
                           setRowDropPosition(null);
                           setRowDragFromIndex(null);
                         }}
-                                                className={cn(
+                        className={cn(
                           "h-10 px-3 flex items-center gap-2 border-b border-border/50 cursor-grab hover:bg-muted/30 active:cursor-grabbing select-none relative",
                           "transition-all duration-200 ease-out",
                           isSidebarDragging && "opacity-50 scale-[0.98] shadow-lg z-50",
@@ -807,7 +828,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                             const globalIndex = group.issues.slice(0, issueIndex).reduce((acc, iss) => acc + 1, 0) +
                               groupedIssues.slice(0, groupedIssues.findIndex(g => g.key === group.key))
                                 .reduce((acc, g) => acc + g.issues.length, 0);
-                            
+
                             if (rowDragFromIndex !== null && rowDropTargetIndex !== null) {
                               if (rowDropPosition === 'above' && globalIndex >= rowDropTargetIndex && globalIndex < rowDragFromIndex) {
                                 return 'translate-y-10';
@@ -841,11 +862,274 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
         </div>
 
         {/* Scrollable Timeline */}
-        <div 
+        <div
           ref={scrollContainerRef}
           className="flex-1 overflow-auto"
         >
-          <div style={{ width: `${totalWidth}px`, minWidth: '100%' }}>
+          <div style={{ width: `${totalWidth}px`, minWidth: '100%' }} className="relative">
+            {/* Dependency Lines - SVG Overlay */}
+            <svg
+              className="absolute top-0 left-0 w-full h-full pointer-events-none z-0"
+              style={{ overflow: 'visible' }}
+            >
+              <defs>
+                <marker
+                  id="arrowhead"
+                  markerWidth="8"
+                  markerHeight="6"
+                  refX="7"
+                  refY="3"
+                  orient="auto"
+                  markerUnits="strokeWidth"
+                >
+                  <polygon points="0 0, 8 3, 0 6" fill="#f59e0b" />
+                </marker>
+                <marker
+                  id="arrowhead-hover"
+                  markerWidth="8"
+                  markerHeight="6"
+                  refX="7"
+                  refY="3"
+                  orient="auto"
+                  markerUnits="strokeWidth"
+                >
+                  <polygon points="0 0, 8 3, 0 6" fill="#ef4444" />
+                </marker>
+                <marker
+                  id="arrowhead-snap"
+                  markerWidth="10"
+                  markerHeight="8"
+                  refX="9"
+                  refY="4"
+                  orient="auto"
+                  markerUnits="strokeWidth"
+                >
+                  <polygon points="0 0, 10 4, 0 8" fill="#22c55e" />
+                </marker>
+              </defs>
+
+              {dependencies.map((dep, index) => {
+                const fromIssue = issues.find(i => i.id === dep.from);
+                const toIssue = issues.find(i => i.id === dep.to);
+                if (!fromIssue || !toIssue) return null;
+
+                const fromPos = getBarPosition(fromIssue);
+                const toPos = getBarPosition(toIssue);
+
+                // Get row indices
+                let fromRowIndex = 0;
+                let toRowIndex = 0;
+                let currentRow = 0;
+                for (const group of groupedIssues) {
+                  for (const issue of group.issues) {
+                    if (issue.id === dep.from) fromRowIndex = currentRow;
+                    if (issue.id === dep.to) toRowIndex = currentRow;
+                    currentRow++;
+                  }
+                }
+
+                // Calculate actual pixel positions relative to timeline
+                const headerHeight = 64; // Approx height of headers including month/day rows
+                const rowHeight = 40;
+
+                // End of source bar
+                const fromX = parseFloat(fromPos.left) + parseFloat(fromPos.width);
+                const fromY = headerHeight + (fromRowIndex * rowHeight) + (rowHeight / 2);
+                // Start of target bar
+                const toX = parseFloat(toPos.left);
+                const toY = headerHeight + (toRowIndex * rowHeight) + (rowHeight / 2);
+
+                // Advanced Notion/Figma-style bezier curve calculation
+                const horizontalDist = Math.abs(toX - fromX);
+                const verticalDist = Math.abs(toY - fromY);
+                const distance = Math.sqrt(horizontalDist * horizontalDist + verticalDist * verticalDist);
+
+                // Dynamic control point offset based on distance
+                const baseOffset = Math.min(distance / 3, 80);
+                const curveStrength = Math.min(verticalDist / 2, 60);
+
+                let pathD: string;
+
+                if (toX > fromX + 20) {
+                  const cp1x = fromX + baseOffset;
+                  const cp1y = fromY;
+                  const cp2x = toX - baseOffset;
+                  const cp2y = toY;
+                  pathD = `M ${fromX} ${fromY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${toX} ${toY}`;
+                } else if (toX < fromX - 20) {
+                  const loopOffset = Math.max(60, baseOffset);
+                  const vertDirection = toY > fromY ? 1 : -1;
+                  const midY = (fromY + toY) / 2;
+
+                  pathD = `M ${fromX} ${fromY} 
+                           C ${fromX + loopOffset} ${fromY}, 
+                             ${fromX + loopOffset} ${fromY + (vertDirection * curveStrength)}, 
+                             ${(fromX + toX) / 2 + loopOffset / 2} ${midY}
+                           S ${toX - loopOffset} ${toY},
+                             ${toX} ${toY}`;
+                } else {
+                  const cp1x = fromX + 40;
+                  const cp2x = toX - 40;
+                  pathD = `M ${fromX} ${fromY} C ${cp1x} ${fromY}, ${cp2x} ${toY}, ${toX} ${toY}`;
+                }
+
+                return (
+                  <g key={`dep-${index}`} className="pointer-events-auto group/dep">
+                    <path
+                      d={pathD}
+                      fill="none"
+                      stroke="transparent"
+                      strokeWidth="12"
+                      className="cursor-pointer"
+                      onClick={() => {
+                        onDependencyCreate && onDependencyCreate(dep.from, dep.to); // Trigger delete potentially if we had onDependencyDelete
+                        // For now just remove from local view
+                        setDependencies(prev => prev.filter((_, i) => i !== index));
+                      }}
+                    />
+                    <path
+                      d={pathD}
+                      fill="none"
+                      stroke="#f59e0b"
+                      strokeWidth="2"
+                      markerEnd="url(#arrowhead)"
+                      className="group-hover/dep:stroke-red-500 transition-colors"
+                      style={{ pointerEvents: 'none' }}
+                    />
+                  </g>
+                );
+              })}
+
+              {/* Linking line while dragging */}
+              {linkingFrom && linkingFromPos && (
+                (() => {
+                  // We need to transform screen coordinates to timeline coordinates because SVG is now inside timeline
+                  // The linkingFromPos is from getBoundingClientRect (screen coords)
+                  // MousePosition is screen coords
+                  // We need relative coords.
+
+                  // Actually, better to use the bar's logical position if possible.
+                  // linkingFromPos in original code was:
+                  // x: rect.right, y: rect.top + height/2.
+
+                  // Since we changed SVG to be inside timeline, we must calculate 'from' based on data, not screen rects,
+                  // OR we must subtract the container's BoundingRect.
+
+                  // Let's use data-based calculation consistent with the dependency lines above.
+                  const fromIssue = issues.find(i => i.id === linkingFrom);
+                  if (!fromIssue) return null;
+
+                  // Find row index
+                  let fromRowIndex = 0;
+                  let currentRow = 0;
+                  for (const group of groupedIssues) {
+                    for (const issue of group.issues) {
+                      if (issue.id === linkingFrom) fromRowIndex = currentRow;
+                      currentRow++;
+                    }
+                  }
+
+                  const fromPos = getBarPosition(fromIssue);
+                  const headerHeight = 64;
+                  const rowHeight = 40;
+
+                  const fromX = linkingFromSide === 'right'
+                    ? parseFloat(fromPos.left) + parseFloat(fromPos.width)
+                    : parseFloat(fromPos.left);
+                  const fromY = headerHeight + (fromRowIndex * rowHeight) + (rowHeight / 2);
+
+                  // For 'toX', we need mouse position relative to timeline.
+                  // This is tricky. simpler to use logic:
+                  // if snapped to target, use target data position.
+                  // else? 
+
+                  let toX: number;
+                  let toY: number;
+                  let isSnapped = false;
+
+                  if (hoverTarget) {
+                    const targetIssue = issues.find(i => i.id === hoverTarget.issueId);
+                    if (targetIssue) {
+                      const targetPos = getBarPosition(targetIssue);
+                      let targetRowIndex = 0;
+                      let currentRow = 0;
+                      for (const group of groupedIssues) {
+                        for (const issue of group.issues) {
+                          if (issue.id === hoverTarget.issueId) targetRowIndex = currentRow;
+                          currentRow++;
+                        }
+                      }
+
+                      toX = parseFloat(targetPos.left) + (hoverTarget.side === 'right' ? parseFloat(targetPos.width) : 0);
+                      toY = headerHeight + (targetRowIndex * rowHeight) + (rowHeight / 2);
+                      isSnapped = true;
+                    } else {
+                      toX = fromX + 100; toY = fromY; // Fallback
+                    }
+                  } else {
+                    // Approximate mouse pos relative to timeline?
+                    // Using the dragDelta helps if we were dragging a bar, but here we are moving mouse.
+                    // We need the container ref to get its rect.
+                    // scrollContainerRef.current
+                    if (scrollContainerRef.current) {
+                      const rect = scrollContainerRef.current.getBoundingClientRect();
+                      toX = mousePosition.x - rect.left + scrollContainerRef.current.scrollLeft;
+                      toY = mousePosition.y - rect.top + scrollContainerRef.current.scrollTop;
+                      // Adjust for header if needed? Header is inside scroll container?
+                      // The SVG is inside the inner div.
+                      // The mouse is screen relative.
+                      // inner div is relative to viewport? 
+                      // Yes: mouseX - containerX + scrollLeft = x relative to content start.
+                    } else {
+                      toX = fromX + 100;
+                      toY = fromY;
+                    }
+                  }
+
+                  // ... Draw curve ...
+                  const horizontalDist = Math.abs(toX - fromX);
+                  const verticalDist = Math.abs(toY - fromY);
+                  const distance = Math.sqrt(horizontalDist * horizontalDist + verticalDist * verticalDist);
+
+                  const cpOffset = Math.min(Math.max(distance / 3, 30), 100);
+
+                  let pathD: string;
+                  const startSide = linkingFromSide;
+                  const direction = startSide === 'right' ? 1 : -1;
+
+                  if ((toX - fromX) * direction > 20) {
+                    const cp1x = fromX + (direction * cpOffset);
+                    const cp1y = fromY;
+                    const cp2x = toX - (direction * cpOffset);
+                    const cp2y = toY;
+                    pathD = `M ${fromX} ${fromY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${toX} ${toY}`;
+                  } else {
+                    const loopOffset = Math.max(cpOffset, 60);
+                    const midY = (fromY + toY) / 2;
+                    pathD = `M ${fromX} ${fromY} 
+                             C ${fromX + (direction * loopOffset)} ${fromY}, 
+                               ${fromX + (direction * loopOffset)} ${midY}, 
+                               ${(fromX + toX) / 2} ${midY}
+                             S ${toX - (direction * loopOffset)} ${toY},
+                               ${toX} ${toY}`;
+                  }
+
+                  return (
+                    <g>
+                      <path
+                        d={pathD}
+                        fill="none"
+                        stroke={isSnapped ? "#22c55e" : "#f59e0b"}
+                        strokeWidth="2"
+                        opacity="0.8"
+                        strokeDasharray="8,4"
+                        markerEnd={isSnapped ? "url(#arrowhead-snap)" : "url(#arrowhead)"}
+                      />
+                    </g>
+                  );
+                })()
+              )}
+            </svg>
             {/* Timeline Header */}
             <div className="sticky top-0 z-10 bg-background border-b border-border">
               {/* Month Row */}
@@ -860,7 +1144,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                   </div>
                 ))}
               </div>
-              
+
               {/* Days Row */}
               <div className="h-8 flex">
                 {dateRange.days.map((day, index) => (
@@ -887,7 +1171,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                   </div>
                 ))}
               </div>
-              
+
               {/* Cycles Row - Jira-style sprint/cycle markers */}
               {cycles.length > 0 && (
                 <div className="h-6 flex relative bg-muted/20 border-t border-border/30">
@@ -902,27 +1186,27 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                   {cycles.map((cycle) => {
                     const cycleStart = parseISO(cycle.startDate);
                     const cycleEnd = parseISO(cycle.endDate);
-                    
+
                     if (!isValid(cycleStart) || !isValid(cycleEnd)) return null;
-                    
+
                     const startDayIndex = dateRange.days.findIndex(d => isSameDay(d, cycleStart));
                     const endDayIndex = dateRange.days.findIndex(d => isSameDay(d, cycleEnd));
-                    
+
                     // Calculate visible portion
                     const visibleStart = Math.max(0, startDayIndex);
                     const visibleEnd = endDayIndex >= 0 ? endDayIndex : dateRange.days.length - 1;
-                    
+
                     if (visibleStart > dateRange.days.length - 1 || visibleEnd < 0) return null;
-                    
+
                     const left = visibleStart * cellWidth;
                     const width = (visibleEnd - visibleStart + 1) * cellWidth;
-                    
+
                     const statusColors = {
                       upcoming: 'bg-blue-500/30 border-blue-500/50 text-blue-400',
                       active: 'bg-green-500/30 border-green-500/50 text-green-400',
                       completed: 'bg-gray-500/30 border-gray-500/50 text-gray-400',
                     };
-                    
+
                     return (
                       <div
                         key={cycle.id}
@@ -962,13 +1246,13 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Issue Rows */}
                   {!group.isCollapsed && group.issues.map((issue, issueIndex) => {
                     const barPos = getBarPosition(issue);
                     const isRowDragging = rowDragIssueId === issue.id;
                     const isDropTarget = rowDropTargetIndex === issueIndex;
-                    
+
                     // Calculate global index for this issue (across all groups)
                     let globalIndex = 0;
                     for (const g of groupedIssues) {
@@ -978,10 +1262,10 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                       }
                       globalIndex += g.issues.length;
                     }
-                    
+
                     return (
-                      <div 
-                        key={issue.id} 
+                      <div
+                        key={issue.id}
                         className={cn(
                           "h-10 relative border-b border-border/30 transition-all duration-200",
                           isRowDragging && "opacity-50",
@@ -995,11 +1279,11 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                           if (!rowDragIssueId || rowDragIssueId === issue.id) return;
                           e.preventDefault();
                           e.dataTransfer.dropEffect = 'move';
-                          
+
                           const rect = e.currentTarget.getBoundingClientRect();
                           const midY = rect.top + rect.height / 2;
                           const isAbove = e.clientY < midY;
-                          
+
                           setRowDropTargetIndex(issueIndex);
                           setRowDropPosition(isAbove ? 'above' : 'below');
                         }}
@@ -1010,18 +1294,18 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                         onDrop={(e) => {
                           e.preventDefault();
                           if (!rowDragIssueId || rowDragIssueId === issue.id || !onIssueUpdate) return;
-                          
+
                           const rect = e.currentTarget.getBoundingClientRect();
                           const midY = rect.top + rect.height / 2;
                           const isAbove = e.clientY < midY;
-                          
+
                           // Calculate new sort order
                           const baseSortOrder = issue.sortOrder !== undefined ? issue.sortOrder : issueIndex * 1000;
                           const newSortOrder = isAbove ? baseSortOrder - 1 : baseSortOrder + 1;
-                          
+
                           console.log(`Moving issue ${rowDragIssueId} to ${isAbove ? 'above' : 'below'} ${issue.identifier} (sort: ${newSortOrder})`);
                           onIssueUpdate(rowDragIssueId, { sortOrder: newSortOrder });
-                          
+
                           setRowDragIssueId(null);
                           setRowDropTargetIndex(null);
                           setRowDropPosition(null);
@@ -1040,183 +1324,183 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                             />
                           ))}
                         </div>
-                        
+
                         {/* Issue Bar */}
                         {barPos.isVisible && (() => {
                           const isDragging = dragState.issueId === issue.id;
                           const isLinkingFromThis = linkingFrom === issue.id;
                           const isLinkTarget = hoverTarget?.issueId === issue.id;
-                          
+
                           // Calculate snapped visual position during drag
                           const baseLeft = parseFloat(barPos.left);
                           const baseWidth = parseFloat(barPos.width);
-                          
+
                           // Snapped position (where it will land)
                           const snappedLeft = isDragging && (dragState.mode === 'move' || dragState.mode === 'resize-start')
                             ? baseLeft + snappedDelta : baseLeft;
                           const snappedWidth = isDragging && (dragState.mode === 'resize-end' || dragState.mode === 'resize-start')
-                            ? (dragState.mode === 'resize-end' 
-                                ? Math.max(cellWidth, baseWidth + snappedDelta) 
-                                : Math.max(cellWidth, baseWidth - snappedDelta))
+                            ? (dragState.mode === 'resize-end'
+                              ? Math.max(cellWidth, baseWidth + snappedDelta)
+                              : Math.max(cellWidth, baseWidth - snappedDelta))
                             : baseWidth;
-                          
+
                           // Current visual position (follows mouse smoothly)
                           const visualLeft = isDragging && (dragState.mode === 'move' || dragState.mode === 'resize-start')
                             ? baseLeft + dragDelta : baseLeft;
                           const visualWidth = isDragging && (dragState.mode === 'resize-end' || dragState.mode === 'resize-start')
-                            ? (dragState.mode === 'resize-end' 
-                                ? Math.max(cellWidth, baseWidth + dragDelta) 
-                                : Math.max(cellWidth, baseWidth - dragDelta))
+                            ? (dragState.mode === 'resize-end'
+                              ? Math.max(cellWidth, baseWidth + dragDelta)
+                              : Math.max(cellWidth, baseWidth - dragDelta))
                             : baseWidth;
-                          
+
                           return (
-                          <>
-                            {/* Ghost bar showing snapped position */}
-                            {isDragging && (snappedDelta !== 0 || dragDelta !== 0) && (
-                              <div
-                                className={cn(
-                                  "absolute top-1/2 -translate-y-1/2 h-6 rounded border-2 border-dashed pointer-events-none z-25",
-                                  getStatusColor(issue.status)
-                                )}
-                                style={{ 
-                                  left: `${snappedLeft}px`, 
-                                  width: `${snappedWidth}px`,
-                                  minWidth: '60px',
-                                  opacity: 0.4,
-                                }}
-                              />
-                            )}
-                            
-                            {/* Main bar - NO draggable, only date drag via mousedown */}
-                            <Tooltip>
-                              <TooltipTrigger asChild>
+                            <>
+                              {/* Ghost bar showing snapped position */}
+                              {isDragging && (snappedDelta !== 0 || dragDelta !== 0) && (
                                 <div
-                                  data-bar-id={issue.id}
                                   className={cn(
-                                    "absolute top-1/2 -translate-y-1/2 h-6 rounded shadow-sm group/bar select-none",
-                                    getStatusColor(issue.status),
-                                    !barPos.hasDueDate && "border-2 border-dashed border-white/30",
-                                    isDragging && "z-30 cursor-grabbing shadow-lg",
-                                    !isDragging && "transition-all cursor-grab",
-                                    isLinkingFromThis && "ring-2 ring-yellow-400 z-30",
-                                    isLinkTarget && "ring-2 ring-green-400 z-30 scale-105",
-                                    rowDragIssueId === issue.id && "opacity-50 scale-95"
+                                    "absolute top-1/2 -translate-y-1/2 h-6 rounded border-2 border-dashed pointer-events-none z-25",
+                                    getStatusColor(issue.status)
                                   )}
-                                  style={{ 
-                                    left: `${visualLeft}px`, 
-                                    width: `${visualWidth}px`,
+                                  style={{
+                                    left: `${snappedLeft}px`,
+                                    width: `${snappedWidth}px`,
                                     minWidth: '60px',
-                                    opacity: isDragging ? 0.7 : (rowDragIssueId === issue.id ? 0.5 : (barPos.hasDueDate ? 1 : 0.6)),
+                                    opacity: 0.4,
                                   }}
-                                  onMouseDown={(e) => {
-                                    // Only handle bar date drag on center area (not handles)
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    const relativeX = e.clientX - rect.left;
-                                    const isOnLeftHandle = relativeX < 12; // Left 12px
-                                    const isOnRightHandle = relativeX > rect.width - 12; // Right 12px
-                                    
-                                    if (!isOnLeftHandle && !isOnRightHandle) {
-                                      handleBarMouseDown(e, issue, 'move');
-                                    }
-                                  }}
-                                  onMouseEnter={() => handleBarMouseEnter(issue.id)}
-                                  onDoubleClick={() => handleIssueClick(issue)}
-                                >
-                                  {/* Left resize handle - wider hit area */}
-                                  <div 
-                                    className="absolute left-0 top-0 bottom-0 w-4 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 bg-white/20 hover:bg-white/40 rounded-l flex items-center justify-center z-20 transition-all"
-                                    onMouseDown={(e) => { 
-                                      e.stopPropagation(); 
-                                      e.preventDefault();
-                                      handleBarMouseDown(e, issue, 'resize-start'); 
-                                    }}
-                                    title="Drag to resize start date"
-                                  >
-                                    <div className="w-0.5 h-3 bg-white/80 rounded" />
-                                  </div>
-                                  
-                                  {/* Bar content */}
-                                  <div className="h-full flex items-center px-3 overflow-hidden pointer-events-none">
-                                    <StatusIcon status={issue.status} className="h-3 w-3 mr-1.5 flex-shrink-0 text-white" />
-                                    <span className="text-[10px] text-white font-medium truncate">
-                                      {issue.identifier}
-                                    </span>
-                                  </div>
-                                  
-                                  {/* Right resize handle - wider hit area */}
-                                  <div 
-                                    className="absolute right-0 top-0 bottom-0 w-4 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 bg-white/20 hover:bg-white/40 rounded-r flex items-center justify-center z-20 transition-all"
-                                    onMouseDown={(e) => { 
-                                      e.stopPropagation(); 
-                                      e.preventDefault();
-                                      handleBarMouseDown(e, issue, 'resize-end'); 
-                                    }}
-                                    title="Drag to resize end date"
-                                  >
-                                    <div className="w-0.5 h-3 bg-white/80 rounded" />
-                                  </div>
-                                  
-                                  {/* Link points - show when hovering or when actively linking */}
-                                  <div 
-                                    data-link-point="left"
-                                    data-issue-id={issue.id}
+                                />
+                              )}
+
+                              {/* Main bar - NO draggable, only date drag via mousedown */}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div
+                                    data-bar-id={issue.id}
                                     className={cn(
-                                      "absolute -left-1 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-white/90 cursor-crosshair z-30 transition-all",
-                                      linkingFrom 
-                                        ? (isLinkTarget && hoverTarget?.side === 'left' 
-                                            ? "opacity-100 bg-green-500 scale-[2] border-green-300 shadow-lg shadow-green-500/50" 
-                                            : "opacity-100 bg-amber-500")
-                                        : "opacity-0 group-hover/bar:opacity-100 bg-amber-500 hover:scale-150 hover:bg-amber-400"
+                                      "absolute top-1/2 -translate-y-1/2 h-6 rounded shadow-sm group/bar select-none",
+                                      getStatusColor(issue.status),
+                                      !barPos.hasDueDate && "border-2 border-dashed border-white/30",
+                                      isDragging && "z-30 cursor-grabbing shadow-lg",
+                                      !isDragging && "transition-all cursor-grab",
+                                      isLinkingFromThis && "ring-2 ring-yellow-400 z-30",
+                                      isLinkTarget && "ring-2 ring-green-400 z-30 scale-105",
+                                      rowDragIssueId === issue.id && "opacity-50 scale-95"
                                     )}
-                                    onMouseDown={(e) => { 
-                                      e.stopPropagation(); 
-                                      e.preventDefault(); 
-                                      handleStartLinking(e, issue.id, 'left'); 
+                                    style={{
+                                      left: `${visualLeft}px`,
+                                      width: `${visualWidth}px`,
+                                      minWidth: '60px',
+                                      opacity: isDragging ? 0.7 : (rowDragIssueId === issue.id ? 0.5 : (barPos.hasDueDate ? 1 : 0.6)),
                                     }}
-                                    onMouseEnter={() => handleLinkPointEnter(issue.id, 'left')}
-                                    onMouseLeave={handleLinkPointLeave}
-                                  />
-                                  <div 
-                                    data-link-point="right"
-                                    data-issue-id={issue.id}
-                                    className={cn(
-                                      "absolute -right-1 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-white/90 cursor-crosshair z-30 transition-all",
-                                      linkingFrom 
-                                        ? (isLinkTarget && hoverTarget?.side === 'right' 
-                                            ? "opacity-100 bg-green-500 scale-[2] border-green-300 shadow-lg shadow-green-500/50" 
+                                    onMouseDown={(e) => {
+                                      // Only handle bar date drag on center area (not handles)
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      const relativeX = e.clientX - rect.left;
+                                      const isOnLeftHandle = relativeX < 12; // Left 12px
+                                      const isOnRightHandle = relativeX > rect.width - 12; // Right 12px
+
+                                      if (!isOnLeftHandle && !isOnRightHandle) {
+                                        handleBarMouseDown(e, issue, 'move');
+                                      }
+                                    }}
+                                    onMouseEnter={() => handleBarMouseEnter(issue.id)}
+                                    onDoubleClick={() => handleIssueClick(issue)}
+                                  >
+                                    {/* Left resize handle - wider hit area */}
+                                    <div
+                                      className="absolute left-0 top-0 bottom-0 w-4 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 bg-white/20 hover:bg-white/40 rounded-l flex items-center justify-center z-20 transition-all"
+                                      onMouseDown={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        handleBarMouseDown(e, issue, 'resize-start');
+                                      }}
+                                      title="Drag to resize start date"
+                                    >
+                                      <div className="w-0.5 h-3 bg-white/80 rounded" />
+                                    </div>
+
+                                    {/* Bar content */}
+                                    <div className="h-full flex items-center px-3 overflow-hidden pointer-events-none">
+                                      <StatusIcon status={issue.status} className="h-3 w-3 mr-1.5 flex-shrink-0 text-white" />
+                                      <span className="text-[10px] text-white font-medium truncate">
+                                        {issue.identifier}
+                                      </span>
+                                    </div>
+
+                                    {/* Right resize handle - wider hit area */}
+                                    <div
+                                      className="absolute right-0 top-0 bottom-0 w-4 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 bg-white/20 hover:bg-white/40 rounded-r flex items-center justify-center z-20 transition-all"
+                                      onMouseDown={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        handleBarMouseDown(e, issue, 'resize-end');
+                                      }}
+                                      title="Drag to resize end date"
+                                    >
+                                      <div className="w-0.5 h-3 bg-white/80 rounded" />
+                                    </div>
+
+                                    {/* Link points - show when hovering or when actively linking */}
+                                    <div
+                                      data-link-point="left"
+                                      data-issue-id={issue.id}
+                                      className={cn(
+                                        "absolute -left-1 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-white/90 cursor-crosshair z-30 transition-all",
+                                        linkingFrom
+                                          ? (isLinkTarget && hoverTarget?.side === 'left'
+                                            ? "opacity-100 bg-green-500 scale-[2] border-green-300 shadow-lg shadow-green-500/50"
                                             : "opacity-100 bg-amber-500")
-                                        : "opacity-0 group-hover/bar:opacity-100 bg-amber-500 hover:scale-150 hover:bg-amber-400"
+                                          : "opacity-0 group-hover/bar:opacity-100 bg-amber-500 hover:scale-150 hover:bg-amber-400"
+                                      )}
+                                      onMouseDown={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        handleStartLinking(e, issue.id, 'left');
+                                      }}
+                                      onMouseEnter={() => handleLinkPointEnter(issue.id, 'left')}
+                                      onMouseLeave={handleLinkPointLeave}
+                                    />
+                                    <div
+                                      data-link-point="right"
+                                      data-issue-id={issue.id}
+                                      className={cn(
+                                        "absolute -right-1 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-white/90 cursor-crosshair z-30 transition-all",
+                                        linkingFrom
+                                          ? (isLinkTarget && hoverTarget?.side === 'right'
+                                            ? "opacity-100 bg-green-500 scale-[2] border-green-300 shadow-lg shadow-green-500/50"
+                                            : "opacity-100 bg-amber-500")
+                                          : "opacity-0 group-hover/bar:opacity-100 bg-amber-500 hover:scale-150 hover:bg-amber-400"
+                                      )}
+                                      onMouseDown={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        handleStartLinking(e, issue.id, 'right');
+                                      }}
+                                      onMouseEnter={() => handleLinkPointEnter(issue.id, 'right')}
+                                      onMouseLeave={handleLinkPointLeave}
+                                    />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-xs">
+                                  <div className="space-y-1">
+                                    <p className="font-medium text-sm">{issue.title}</p>
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                      <span>{issue.identifier}</span>
+                                      <span>•</span>
+                                      <span>{t(`status.${issue.status}`)}</span>
+                                    </div>
+                                    {issue.dueDate && (
+                                      <p className="text-xs">
+                                        {t('issues.dueDate')}: {format(parseISO(issue.dueDate), 'PPP', { locale: dateLocale })}
+                                      </p>
                                     )}
-                                    onMouseDown={(e) => { 
-                                      e.stopPropagation(); 
-                                      e.preventDefault(); 
-                                      handleStartLinking(e, issue.id, 'right'); 
-                                    }}
-                                    onMouseEnter={() => handleLinkPointEnter(issue.id, 'right')}
-                                    onMouseLeave={handleLinkPointLeave}
-                                  />
-                                </div>
-                              </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-xs">
-                              <div className="space-y-1">
-                                <p className="font-medium text-sm">{issue.title}</p>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <span>{issue.identifier}</span>
-                                  <span>•</span>
-                                  <span>{t(`status.${issue.status}`)}</span>
-                                </div>
-                                {issue.dueDate && (
-                                  <p className="text-xs">
-                                    {t('issues.dueDate')}: {format(parseISO(issue.dueDate), 'PPP', { locale: dateLocale })}
-                                  </p>
-                                )}
-                                <p className="text-[10px] text-muted-foreground mt-1">
-                                  {t('gantt.dragToMove', 'Drag to move • Double-click to view')}
-                                </p>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                          </>
+                                    <p className="text-[10px] text-muted-foreground mt-1">
+                                      {t('gantt.dragToMove', 'Drag to move • Double-click to view')}
+                                    </p>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </>
                           );
                         })()}
                       </div>
@@ -1228,10 +1512,10 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
 
             {/* Today Line */}
             {dateRange.days.some(d => isToday(d)) && (
-              <div 
+              <div
                 className="absolute top-16 bottom-0 w-0.5 bg-red-500 z-20 pointer-events-none"
-                style={{ 
-                  left: `${(dateRange.days.findIndex(d => isToday(d)) * cellWidth) + cellWidth / 2}px` 
+                style={{
+                  left: `${(dateRange.days.findIndex(d => isToday(d)) * cellWidth) + cellWidth / 2}px`
                 }}
               >
                 <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-red-500" />
@@ -1241,259 +1525,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
         </div>
       </div>
 
-      {/* Dependency Lines - SVG Overlay (Notion-style bezier curves) */}
-      <svg 
-        className="absolute top-0 left-0 w-full h-full pointer-events-none z-[15]"
-        style={{ overflow: 'visible' }}
-      >
-        <defs>
-          <marker
-            id="arrowhead"
-            markerWidth="8"
-            markerHeight="6"
-            refX="7"
-            refY="3"
-            orient="auto"
-            markerUnits="strokeWidth"
-          >
-            <polygon points="0 0, 8 3, 0 6" fill="#f59e0b" />
-          </marker>
-          <marker
-            id="arrowhead-hover"
-            markerWidth="8"
-            markerHeight="6"
-            refX="7"
-            refY="3"
-            orient="auto"
-            markerUnits="strokeWidth"
-          >
-            <polygon points="0 0, 8 3, 0 6" fill="#ef4444" />
-          </marker>
-          <marker
-            id="arrowhead-snap"
-            markerWidth="10"
-            markerHeight="8"
-            refX="9"
-            refY="4"
-            orient="auto"
-            markerUnits="strokeWidth"
-          >
-            <polygon points="0 0, 10 4, 0 8" fill="#22c55e" />
-          </marker>
-        </defs>
-        
-        {dependencies.map((dep, index) => {
-          const fromIssue = issues.find(i => i.id === dep.from);
-          const toIssue = issues.find(i => i.id === dep.to);
-          if (!fromIssue || !toIssue) return null;
-          
-          const fromPos = getBarPosition(fromIssue);
-          const toPos = getBarPosition(toIssue);
-          
-          // Get row indices
-          let fromRowIndex = 0;
-          let toRowIndex = 0;
-          let currentRow = 0;
-          for (const group of groupedIssues) {
-            for (const issue of group.issues) {
-              if (issue.id === dep.from) fromRowIndex = currentRow;
-              if (issue.id === dep.to) toRowIndex = currentRow;
-              currentRow++;
-            }
-          }
-          
-          // Calculate actual pixel positions with scroll offset consideration
-          const sidebarWidth = 288;
-          const headerHeight = 56 + 64;
-          const rowHeight = 40;
-          
-          // End of source bar
-          const fromX = sidebarWidth + parseFloat(fromPos.left) + parseFloat(fromPos.width);
-          const fromY = headerHeight + (fromRowIndex * rowHeight) + (rowHeight / 2);
-          // Start of target bar
-          const toX = sidebarWidth + parseFloat(toPos.left);
-          const toY = headerHeight + (toRowIndex * rowHeight) + (rowHeight / 2);
-          
-          // Advanced Notion/Figma-style bezier curve calculation
-          const horizontalDist = Math.abs(toX - fromX);
-          const verticalDist = Math.abs(toY - fromY);
-          const distance = Math.sqrt(horizontalDist * horizontalDist + verticalDist * verticalDist);
-          
-          // Dynamic control point offset based on distance for smooth curves
-          const baseOffset = Math.min(distance / 3, 80);
-          const curveStrength = Math.min(verticalDist / 2, 60);
-          
-          let pathD: string;
-          
-          if (toX > fromX + 20) {
-            // Target is clearly to the right - simple smooth curve
-            const cp1x = fromX + baseOffset;
-            const cp1y = fromY;
-            const cp2x = toX - baseOffset;
-            const cp2y = toY;
-            pathD = `M ${fromX} ${fromY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${toX} ${toY}`;
-          } else if (toX < fromX - 20) {
-            // Target is to the left - need to loop around elegantly
-            const loopOffset = Math.max(60, baseOffset);
-            const vertDirection = toY > fromY ? 1 : -1;
-            const midY = (fromY + toY) / 2;
-            
-            // Create a smooth S-curve that goes out, around, and back
-            pathD = `M ${fromX} ${fromY} 
-                     C ${fromX + loopOffset} ${fromY}, 
-                       ${fromX + loopOffset} ${fromY + (vertDirection * curveStrength)}, 
-                       ${(fromX + toX) / 2 + loopOffset / 2} ${midY}
-                     S ${toX - loopOffset} ${toY},
-                       ${toX} ${toY}`;
-          } else {
-            // Target is roughly at the same X position - vertical curve
-            const cp1x = fromX + 40;
-            const cp2x = toX - 40;
-            pathD = `M ${fromX} ${fromY} C ${cp1x} ${fromY}, ${cp2x} ${toY}, ${toX} ${toY}`;
-          }
-          
-          return (
-            <g key={`dep-${index}`} className="pointer-events-auto group/dep">
-              {/* Invisible wider path for easier clicking */}
-              <path
-                d={pathD}
-                fill="none"
-                stroke="transparent"
-                strokeWidth="12"
-                className="cursor-pointer"
-                onClick={() => {
-                  setDependencies(prev => prev.filter((_, i) => i !== index));
-                }}
-              />
-              {/* Visible path */}
-              <path
-                d={pathD}
-                fill="none"
-                stroke="#f59e0b"
-                strokeWidth="2"
-                markerEnd="url(#arrowhead)"
-                className="group-hover/dep:stroke-red-500 transition-colors"
-                style={{ pointerEvents: 'none' }}
-              />
-              {/* Hover effect line */}
-              <path
-                d={pathD}
-                fill="none"
-                stroke="transparent"
-                strokeWidth="2"
-                markerEnd="url(#arrowhead-hover)"
-                className="opacity-0 group-hover/dep:opacity-100 transition-opacity"
-                style={{ pointerEvents: 'none' }}
-              />
-            </g>
-          );
-        })}
-        
-        {/* Linking line while dragging - smooth bezier to mouse or snap target */}
-        {linkingFrom && linkingFromPos && (
-          (() => {
-            const fromX = linkingFromPos.x;
-            const fromY = linkingFromPos.y;
-            
-            // If hovering over a target, snap to it
-            let toX = mousePosition.x;
-            let toY = mousePosition.y;
-            let isSnapped = false;
-            
-            if (hoverTarget) {
-              const targetIssue = issues.find(i => i.id === hoverTarget.issueId);
-              if (targetIssue) {
-                const targetPos = getBarPosition(targetIssue);
-                let targetRowIndex = 0;
-                let currentRow = 0;
-                for (const group of groupedIssues) {
-                  for (const issue of group.issues) {
-                    if (issue.id === hoverTarget.issueId) targetRowIndex = currentRow;
-                    currentRow++;
-                  }
-                }
-                const sidebarWidth = 288;
-                const headerHeight = 56 + 64;
-                const rowHeight = 40;
-                
-                toX = sidebarWidth + parseFloat(targetPos.left) + (hoverTarget.side === 'right' ? parseFloat(targetPos.width) : 0);
-                toY = headerHeight + (targetRowIndex * rowHeight) + (rowHeight / 2);
-                isSnapped = true;
-              }
-            }
-            
-            // Calculate adaptive bezier curve that follows mouse smoothly
-            const horizontalDist = Math.abs(toX - fromX);
-            const verticalDist = Math.abs(toY - fromY);
-            const distance = Math.sqrt(horizontalDist * horizontalDist + verticalDist * verticalDist);
-            
-            // Dynamic offset based on distance for natural-feeling curve
-            const cpOffset = Math.min(Math.max(distance / 3, 30), 100);
-            
-            let pathD: string;
-            const startSide = linkingFromSide;
-            const direction = startSide === 'right' ? 1 : -1;
-            
-            if ((toX - fromX) * direction > 20) {
-              // Natural direction - smooth curve
-              const cp1x = fromX + (direction * cpOffset);
-              const cp1y = fromY;
-              const cp2x = toX - (direction * cpOffset);
-              const cp2y = toY;
-              pathD = `M ${fromX} ${fromY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${toX} ${toY}`;
-            } else {
-              // Going backwards - need to loop
-              const loopOffset = Math.max(cpOffset, 60);
-              const midY = (fromY + toY) / 2;
-              const vertDirection = toY > fromY ? 1 : -1;
-              
-              pathD = `M ${fromX} ${fromY} 
-                       C ${fromX + (direction * loopOffset)} ${fromY}, 
-                         ${fromX + (direction * loopOffset)} ${midY}, 
-                         ${(fromX + toX) / 2} ${midY}
-                       S ${toX - (direction * loopOffset)} ${toY},
-                         ${toX} ${toY}`;
-            }
-            
-            return (
-              <g>
-                {/* Shadow/glow effect for better visibility */}
-                <path
-                  d={pathD}
-                  fill="none"
-                  stroke={isSnapped ? "rgba(34, 197, 94, 0.3)" : "rgba(245, 158, 11, 0.3)"}
-                  strokeWidth={isSnapped ? 8 : 6}
-                  strokeLinecap="round"
-                />
-                {/* Main line */}
-                <path
-                  d={pathD}
-                  fill="none"
-                  stroke={isSnapped ? "#22c55e" : "#f59e0b"}
-                  strokeWidth={isSnapped ? 2.5 : 2}
-                  opacity={isSnapped ? 1 : 0.8}
-                  strokeDasharray={isSnapped ? "none" : "8,4"}
-                  strokeLinecap="round"
-                  markerEnd={isSnapped ? "url(#arrowhead-snap)" : "url(#arrowhead)"}
-                />
-                {/* Animated dot at the end while dragging */}
-                {!isSnapped && (
-                  <circle
-                    cx={toX}
-                    cy={toY}
-                    r="4"
-                    fill="#f59e0b"
-                    opacity="0.8"
-                  >
-                    <animate attributeName="r" values="3;5;3" dur="0.8s" repeatCount="indefinite" />
-                    <animate attributeName="opacity" values="0.8;0.4;0.8" dur="0.8s" repeatCount="indefinite" />
-                  </circle>
-                )}
-              </g>
-            );
-          })()
-        )}
-      </svg>
+
 
       {/* Footer Legend */}
       <div className="border-t border-border px-4 py-2 bg-muted/30">
