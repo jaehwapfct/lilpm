@@ -33,7 +33,7 @@ export function useAISettings(): UseAISettingsReturn {
         try {
             setIsLoading(true);
             const { data, error } = await supabase
-                .from('user_settings')
+                .from('user_ai_settings')
                 .select('*')
                 .eq('user_id', user.id)
                 .single();
@@ -81,19 +81,19 @@ export function useAISettings(): UseAISettingsReturn {
 
         // Check if settings exist
         const { data: existing } = await supabase
-            .from('user_settings')
+            .from('user_ai_settings')
             .select('id')
             .eq('user_id', user.id)
             .single();
 
         if (existing) {
             await supabase
-                .from('user_settings')
+                .from('user_ai_settings')
                 .update(updateData)
                 .eq('user_id', user.id);
         } else {
             await supabase
-                .from('user_settings')
+                .from('user_ai_settings')
                 .insert({
                     user_id: user.id,
                     ...updateData,

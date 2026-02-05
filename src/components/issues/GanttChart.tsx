@@ -94,6 +94,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
   const isSyncingLeft = useRef(false);
   const isSyncingRight = useRef(false);
   const wasDraggedRef = useRef(false); // Track if row was just dragged to prevent click-after-drag
+  const hasInitialScrolled = useRef(false); // Track if initial focus on today has happened
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('month');
@@ -396,14 +397,22 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
     }, 100);
   }, [dateRange, cellWidth]);
 
-  // Initial focus on today - Ensure we run this when data is ready or at least once on mount
+  // Initial focus on today - Only run ONCE on mount, not on every handleToday change
   useEffect(() => {
+    if (hasInitialScrolled.current) return;
+
     // Small delay to allow layout to settle
     const timer = setTimeout(() => {
-      handleToday();
+      if (scrollContainerRef.current && !hasInitialScrolled.current) {
+        const todayIndex = dateRange.days.findIndex(d => isToday(d));
+        if (todayIndex > -1) {
+          scrollContainerRef.current.scrollLeft = Math.max(0, todayIndex * cellWidth - 200);
+          hasInitialScrolled.current = true;
+        }
+      }
     }, 300);
     return () => clearTimeout(timer);
-  }, [handleToday]);
+  }, [dateRange.days, cellWidth]);
 
   // Drag handlers - enhanced for proper resize/move
   const handleBarMouseDown = useCallback((e: React.MouseEvent, issue: Issue, mode: 'move' | 'resize-start' | 'resize-end') => {
@@ -1551,18 +1560,37 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                     const isRowDragging = rowDragIssueId === issue.id;
                     const isDropTarget = rowDropTargetIndex === globalIndex; // USE globalIndex, not issueIndex!
 
+                    // Calculate visual shift for live preview (matching sidebar logic)
+                    const draggedIndex = dragState.issueId ? groupedIssues.flatMap(g => g.issues).findIndex(i => i.id === dragState.issueId) : -1;
+                    let shiftY = 0;
+                    if (dragState.mode === 'row-reorder' && draggedIndex !== -1 && !isRowDragging && rowDropTargetIndex !== null) {
+                      const targetIdx = rowDropPosition === 'below' ? rowDropTargetIndex + 1 : rowDropTargetIndex;
+                      // If dragging from above to below this row, shift up
+                      if (draggedIndex < globalIndex && globalIndex <= targetIdx - 1) {
+                        shiftY = -40; // Row height
+                      }
+                      // If dragging from below to above this row, shift down
+                      else if (draggedIndex > globalIndex && globalIndex >= targetIdx) {
+                        shiftY = 40;
+                      }
+                    }
+
                     return (
                       <div
                         key={issue.id}
                         className={cn(
-                          "h-10 relative border-b border-border/30 transition-all duration-75", // Faster transition for drag
-                          isRowDragging && "z-50 bg-background/80 shadow-xl", // Highlight dragged row
-                          isDropTarget && rowDropPosition === 'above' && "border-t-2 border-t-primary translate-x-2",
-                          isDropTarget && rowDropPosition === 'below' && "border-b-2 border-b-primary translate-x-2"
+                          "h-10 relative border-b border-border/30 transition-all duration-150 ease-out", // Match sidebar transition
+                          isRowDragging && "z-50 bg-background/80 shadow-xl opacity-80 pointer-events-none", // Match sidebar dragging style
+                          isDropTarget && rowDropPosition === 'above' && "border-t-4 border-t-primary",
+                          isDropTarget && rowDropPosition === 'below' && "border-b-4 border-b-primary"
                         )}
                         style={{
-                          transform: isRowDragging ? `translateY(${rowDragCurrentY - rowDragStartY}px)` : undefined,
-                          pointerEvents: isRowDragging ? 'none' : 'auto' // Let mouse events pass through to underlying rows for drag over detection
+                          transform: isRowDragging
+                            ? `translateY(${dragDeltaY}px) scale(1.02)` // Use dragDeltaY like sidebar
+                            : shiftY !== 0
+                              ? `translateY(${shiftY}px)`
+                              : undefined,
+                          zIndex: isRowDragging ? 100 : undefined
                         }}
                         data-issue-id={issue.id}
                         data-issue-index={globalIndex}
