@@ -209,12 +209,8 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
     }
   }, [viewMode]);
 
-  // Global mouse tracker for row dragging (HTML5 drag doesn't always fire drag event with coords on source)
-  const handleContainerDragOver = useCallback((e: React.DragEvent) => {
-    if (rowDragIssueId) {
-      setRowDragCurrentY(e.clientY);
-    }
-  }, [rowDragIssueId]);
+  // Global mouse tracker for row dragging - now handled by handleMouseMove
+  // handleContainerDragOver removed - using custom drag instead of HTML5 DnD
 
   // Calculate date range based on view mode
   const dateRange = useMemo(() => {
@@ -1556,10 +1552,8 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                   {/* Issue Rows */}
                   {!group.isCollapsed && group.issues.map((issue, issueIndex) => {
                     const barPos = getBarPosition(issue);
-                    const isRowDragging = rowDragIssueId === issue.id;
-                    const isDropTarget = rowDropTargetIndex === issueIndex;
 
-                    // Calculate global index for this issue (across all groups)
+                    // Calculate global index for this issue FIRST (across all groups)
                     let globalIndex = 0;
                     for (const g of groupedIssues) {
                       if (g.key === group.key) {
@@ -1568,6 +1562,9 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                       }
                       globalIndex += g.issues.length;
                     }
+
+                    const isRowDragging = rowDragIssueId === issue.id;
+                    const isDropTarget = rowDropTargetIndex === globalIndex; // USE globalIndex, not issueIndex!
 
                     return (
                       <div
@@ -1585,41 +1582,6 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                         data-issue-id={issue.id}
                         data-issue-index={globalIndex}
                         data-group-key={group.key}
-                        onDragOver={(e) => {
-                          if (!rowDragIssueId || rowDragIssueId === issue.id) return;
-                          e.preventDefault();
-                          e.dataTransfer.dropEffect = 'move';
-
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          const midY = rect.top + rect.height / 2;
-                          const isAbove = e.clientY < midY;
-
-                          setRowDropTargetIndex(issueIndex);
-                          setRowDropPosition(isAbove ? 'above' : 'below');
-                        }}
-                        onDragLeave={() => {
-                          setRowDropTargetIndex(null);
-                          setRowDropPosition(null);
-                        }}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          if (!rowDragIssueId || rowDragIssueId === issue.id || !onIssueUpdate) return;
-
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          const midY = rect.top + rect.height / 2;
-                          const isAbove = e.clientY < midY;
-
-                          // Calculate new sort order
-                          const baseSortOrder = issue.sortOrder !== undefined ? issue.sortOrder : issueIndex * 1000;
-                          const newSortOrder = isAbove ? baseSortOrder - 1 : baseSortOrder + 1;
-
-                          console.log(`Moving issue ${rowDragIssueId} to ${isAbove ? 'above' : 'below'} ${issue.identifier} (sort: ${newSortOrder})`);
-                          onIssueUpdate(rowDragIssueId, { sortOrder: newSortOrder });
-
-                          setRowDragIssueId(null);
-                          setRowDropTargetIndex(null);
-                          setRowDropPosition(null);
-                        }}
                       >
                         {/* Grid Background */}
                         <div className="absolute inset-0 flex">
