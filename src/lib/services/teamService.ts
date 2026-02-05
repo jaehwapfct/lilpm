@@ -262,10 +262,14 @@ export const teamInviteService = {
 
       console.log('Sending invitation payload to edge function:', payload);
 
+      const { data: { session } } = await supabase.auth.getSession();
+      const authToken = session?.access_token;
+
       const response = await fetch(`${SUPABASE_URL}/functions/v1/send-team-invite`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
         },
         body: JSON.stringify(payload),
       });
