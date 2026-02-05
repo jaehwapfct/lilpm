@@ -506,51 +506,51 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
         } else if (rowDropTargetIndex >= 0 && rowDropTargetIndex < allIssues.length && draggedIssueIndex !== -1) {
           const issueId = dragState.issueId;
 
-          // Calculate new sortOrder based on neighbors at the drop position
-          // We need to consider where we're inserting relative to the target
-          let newSortOrder: number;
+          // Use large base values (1,000,000) to ensure enough gap between items
+          const BASE_GAP = 1000000;
 
-          // Create a copy of issues array WITHOUT the dragged item to calculate proper positions
+          // Create a copy of issues array WITHOUT the dragged item
           const issuesWithoutDragged = allIssues.filter(i => i.id !== issueId);
 
-          // Adjust target index if we're moving down (since removing dragged shifts indices)
+          // Adjust target index if we're moving down
           let adjustedTargetIndex = rowDropTargetIndex;
           if (draggedIssueIndex < rowDropTargetIndex) {
             adjustedTargetIndex -= 1;
           }
 
+          // Calculate bounds for the new sortOrder
+          let lowerBound: number;
+          let upperBound: number;
+
           if (rowDropPosition === 'above') {
             // Insert BEFORE the target
-            if (adjustedTargetIndex === 0) {
-              // First position - use a value smaller than the first item
-              const firstSort = issuesWithoutDragged[0]?.sortOrder ?? 1000;
-              newSortOrder = firstSort - 1000;
-            } else {
-              // Between previous and target
-              const prevSort = issuesWithoutDragged[adjustedTargetIndex - 1]?.sortOrder ?? ((adjustedTargetIndex - 1) * 1000);
-              const targetSort = issuesWithoutDragged[adjustedTargetIndex]?.sortOrder ?? (adjustedTargetIndex * 1000);
-              newSortOrder = Math.floor((prevSort + targetSort) / 2);
-              // If they're too close, use a unique negative offset
-              if (newSortOrder === prevSort || newSortOrder === targetSort) {
-                newSortOrder = prevSort + 1;
-              }
-            }
+            upperBound = issuesWithoutDragged[adjustedTargetIndex]?.sortOrder ?? (adjustedTargetIndex * BASE_GAP);
+            lowerBound = adjustedTargetIndex > 0
+              ? (issuesWithoutDragged[adjustedTargetIndex - 1]?.sortOrder ?? ((adjustedTargetIndex - 1) * BASE_GAP))
+              : upperBound - BASE_GAP;
           } else {
             // Insert AFTER the target (below)
-            if (adjustedTargetIndex >= issuesWithoutDragged.length - 1) {
-              // Last position
-              const lastSort = issuesWithoutDragged[issuesWithoutDragged.length - 1]?.sortOrder ?? (issuesWithoutDragged.length * 1000);
-              newSortOrder = lastSort + 1000;
-            } else {
-              // Between target and next
-              const targetSort = issuesWithoutDragged[adjustedTargetIndex]?.sortOrder ?? (adjustedTargetIndex * 1000);
-              const nextSort = issuesWithoutDragged[adjustedTargetIndex + 1]?.sortOrder ?? ((adjustedTargetIndex + 1) * 1000);
-              newSortOrder = Math.floor((targetSort + nextSort) / 2);
-              // If they're too close, use a unique offset
-              if (newSortOrder === targetSort || newSortOrder === nextSort) {
-                newSortOrder = targetSort + 1;
-              }
-            }
+            lowerBound = issuesWithoutDragged[adjustedTargetIndex]?.sortOrder ?? (adjustedTargetIndex * BASE_GAP);
+            upperBound = adjustedTargetIndex < issuesWithoutDragged.length - 1
+              ? (issuesWithoutDragged[adjustedTargetIndex + 1]?.sortOrder ?? ((adjustedTargetIndex + 1) * BASE_GAP))
+              : lowerBound + BASE_GAP;
+          }
+
+          // Calculate midpoint with high precision
+          let newSortOrder = Math.round((lowerBound + upperBound) / 2);
+
+          // If the gap is too small (less than 2), use timestamp for uniqueness
+          if (upperBound - lowerBound < 2) {
+            // Use current timestamp as a unique tiebreaker
+            newSortOrder = lowerBound + (Date.now() % 1000) + 1;
+          }
+
+          // Ensure the new value is strictly between bounds
+          if (newSortOrder <= lowerBound) {
+            newSortOrder = lowerBound + 1;
+          }
+          if (newSortOrder >= upperBound) {
+            newSortOrder = upperBound - 1;
           }
 
           console.log('[Gantt Reorder]', {
@@ -558,6 +558,8 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
             rowDropTargetIndex,
             adjustedTargetIndex,
             rowDropPosition,
+            lowerBound,
+            upperBound,
             newSortOrder,
             issueId
           });
