@@ -15,6 +15,12 @@ create table if not exists public.issue_dependencies (
 alter table public.issue_dependencies enable row level security;
 
 -- Policies
+-- 1. Drop existing policies to prevent conflicts (Idempotency)
+drop policy if exists "Users can view dependencies of their team" on public.issue_dependencies;
+drop policy if exists "Users can insert dependencies for their team" on public.issue_dependencies;
+drop policy if exists "Users can delete dependencies for their team" on public.issue_dependencies;
+
+-- 2. Re-create policies
 create policy "Users can view dependencies of their team"
   on public.issue_dependencies for select
   using (

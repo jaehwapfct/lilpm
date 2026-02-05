@@ -470,7 +470,7 @@ export const dependencyService = {
       .from('issue_dependencies')
       .select(`
         *,
-        source_issue:issues!source_issue_id(id, team_id),
+        source_issue:issues!source_issue_id!inner(id, team_id),
         target_issue:issues!target_issue_id(id, team_id)
       `)
       .eq('source_issue.team_id', teamId);

@@ -60,7 +60,13 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
       });
 
       // Fetch dependencies
-      const dependencies = await dependencyService.getDependencies(teamId);
+      let dependencies: any[] = [];
+      try {
+        dependencies = await dependencyService.getDependencies(teamId);
+      } catch (depError) {
+        console.warn('Failed to load dependencies:', depError);
+        // Continue loading issues even if dependencies fail
+      }
 
 
       // Map to frontend Issue type
