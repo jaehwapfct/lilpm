@@ -129,6 +129,8 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
   const [rowDropTargetIndex, setRowDropTargetIndex] = useState<number | null>(null);
   const [rowDropPosition, setRowDropPosition] = useState<'above' | 'below' | null>(null);
   const [rowDragFromIndex, setRowDragFromIndex] = useState<number | null>(null);
+  const [rowDragStartY, setRowDragStartY] = useState<number>(0);
+  const [rowDragCurrentY, setRowDragCurrentY] = useState<number>(0);
 
   // Ref to track scroll container position for accurate line positioning
   const containerRef = useRef<HTMLDivElement>(null);
@@ -143,6 +145,13 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
       default: return 32;
     }
   }, [viewMode]);
+
+  // Global mouse tracker for row dragging (HTML5 drag doesn't always fire drag event with coords on source)
+  const handleContainerDragOver = useCallback((e: React.DragEvent) => {
+    if (rowDragIssueId) {
+      setRowDragCurrentY(e.clientY);
+    }
+  }, [rowDragIssueId]);
 
   // Calculate date range based on view mode
   const dateRange = useMemo(() => {
@@ -290,7 +299,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
     }
   };
 
-  const handleToday = () => {
+  const handleToday = useCallback(() => {
     setCurrentDate(new Date());
     // Scroll to today
     setTimeout(() => {
@@ -301,7 +310,16 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
         }
       }
     }, 100);
-  };
+  }, [dateRange, cellWidth]);
+
+  // Initial focus on today - Ensure we run this when data is ready or at least once on mount
+  useEffect(() => {
+    // Small delay to allow layout to settle
+    const timer = setTimeout(() => {
+      handleToday();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [handleToday]);
 
   // Drag handlers - enhanced for proper resize/move
   const handleBarMouseDown = useCallback((e: React.MouseEvent, issue: Issue, mode: 'move' | 'resize-start' | 'resize-end') => {
@@ -375,10 +393,12 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
             // Move both start and end dates
             const newStartDate = addDays(originalStartDate, daysDelta);
             const newDueDate = addDays(originalDueDate, daysDelta);
-            onIssueUpdate?.(issue.id, {
-              startDate: format(newStartDate, 'yyyy-MM-dd'),
-              dueDate: format(newDueDate, 'yyyy-MM-dd')
-            });
+            if (onIssueUpdate) {
+              onIssueUpdate(issue.id, {
+                startDate: format(newStartDate, 'yyyy-MM-dd'),
+                dueDate: format(newDueDate, 'yyyy-MM-dd')
+              });
+            }
           } else if (dragState.mode === 'resize-end') {
             // Only change the end date
             const newDueDate = addDays(originalDueDate, daysDelta);
@@ -389,9 +409,16 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
           } else if (dragState.mode === 'resize-start') {
             // Only change the start date
             const newStartDate = addDays(originalStartDate, daysDelta);
-            // Ensure start date is not after due date
+
+            // Check if newStartDate exceeds dueDate
             if (newStartDate <= originalDueDate) {
-              onIssueUpdate?.(issue.id, { startDate: format(newStartDate, 'yyyy-MM-dd') });
+              // Update
+              if (onIssueUpdate) {
+                onIssueUpdate(issue.id, { startDate: format(newStartDate, 'yyyy-MM-dd') });
+              }
+            } else {
+              // Clamp to due date? Or just don't update.
+              // For better UX, we might clamp, but stopping update is safer for data integrity.
             }
           }
         }
@@ -673,7 +700,10 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
           </div>
 
           {/* Issue List */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          <div
+            className="flex-1 overflow-y-auto overflow-x-hidden"
+            onDragOver={handleContainerDragOver} // Add listener here to track Y coordinates during drag
+          >
             {totalIssuesWithDates === 0 ? (
               <div className="flex items-center justify-center py-16 text-muted-foreground">
                 <div className="text-center px-4">
@@ -723,14 +753,23 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                             globalIndex
                           }));
                           e.dataTransfer.effectAllowed = 'move';
+                          // Use a transparent image to avoid default ghost if possible
+                          const img = new Image();
+                          img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // Transparent 1x1 pixel
+                          e.dataTransfer.setDragImage(img, 0, 0);
+
                           setRowDragIssueId(issue.id);
                           setRowDragFromIndex(globalIndex);
+                          setRowDragStartY(e.clientY);
+                          setRowDragCurrentY(e.clientY);
                         }}
                         onDragEnd={() => {
                           setRowDragIssueId(null);
                           setRowDropTargetIndex(null);
                           setRowDropPosition(null);
                           setRowDragFromIndex(null);
+                          setRowDragStartY(0);
+                          setRowDragCurrentY(0);
                         }}
                         onDragOver={(e) => {
                           if (!rowDragIssueId || rowDragIssueId === issue.id) return;
@@ -843,12 +882,46 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                         onClick={() => handleIssueClick(issue)}
                       >
                         <GripVertical className="h-4 w-4 text-muted-foreground hover:text-foreground flex-shrink-0 cursor-grab active:cursor-grabbing" />
-                        <IssueTypeIcon type={(issue as any).type || 'task'} size="sm" />
+                        <DropdownMenu>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <DropdownMenuTrigger asChild>
+                                <div className="cursor-pointer hover:bg-muted rounded p-0.5" role="button" aria-label="Change issue type">
+                                  <IssueTypeIcon type={(issue as any).type || 'task'} size="sm" />
+                                </div>
+                              </DropdownMenuTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {t(`issue.type.${(issue as any).type || 'task'}`, (issue as any).type || 'Task') as string}
+                            </TooltipContent>
+                          </Tooltip>
+                          <DropdownMenuContent align="start">
+                            {['task', 'bug', 'story', 'epic'].map(type => (
+                              <DropdownMenuItem
+                                key={type}
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevent row click
+                                  onIssueUpdate?.(issue.id, { type } as any);
+                                }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <IssueTypeIcon type={type as any} size="sm" />
+                                  <span>{t(`issue.type.${type}`, type)}</span>
+                                </div>
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm truncate" title={issue.title}>
                             {issue.title}
                           </p>
                         </div>
+                        {/* Issue Type Dropdown Trigger (Hidden normally, but accessible via icon if needed, but user requirement #7 says tooltip and dropdown) */}
+                        {/* Actually, user wants to hover the icon to see tooltip, and click to change type. */}
+                        {/* So we should wrap IssueTypeIcon in the dropdown/tooltip here? */}
+                        {/* No, the request says "On the text part... left... icon". This IS that icon. */}
+                        {/* We need to re-render this part to support the interaction. */}
                         <span className="text-[10px] text-muted-foreground font-mono flex-shrink-0">
                           {issue.identifier}
                         </span>
@@ -869,7 +942,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
           <div style={{ width: `${totalWidth}px`, minWidth: '100%' }} className="relative">
             {/* Dependency Lines - SVG Overlay */}
             <svg
-              className="absolute top-0 left-0 w-full h-full pointer-events-none z-0"
+              className="absolute top-0 left-0 w-full h-full pointer-events-none z-40" // Increased Z-index to be above bars
               style={{ overflow: 'visible' }}
             >
               <defs>
@@ -975,26 +1048,53 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
 
                 return (
                   <g key={`dep-${index}`} className="pointer-events-auto group/dep">
+                    {/* Clickable transparent path for easier selection */}
                     <path
                       d={pathD}
                       fill="none"
                       stroke="transparent"
                       strokeWidth="12"
                       className="cursor-pointer"
-                      onClick={() => {
-                        onDependencyCreate && onDependencyCreate(dep.from, dep.to); // Trigger delete potentially if we had onDependencyDelete
-                        // For now just remove from local view
-                        setDependencies(prev => prev.filter((_, i) => i !== index));
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        // Double click to delete
+                        if (confirm(t('gantt.deleteDependencyConfirm', 'Delete this dependency?'))) {
+                          setDependencies(prev => prev.filter((_, i) => i !== index));
+                        }
                       }}
                     />
+                    {/* Visible path */}
                     <path
                       d={pathD}
                       fill="none"
                       stroke="#f59e0b"
                       strokeWidth="2"
                       markerEnd="url(#arrowhead)"
-                      className="group-hover/dep:stroke-red-500 transition-colors"
-                      style={{ pointerEvents: 'none' }}
+                      className="group-hover/dep:stroke-red-500 transition-colors pointer-events-none"
+                    />
+
+                    {/* Drag Handle at the end (Tip) */}
+                    <circle
+                      cx={toX}
+                      cy={toY}
+                      r="6"
+                      fill="rgba(59, 130, 246, 0.5)"
+                      stroke="white"
+                      strokeWidth="2"
+                      className="cursor-grab hover:fill-blue-600 pointer-events-auto z-50"
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+
+                        setLinkingFrom(dep.from);
+                        setLinkingFromSide('right');
+
+                        // Fake a position to trigger logic
+                        setLinkingFromPos({ x: 0, y: 0 });
+
+                        // Temporarily remove this dependency
+                        setDependencies(prev => prev.filter((_, i) => i !== index));
+                      }}
                     />
                   </g>
                 );
@@ -1267,11 +1367,15 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                       <div
                         key={issue.id}
                         className={cn(
-                          "h-10 relative border-b border-border/30 transition-all duration-200",
-                          isRowDragging && "opacity-50",
+                          "h-10 relative border-b border-border/30 transition-all duration-75", // Faster transition for drag
+                          isRowDragging && "z-50 bg-background/80 shadow-xl", // Highlight dragged row
                           isDropTarget && rowDropPosition === 'above' && "border-t-2 border-t-primary translate-x-2",
                           isDropTarget && rowDropPosition === 'below' && "border-b-2 border-b-primary translate-x-2"
                         )}
+                        style={{
+                          transform: isRowDragging ? `translateY(${rowDragCurrentY - rowDragStartY}px)` : undefined,
+                          pointerEvents: isRowDragging ? 'none' : 'auto' // Let mouse events pass through to underlying rows for drag over detection
+                        }}
                         data-issue-id={issue.id}
                         data-issue-index={globalIndex}
                         data-group-key={group.key}
@@ -1441,6 +1545,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                                     </div>
 
                                     {/* Link points - show when hovering or when actively linking */}
+                                    {/* Left Link Point */}
                                     <div
                                       data-link-point="left"
                                       data-issue-id={issue.id}
@@ -1460,6 +1565,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                                       onMouseEnter={() => handleLinkPointEnter(issue.id, 'left')}
                                       onMouseLeave={handleLinkPointLeave}
                                     />
+                                    {/* Right Link Point */}
                                     <div
                                       data-link-point="right"
                                       data-issue-id={issue.id}
