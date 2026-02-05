@@ -627,21 +627,21 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                                   left: `${visualLeft}px`,
                                   width: `${visualWidth}px`,
                                 }}
-                                onMouseDown={(e) => handleMouseDown(e, issue, 'move')}
+                                onMouseDown={(e) => handleBarMouseDown(e, issue, 'move')}
                               >
                                 {/* Resize Handles */}
                                 <div
                                   className="absolute left-0 top-0 bottom-0 w-2 cursor-w-resize hover:bg-black/10 transition-colors z-40 rounded-l"
                                   onMouseDown={(e) => {
                                     e.stopPropagation();
-                                    handleMouseDown(e, issue, 'resize-start');
+                                    handleBarMouseDown(e, issue, 'resize-start');
                                   }}
                                 />
                                 <div
                                   className="absolute right-0 top-0 bottom-0 w-2 cursor-e-resize hover:bg-black/10 transition-colors z-40 rounded-r"
                                   onMouseDown={(e) => {
                                     e.stopPropagation();
-                                    handleMouseDown(e, issue, 'resize-end');
+                                    handleBarMouseDown(e, issue, 'resize-end');
                                   }}
                                 />
 
@@ -686,7 +686,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                                 <div className="flex items-center h-full px-2 overflow-hidden">
                                   {/* Icon */}
                                   <div className="mr-1.5 opacity-70 flex-shrink-0">
-                                    <IssueTypeIcon type={(issue as any).type || 'task'} size="xs" />
+                                    <IssueTypeIcon type={(issue as any).type || 'task'} size="sm" />
                                   </div>
                                   <span className="text-[11px] font-medium truncate text-gray-700 dark:text-gray-200">
                                     {issue.title}
@@ -701,19 +701,31 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                                   <StatusIcon status={issue.status} size="sm" />
                                   <span>{issue.status}</span>
                                 </div>
-                                {issue.startDate && issue.dueDate && (
-                                  <>
-                                    <div className="h-px bg-white/20 my-1" />
-                                    <div className="flex flex-col gap-0.5">
-                                      <p className="text-xs">
-                                        {format(parseISO(issue.startDate), 'MMM d')} - {format(parseISO(issue.dueDate), 'MMM d')}
-                                      </p>
-                                      <p className="text-xs opacity-70">
-                                        ({differenceInDays(parseISO(issue.dueDate), parseISO(issue.startDate)) + 1} days)
-                                      </p>
-                                    </div>
-                                  </>
-                                )}
+                                {(() => {
+                                  // Safe date handling
+                                  const startDateRaw = (issue as any).startDate || (issue as any).start_date;
+                                  const dueDateRaw = issue.dueDate;
+
+                                  const start = startDateRaw ? parseISO(startDateRaw) : null;
+                                  const end = dueDateRaw ? parseISO(dueDateRaw) : null;
+
+                                  if (start && end && isValid(start) && isValid(end)) {
+                                    return (
+                                      <>
+                                        <div className="h-px bg-white/20 my-1" />
+                                        <div className="flex flex-col gap-0.5">
+                                          <p className="text-xs">
+                                            {format(start, 'MMM d')} - {format(end, 'MMM d')}
+                                          </p>
+                                          <p className="text-xs opacity-70">
+                                            ({differenceInDays(end, start) + 1} days)
+                                          </p>
+                                        </div>
+                                      </>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                               </div>
                             </TooltipContent>
                           </Tooltip>
