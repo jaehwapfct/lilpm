@@ -60,6 +60,7 @@ interface GanttChartProps {
   onIssueClick?: (issue: Issue) => void;
   onIssueUpdate?: (issueId: string, updates: { dueDate?: string; startDate?: string; sortOrder?: number }) => void;
   onDependencyCreate?: (fromIssueId: string, toIssueId: string) => void;
+  onDependencyDelete?: (fromIssueId: string, toIssueId: string) => void;
   onCycleCreate?: (startDate: string, endDate: string, name: string) => void;
 }
 
@@ -119,22 +120,43 @@ function SortableIssueRow({ issue, index, isDragging }: { issue: Issue; index: n
 function SortableIssueBar({ issue, children }: { issue: Issue; children: React.ReactNode }) {
   const {
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging,
+    listeners,
+    attributes,
   } = useSortable({ id: issue.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition: transition || 'transform 200ms cubic-bezier(0.2, 0, 0, 1)',
+    zIndex: isDragging ? 50 : 10,
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={cn("relative z-10", isDragging && "z-50 opacity-80")}
+      className={cn("relative", isDragging && "opacity-80")}
     >
+      {/* Drag Handle - Visible on Hover of the Row/Bar */}
+      <div
+        ref={setActivatorNodeRef}
+        {...listeners}
+        {...attributes}
+        className={cn(
+          "absolute left-[-24px] top-1/2 -translate-y-1/2 p-1 cursor-grab active:cursor-grabbing",
+          "opacity-0 group-hover/bar:opacity-100 hover:opacity-100 transition-opacity z-40",
+          "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+        )}
+        onMouseDown={(e) => {
+          // Ensure this doesn't trigger bar move
+          e.stopPropagation();
+        }}
+      >
+        <GripVertical className="h-4 w-4" />
+      </div>
       {children}
     </div>
   );
@@ -733,6 +755,94 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                       <polygon points="0 0, 8 3, 0 6" fill="#22c55e" />
                     </marker>
                   </defs>
+
+                  {/* Persistent Dependency Lines */}
+                  {sortedIssues.map((sourceIssue, sourceIndex) => {
+                    if (!sourceIssue.blocking || sourceIssue.blocking.length === 0) return null;
+
+                    return sourceIssue.blocking.map(dep => {
+                      const targetIssueId = dep.targetIssueId;
+                      const targetIssueIndex = sortedIssues.findIndex(i => i.id === targetIssueId);
+                      const targetIssue = sortedIssues[targetIssueIndex];
+
+                      if (!targetIssue || targetIssueIndex === -1) return null;
+
+                      // Calculate coordinates
+                      const sourcePos = getBarPosition(sourceIssue);
+                      const targetPos = getBarPosition(targetIssue);
+                      const rowHeight = 36;
+
+                      const fromY = (sourceIndex * rowHeight) + (rowHeight / 2);
+                      const toY = (targetIssueIndex * rowHeight) + (rowHeight / 2);
+
+                      // Default: Link from Right of Source to Left of Target
+                      const fromX = parseFloat(sourcePos.left) + parseFloat(sourcePos.width);
+                      const toX = parseFloat(targetPos.left);
+
+                      // Path generation logic (Standard S-curve)
+                      const cpOffset = 40;
+                      let pathD = '';
+
+                      if (toX > fromX + 20) {
+                        // Forward link
+                        const cp1x = fromX + cpOffset;
+                        const cp2x = toX - cpOffset;
+                        pathD = `M ${fromX} ${fromY} C ${cp1x} ${fromY}, ${cp2x} ${toY}, ${toX} ${toY}`;
+                      } else {
+                        // Backward link (Loop around)
+                        const loopOffset = 40;
+                        pathD = `M ${fromX} ${fromY} 
+                                  C ${fromX + loopOffset} ${fromY}, 
+                                    ${fromX + loopOffset} ${fromY + (toY > fromY ? 20 : -20)}, 
+                                    ${fromX} ${fromY + (toY > fromY ? 20 : -20)} 
+                                  L ${toX} ${fromY + (toY > fromY ? 20 : -20)}
+                                  C ${toX - loopOffset} ${fromY + (toY > fromY ? 20 : -20)},
+                                    ${toX - loopOffset} ${toY},
+                                    ${toX} ${toY}`;
+                        // Simplified S-Curve mainly to avoid complex collision
+                        // Or use the same logic as temporary line:
+                        pathD = `M ${fromX} ${fromY}
+                                   C ${fromX + cpOffset} ${fromY},
+                                     ${fromX + cpOffset} ${toY},
+                                     ${fromX} ${toY}
+                                   S ${toX - cpOffset} ${toY},
+                                     ${toX} ${toY}`;
+                        // If backward, the S-curve above might look weird.
+                        // Let's use the better logic from the temp line:
+                        if (toX - fromX <= 15) {
+                          const loopOffset = 60;
+                          pathD = `M ${fromX} ${fromY}
+                                      C ${fromX + loopOffset} ${fromY},
+                                        ${fromX + loopOffset} ${toY},
+                                        ${fromX} ${toY}
+                                      S ${toX - loopOffset} ${toY},
+                                        ${toX} ${toY}`;
+                        }
+                      }
+
+                      return (
+                        <g key={dep.id} className="group/line cursor-pointer" onClick={(e) => {
+                          e.stopPropagation();
+                          // Confirm delete?
+                          if (confirm('Delete dependency?')) {
+                            onDependencyDelete?.(sourceIssue.id, targetIssue.id);
+                          }
+                        }}>
+                          {/* Invisible wider stroke for easier clicking */}
+                          <path d={pathD} fill="none" stroke="transparent" strokeWidth="10" />
+                          {/* Visible line */}
+                          <path
+                            d={pathD}
+                            fill="none"
+                            stroke="#cbd5e1"
+                            strokeWidth="1.5"
+                            className="group-hover/line:stroke-red-500 transition-colors"
+                            markerEnd="url(#arrowhead-gantt-notion)"
+                          />
+                        </g>
+                      );
+                    });
+                  })}
 
                   {/* Linking line while dragging */}
                   {linkingFrom && (

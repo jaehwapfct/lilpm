@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
-import type { 
-  Issue, 
-  IssueStatus, 
+import type {
+  Issue,
+  IssueStatus,
   IssuePriority,
   Label,
   Comment,
@@ -33,7 +33,7 @@ export interface ActivityWithUser extends Activity {
 
 export const issueService = {
   async getIssues(
-    teamId: string, 
+    teamId: string,
     filters?: {
       status?: IssueStatus[];
       priority?: IssuePriority[];
@@ -71,7 +71,7 @@ export const issueService = {
     }
 
     const { data, error } = await query;
-    
+
     if (error) throw error;
     return (data || []) as unknown as IssueWithRelations[];
   },
@@ -85,7 +85,7 @@ export const issueService = {
       `)
       .eq('id', issueId)
       .single();
-    
+
     if (error) throw error;
     return data as unknown as IssueWithRelations;
   },
@@ -111,7 +111,7 @@ export const issueService = {
     // Generate identifier using the database function
     const { data: identifier, error: idError } = await supabase
       .rpc('generate_issue_identifier', { _team_id: teamId } as any);
-    
+
     if (idError) throw idError;
 
     const { data: issue, error } = await supabase
@@ -133,7 +133,7 @@ export const issueService = {
       } as any)
       .select()
       .single();
-    
+
     if (error) throw error;
     if (!issue) throw new Error('Failed to create issue');
 
@@ -155,14 +155,14 @@ export const issueService = {
 
     // Prepare updates - ensure type is included if provided
     const dbUpdates: Record<string, any> = { ...updates };
-    
+
     const { data, error } = await supabase
       .from('issues')
       .update(dbUpdates)
       .eq('id', issueId)
       .select()
       .single();
-    
+
     if (error) throw error;
 
     // Create activities for tracked changes
@@ -203,7 +203,7 @@ export const issueService = {
       .from('issues')
       .delete()
       .eq('id', issueId);
-    
+
     if (error) throw error;
   },
 
@@ -212,7 +212,7 @@ export const issueService = {
       .from('issues')
       .update(updates as any)
       .in('id', issueIds);
-    
+
     if (error) throw error;
   },
 
@@ -222,7 +222,7 @@ export const issueService = {
       .select('*')
       .eq('parent_id', parentId)
       .order('sort_order', { ascending: true });
-    
+
     if (error) throw error;
     return (data || []) as Issue[];
   },
@@ -239,7 +239,7 @@ export const labelService = {
       .select('*')
       .eq('team_id', teamId)
       .order('name', { ascending: true });
-    
+
     if (error) throw error;
     return (data || []) as Label[];
   },
@@ -250,7 +250,7 @@ export const labelService = {
       .insert({ team_id: teamId, name, color, description } as any)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data as Label;
   },
@@ -262,7 +262,7 @@ export const labelService = {
       .eq('id', labelId)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data as Label;
   },
@@ -272,7 +272,7 @@ export const labelService = {
       .from('labels')
       .delete()
       .eq('id', labelId);
-    
+
     if (error) throw error;
   },
 
@@ -280,7 +280,7 @@ export const labelService = {
     const { error } = await supabase
       .from('issue_labels')
       .insert({ issue_id: issueId, label_id: labelId } as any);
-    
+
     if (error && error.code !== '23505') throw error; // Ignore duplicate
 
     await activityService.createActivity(issueId, 'label_added', { label_id: labelId });
@@ -292,7 +292,7 @@ export const labelService = {
       .delete()
       .eq('issue_id', issueId)
       .eq('label_id', labelId);
-    
+
     if (error) throw error;
 
     await activityService.createActivity(issueId, 'label_removed', { label_id: labelId });
@@ -303,7 +303,7 @@ export const labelService = {
       .from('issue_labels')
       .select('label:labels(*)')
       .eq('issue_id', issueId);
-    
+
     if (error) throw error;
     return (data || []).map(d => (d as any).label as Label);
   },
@@ -321,21 +321,21 @@ export const commentService = {
       .select('*')
       .eq('issue_id', issueId)
       .order('created_at', { ascending: true });
-    
+
     if (commentsError) throw commentsError;
     if (!commentsData || commentsData.length === 0) return [];
 
     // Get unique user IDs
     const userIds = [...new Set(commentsData.map(c => c.user_id).filter(Boolean))];
-    
+
     // Fetch profiles separately
     const { data: profilesData } = await supabase
       .from('profiles')
       .select('*')
       .in('id', userIds);
-    
+
     const profilesMap = new Map((profilesData || []).map(p => [p.id, p]));
-    
+
     // Combine comments with user profiles
     return commentsData.map(comment => ({
       ...comment,
@@ -356,7 +356,7 @@ export const commentService = {
       } as any)
       .select()
       .single();
-    
+
     if (error) throw error;
     if (!data) throw new Error('Failed to create comment');
 
@@ -372,7 +372,7 @@ export const commentService = {
       .eq('id', commentId)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data as Comment;
   },
@@ -382,7 +382,7 @@ export const commentService = {
       .from('comments')
       .delete()
       .eq('id', commentId);
-    
+
     if (error) throw error;
   },
 };
@@ -399,20 +399,20 @@ export const activityService = {
       .select('*')
       .eq('issue_id', issueId)
       .order('created_at', { ascending: false });
-    
+
     if (activitiesError) throw activitiesError;
     if (!activitiesData || activitiesData.length === 0) return [];
 
     // Get unique user IDs
     const userIds = [...new Set(activitiesData.map(a => a.user_id).filter(Boolean))];
-    
+
     // Fetch profiles separately
-    const { data: profilesData } = userIds.length > 0 
+    const { data: profilesData } = userIds.length > 0
       ? await supabase.from('profiles').select('*').in('id', userIds)
       : { data: [] };
-    
+
     const profilesMap = new Map((profilesData || []).map(p => [p.id, p]));
-    
+
     // Combine activities with user profiles
     return activitiesData.map(activity => ({
       ...activity,
@@ -421,8 +421,8 @@ export const activityService = {
   },
 
   async createActivity(
-    issueId: string, 
-    type: ActivityType, 
+    issueId: string,
+    type: ActivityType,
     activityData: Record<string, unknown>
   ): Promise<Activity> {
     const { data: { user } } = await supabase.auth.getUser();
@@ -437,7 +437,7 @@ export const activityService = {
       } as any)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data as Activity;
   },
@@ -453,8 +453,54 @@ export const activityService = {
       .eq('issue.team_id', teamId)
       .order('created_at', { ascending: false })
       .limit(limit);
-    
+
     if (error) throw error;
     return (data || []) as unknown as ActivityWithUser[];
   },
+};
+
+// ============================================
+// DEPENDENCY SERVICES
+// ============================================
+
+export const dependencyService = {
+  async getDependencies(teamId: string) {
+    // Get all dependencies for issues in this team
+    const { data, error } = await supabase
+      .from('issue_dependencies')
+      .select(`
+        *,
+        source_issue:issues!source_issue_id(id, team_id),
+        target_issue:issues!target_issue_id(id, team_id)
+      `)
+      .eq('source_issue.team_id', teamId);
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async createDependency(sourceIssueId: string, targetIssueId: string) {
+    const { data, error } = await supabase
+      .from('issue_dependencies')
+      .insert({
+        source_issue_id: sourceIssueId,
+        target_issue_id: targetIssueId,
+      } as any)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteDependency(sourceIssueId: string, targetIssueId: string) {
+    // Determine the ID or delete by composite key
+    const { error } = await supabase
+      .from('issue_dependencies')
+      .delete()
+      .eq('source_issue_id', sourceIssueId)
+      .eq('target_issue_id', targetIssueId);
+
+    if (error) throw error;
+  }
 };

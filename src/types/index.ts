@@ -106,15 +106,28 @@ export interface Issue {
   completedAt?: string;
   createdAt: string;
   updatedAt: string;
-  
+
   // User Story specific fields
   acceptanceCriteria?: string[];
-  
+
   // Relations (populated)
   assignee?: User;
   creator?: User;
   project?: Project;
   subIssues?: Issue[];
+  // Dependencies
+  blockedBy?: IssueDependency[];
+  blocking?: IssueDependency[];
+}
+
+export interface IssueDependency {
+  id: string;
+  sourceIssueId: string;
+  targetIssueId: string;
+  createdAt: string;
+  // Populated
+  sourceIssue?: Issue;
+  targetIssue?: Issue;
 }
 
 export type IssueStatus = 'backlog' | 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled';
@@ -162,7 +175,7 @@ export interface Activity {
   createdAt: string;
 }
 
-export type ActivityType = 
+export type ActivityType =
   | 'issue_created'
   | 'issue_updated'
   | 'status_changed'

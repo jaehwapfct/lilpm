@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Issue, ViewPreferences, ViewFilters } from '@/types';
-import { issueService } from '@/lib/services/issueService';
+import { issueService, dependencyService } from '@/lib/services/issueService';
 import { supabase } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -11,7 +11,7 @@ interface IssueStore {
   error: string | null;
   viewPreferences: ViewPreferences;
   realtimeChannel: RealtimeChannel | null;
-  
+
   // Actions
   loadIssues: (teamId: string, filters?: ViewFilters) => Promise<void>;
   selectIssue: (issueId: string | null) => void;
@@ -19,15 +19,17 @@ interface IssueStore {
   updateIssue: (issueId: string, data: Partial<Issue>) => Promise<void>;
   deleteIssue: (issueId: string) => Promise<void>;
   batchUpdateIssues: (issueIds: string[], data: Partial<Issue>) => Promise<void>;
-  
+
   // View preferences
   setViewPreferences: (prefs: Partial<ViewPreferences>) => void;
   setFilters: (filters: Partial<ViewFilters>) => void;
-  
+
   // Real-time
   subscribeToChanges: (teamId: string) => void;
   unsubscribe: () => void;
   handleRemoteUpdate: (issueId: string, changes: Partial<Issue>) => void;
+  createDependency: (sourceIssueId: string, targetIssueId: string) => Promise<void>;
+  deleteDependency: (sourceIssueId: string, targetIssueId: string) => Promise<void>;
 }
 
 const defaultViewPreferences: ViewPreferences = {
@@ -48,7 +50,7 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
 
   loadIssues: async (teamId: string, filters?: ViewFilters) => {
     set({ isLoading: true, error: null });
-    
+
     try {
       const issues = await issueService.getIssues(teamId, {
         status: filters?.status,
@@ -56,7 +58,11 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
         assignee_id: filters?.assigneeId,
         project_id: filters?.projectId,
       });
-      
+
+      // Fetch dependencies
+      const dependencies = await dependencyService.getDependencies(teamId);
+
+
       // Map to frontend Issue type
       const mappedIssues: Issue[] = issues.map(issue => ({
         id: issue.id,
@@ -98,14 +104,31 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
           createdAt: issue.creator.created_at,
           updatedAt: issue.creator.updated_at,
         } : undefined,
+        // Map dependencies
+        blockedBy: dependencies
+          .filter((d: any) => d.target_issue_id === issue.id)
+          .map((d: any) => ({
+            id: d.id,
+            sourceIssueId: d.source_issue_id,
+            targetIssueId: d.target_issue_id,
+            createdAt: d.created_at,
+          })),
+        blocking: dependencies
+          .filter((d: any) => d.source_issue_id === issue.id)
+          .map((d: any) => ({
+            id: d.id,
+            sourceIssueId: d.source_issue_id,
+            targetIssueId: d.target_issue_id,
+            createdAt: d.created_at,
+          })),
       }));
-      
+
       set({ issues: mappedIssues, isLoading: false });
     } catch (error) {
       console.error('Failed to load issues:', error);
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to load issues', 
-        isLoading: false 
+      set({
+        error: error instanceof Error ? error.message : 'Failed to load issues',
+        isLoading: false
       });
     }
   },
@@ -121,7 +144,7 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
 
   createIssue: async (teamId: string, data: Partial<Issue>) => {
     set({ isLoading: true, error: null });
-    
+
     try {
       const created = await issueService.createIssue(teamId, {
         title: data.title || 'New Issue',
@@ -135,7 +158,7 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
         due_date: data.dueDate,
         parent_id: data.parentId,
       });
-      
+
       const newIssue: Issue = {
         id: created.id,
         identifier: created.identifier,
@@ -158,18 +181,18 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
         labels: [],
         acceptanceCriteria: (created as any).acceptance_criteria || undefined,
       };
-      
+
       set((state) => ({
         issues: [newIssue, ...state.issues],
         isLoading: false,
       }));
-      
+
       return newIssue;
     } catch (error) {
       console.error('Failed to create issue:', error);
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to create issue', 
-        isLoading: false 
+      set({
+        error: error instanceof Error ? error.message : 'Failed to create issue',
+        isLoading: false
       });
       throw error;
     }
@@ -178,13 +201,13 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
   updateIssue: async (issueId: string, data: Partial<Issue>) => {
     // Optimistic update
     const previousIssues = get().issues;
-    
+
     set((state) => ({
-      issues: state.issues.map(i => 
+      issues: state.issues.map(i =>
         i.id === issueId ? { ...i, ...data } : i
       ),
-      selectedIssue: state.selectedIssue?.id === issueId 
-        ? { ...state.selectedIssue, ...data } 
+      selectedIssue: state.selectedIssue?.id === issueId
+        ? { ...state.selectedIssue, ...data }
         : state.selectedIssue,
     }));
 
@@ -205,7 +228,7 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
     } catch (error) {
       console.error('Failed to update issue:', error);
       // Revert on failure
-      set({ 
+      set({
         issues: previousIssues,
         error: error instanceof Error ? error.message : 'Failed to update issue',
       });
@@ -214,7 +237,7 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
 
   deleteIssue: async (issueId: string) => {
     const previousIssues = get().issues;
-    
+
     // Optimistic delete
     set((state) => ({
       issues: state.issues.filter(i => i.id !== issueId),
@@ -226,7 +249,7 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
     } catch (error) {
       console.error('Failed to delete issue:', error);
       // Revert on failure
-      set({ 
+      set({
         issues: previousIssues,
         error: error instanceof Error ? error.message : 'Failed to delete issue',
       });
@@ -235,10 +258,10 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
 
   batchUpdateIssues: async (issueIds: string[], data: Partial<Issue>) => {
     const previousIssues = get().issues;
-    
+
     // Optimistic update
     set((state) => ({
-      issues: state.issues.map(i => 
+      issues: state.issues.map(i =>
         issueIds.includes(i.id) ? { ...i, ...data } : i
       ),
     }));
@@ -251,7 +274,7 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
       } as any);
     } catch (error) {
       console.error('Failed to batch update issues:', error);
-      set({ 
+      set({
         issues: previousIssues,
         error: error instanceof Error ? error.message : 'Failed to update issues',
       });
@@ -275,12 +298,12 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
 
   subscribeToChanges: (teamId: string) => {
     const { realtimeChannel } = get();
-    
+
     // Cleanup existing subscription
     if (realtimeChannel) {
       supabase.removeChannel(realtimeChannel);
     }
-    
+
     // Subscribe to issue changes for this team
     const channel = supabase
       .channel(`issues:team_${teamId}`)
@@ -294,7 +317,7 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
         },
         (payload) => {
           const { eventType, new: newRecord, old: oldRecord } = payload;
-          
+
           if (eventType === 'INSERT' && newRecord) {
             const issue = newRecord as any;
             const newIssue: Issue = {
@@ -319,7 +342,7 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
               labels: [],
               acceptanceCriteria: issue.acceptance_criteria || undefined,
             };
-            
+
             set((state) => {
               // Avoid duplicates
               if (state.issues.some(i => i.id === newIssue.id)) return state;
@@ -328,17 +351,17 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
           } else if (eventType === 'UPDATE' && newRecord) {
             const issue = newRecord as any;
             set((state) => ({
-              issues: state.issues.map(i => 
-                i.id === issue.id 
+              issues: state.issues.map(i =>
+                i.id === issue.id
                   ? {
-                      ...i,
-                      title: issue.title,
-                      description: issue.description,
-                      status: issue.status,
-                      priority: issue.priority,
-                      assigneeId: issue.assignee_id,
-                      updatedAt: issue.updated_at,
-                    }
+                    ...i,
+                    title: issue.title,
+                    description: issue.description,
+                    status: issue.status,
+                    priority: issue.priority,
+                    assigneeId: issue.assignee_id,
+                    updatedAt: issue.updated_at,
+                  }
                   : i
               ),
             }));
@@ -350,7 +373,7 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
         }
       )
       .subscribe();
-    
+
     set({ realtimeChannel: channel });
   },
 
@@ -364,12 +387,77 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
 
   handleRemoteUpdate: (issueId: string, changes: Partial<Issue>) => {
     set((state) => ({
-      issues: state.issues.map(i => 
+      issues: state.issues.map(i =>
         i.id === issueId ? { ...i, ...changes } : i
       ),
-      selectedIssue: state.selectedIssue?.id === issueId 
-        ? { ...state.selectedIssue, ...changes } 
+      selectedIssue: state.selectedIssue?.id === issueId
+        ? { ...state.selectedIssue, ...changes }
         : state.selectedIssue,
     }));
+  },
+
+  createDependency: async (sourceIssueId: string, targetIssueId: string) => {
+    try {
+      // Optimistic update
+      const dep = await dependencyService.createDependency(sourceIssueId, targetIssueId);
+
+      set((state) => ({
+        issues: state.issues.map(issue => {
+          if (issue.id === sourceIssueId) {
+            return {
+              ...issue,
+              blocking: [...(issue.blocking || []), {
+                id: dep.id,
+                sourceIssueId,
+                targetIssueId,
+                createdAt: dep.created_at
+              }]
+            };
+          }
+          if (issue.id === targetIssueId) {
+            return {
+              ...issue,
+              blockedBy: [...(issue.blockedBy || []), {
+                id: dep.id,
+                sourceIssueId,
+                targetIssueId,
+                createdAt: dep.created_at
+              }]
+            };
+          }
+          return issue;
+        })
+      }));
+    } catch (error) {
+      console.error('Failed to create dependency:', error);
+      throw error;
+    }
+  },
+
+  deleteDependency: async (sourceIssueId: string, targetIssueId: string) => {
+    try {
+      await dependencyService.deleteDependency(sourceIssueId, targetIssueId);
+
+      set((state) => ({
+        issues: state.issues.map(issue => {
+          if (issue.id === sourceIssueId) {
+            return {
+              ...issue,
+              blocking: (issue.blocking || []).filter(d => d.targetIssueId !== targetIssueId)
+            };
+          }
+          if (issue.id === targetIssueId) {
+            return {
+              ...issue,
+              blockedBy: (issue.blockedBy || []).filter(d => d.sourceIssueId !== sourceIssueId)
+            };
+          }
+          return issue;
+        })
+      }));
+    } catch (error) {
+      console.error('Failed to delete dependency:', error);
+      throw error;
+    }
   },
 }));

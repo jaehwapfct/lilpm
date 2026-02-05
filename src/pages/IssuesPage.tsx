@@ -15,8 +15,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Plus, 
+import {
+  Plus,
   SortAsc,
   LayoutList,
   Kanban,
@@ -29,16 +29,18 @@ export function IssuesPage() {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const { currentTeam } = useTeamStore();
-  const { 
-    issues, 
-    isLoading, 
+  const {
+    issues,
+    isLoading,
     viewPreferences,
-    loadIssues, 
+    loadIssues,
     createIssue,
     updateIssue,
     setViewPreferences,
+    createDependency,
+    deleteDependency,
   } = useIssueStore();
-  
+
   const [selectedIssues, setSelectedIssues] = useState<Set<string>>(new Set());
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [initialStatus, setInitialStatus] = useState<IssueStatus>('backlog');
@@ -63,11 +65,11 @@ export function IssuesPage() {
       loadIssues(currentTeam.id, {
         status: filters.status.length > 0 ? filters.status : undefined,
         priority: filters.priority.length > 0 ? filters.priority : undefined,
-        assigneeId: filters.assigneeId.filter(a => a !== 'unassigned').length > 0 
-          ? filters.assigneeId.filter(a => a !== 'unassigned') 
+        assigneeId: filters.assigneeId.filter(a => a !== 'unassigned').length > 0
+          ? filters.assigneeId.filter(a => a !== 'unassigned')
           : undefined,
-        projectId: filters.projectId.filter(p => p !== 'no-project').length > 0 
-          ? filters.projectId.filter(p => p !== 'no-project') 
+        projectId: filters.projectId.filter(p => p !== 'no-project').length > 0
+          ? filters.projectId.filter(p => p !== 'no-project')
           : undefined,
       });
     }
@@ -133,8 +135,8 @@ export function IssuesPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-3 sm:px-4 py-2 border-b border-border bg-background gap-2">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
             {/* View Toggle */}
-            <Tabs 
-              value={viewPreferences.layout} 
+            <Tabs
+              value={viewPreferences.layout}
               onValueChange={(v) => setViewPreferences({ layout: v as 'list' | 'board' | 'gantt' })}
             >
               <TabsList className="h-8">
@@ -211,11 +213,13 @@ export function IssuesPage() {
               onCreateIssue={handleOpenCreateModal}
             />
           ) : viewPreferences.layout === 'gantt' ? (
-            <GanttChart 
-              issues={filteredIssues} 
+            <GanttChart
+              issues={filteredIssues}
               onIssueUpdate={async (issueId, updates) => {
                 await updateIssue(issueId, updates);
               }}
+              onDependencyCreate={createDependency}
+              onDependencyDelete={deleteDependency}
             />
           ) : (
             <div className="h-full overflow-y-auto p-4">
