@@ -265,6 +265,12 @@ export const teamInviteService = {
       const { data: { session } } = await supabase.auth.getSession();
       const authToken = session?.access_token;
 
+      console.log('[TeamInvite] Auth verification:', {
+        hasSession: !!session,
+        hasToken: !!authToken,
+        tokenPrefix: authToken ? authToken.substring(0, 10) + '...' : 'none'
+      });
+
       const response = await fetch(`${SUPABASE_URL}/functions/v1/send-team-invite`, {
         method: 'POST',
         headers: {
