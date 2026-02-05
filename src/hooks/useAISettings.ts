@@ -43,6 +43,11 @@ export function useAISettings(): UseAISettingsReturn {
             }
 
             if (data) {
+                console.log('[useAISettings] Loaded settings from user_ai_settings:', {
+                    hasAnthropicKey: !!data.anthropic_api_key,
+                    hasOpenAIKey: !!data.openai_api_key,
+                    hasGeminiKey: !!data.gemini_api_key,
+                });
                 setSettings({
                     anthropic_api_key: data.anthropic_api_key || undefined,
                     openai_api_key: data.openai_api_key || undefined,

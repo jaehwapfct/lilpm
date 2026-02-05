@@ -772,26 +772,6 @@ Respond in the same language as the user's message.`
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-
-              {/* Auto-save status indicator (Google Docs style) */}
-              <div className="flex items-center gap-2 text-xs">
-                {isSaving ? (
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    <span>{t('common.saving', 'Saving...')}</span>
-                  </div>
-                ) : hasChanges ? (
-                  <div className="flex items-center gap-1.5 text-amber-500">
-                    <CloudOff className="h-3.5 w-3.5" />
-                    <span>{t('common.unsavedChanges', 'Unsaved changes')}</span>
-                  </div>
-                ) : lastSaved ? (
-                  <div className="flex items-center gap-1.5 text-green-500">
-                    <Cloud className="h-3.5 w-3.5" />
-                    <span>{t('common.allChangesSaved', 'All changes saved')}</span>
-                  </div>
-                ) : null}
-              </div>
             </div>
           </div>
         </div>
