@@ -126,7 +126,7 @@ function SortableIssueBar({ issue, children }: { issue: Issue; children: React.R
     isDragging,
     listeners,
     attributes,
-  } = useSortable({ id: issue.id });
+  } = useSortable({ id: `${issue.id}-timeline` });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -223,42 +223,54 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
     });
   }, [issues]);
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
-  };
+  function handleDragStart(event: DragStartEvent) {
+    const { active } = event;
+    const activeIdStr = String(active.id).replace('-timeline', '');
+    setActiveId(activeIdStr);
+  }
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
-    if (over && active.id !== over.id && onIssueUpdate) {
-      const oldIndex = sortedIssues.findIndex(i => i.id === active.id);
-      const newIndex = sortedIssues.findIndex(i => i.id === over.id);
+    // Reset active ID
+    setActiveId(null);
+
+    if (!over) return;
+
+    // Normalize IDs (remove -timeline suffix if present)
+    const activeIdStr = String(active.id).replace('-timeline', '');
+    const overIdStr = String(over.id).replace('-timeline', '');
+
+    if (activeIdStr !== overIdStr) {
+      const oldIndex = sortedIssues.findIndex((i) => i.id === activeIdStr);
+      const newIndex = sortedIssues.findIndex((i) => i.id === overIdStr);
 
       if (oldIndex !== -1 && newIndex !== -1) {
-        // Calculate new sort order
-        const targetIssue = sortedIssues[newIndex];
-        const prevIssue = newIndex > 0 ? sortedIssues[newIndex - 1] : null;
-        const nextIssue = newIndex < sortedIssues.length - 1 ? sortedIssues[newIndex + 1] : null;
+        // Optimistic update
+        // We'll let the parent component handle reordering if it provided a callback,
+        // OR we can't really reorder prop 'issues' directly. 
+        // IMPORTANT: The GanttChartProps has onIssueUpdate (sortOrder).
+        // We need to calculate new Sort Order.
 
-        let newSortOrder: number;
-        const targetSort = targetIssue.sortOrder !== undefined ? targetIssue.sortOrder : newIndex * 1000;
+        const newIssues = [...sortedIssues];
+        const [moved] = newIssues.splice(oldIndex, 1);
+        newIssues.splice(newIndex, 0, moved);
 
-        if (oldIndex < newIndex) {
-          // Moving down - place after target
-          const nextSort = nextIssue?.sortOrder !== undefined ? nextIssue.sortOrder : targetSort + 1000;
-          newSortOrder = (targetSort + nextSort) / 2;
-        } else {
-          // Moving up - place before target
-          const prevSort = prevIssue?.sortOrder !== undefined ? prevIssue.sortOrder : targetSort - 1000;
-          newSortOrder = (prevSort + targetSort) / 2;
-        }
+        // Calculate new sortOrder for the moved item
+        // It resides between newIndex-1 and newIndex+1
+        const prev = newIssues[newIndex - 1];
+        const next = newIssues[newIndex + 1];
 
-        onIssueUpdate(active.id as string, { sortOrder: newSortOrder });
+        let newSortOrder = 0;
+        if (!prev && !next) newSortOrder = 1000;
+        else if (!prev) newSortOrder = (next.sortOrder || 0) / 2;
+        else if (!next) newSortOrder = (prev.sortOrder || 0) + 1000;
+        else newSortOrder = ((prev.sortOrder || 0) + (next.sortOrder || 0)) / 2;
+
+        onIssueUpdate?.(activeIdStr, { sortOrder: newSortOrder });
       }
     }
-
-    setActiveId(null);
-  };
+  }
 
   const getBarPosition = useCallback((issue: Issue) => {
     const dueDate = issue.dueDate ? parseISO(issue.dueDate) : null;
@@ -424,6 +436,9 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
     onIssueClick?.(issue);
   };
 
+  /* Timeline Section */
+  const timelineIds = useMemo(() => sortedIssues.map(i => `${i.id}-timeline`), [sortedIssues]);
+
   return (
     <div ref={containerRef} className="flex flex-col h-full bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-700/80 rounded-lg overflow-hidden shadow-sm">
       {/* Toolbar - Notion-style minimal design */}
@@ -494,8 +509,13 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                 ))}
               </div>
             </div>
+          </SortableContext>
 
-            {/* Timeline - Notion-style */}
+          {/* Timeline - Notion-style */}
+          <SortableContext
+            items={timelineIds}
+            strategy={verticalListSortingStrategy}
+          >
             <div ref={scrollContainerRef} className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 scrollbar-track-transparent">
               <div style={{ width: `${totalWidth}px`, minWidth: '100%' }} className="relative">
                 {/* Timeline Header */}
@@ -522,28 +542,33 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                   </div>
                 </div>
 
-                {/* Issue Bars - Notion-style */}
-                <div className="relative">
+                {/* Issues Layer */}
+                <div className="relative pt-2 pb-10">
                   {sortedIssues.map((issue, issueIndex) => {
                     const barPos = getBarPosition(issue);
-                    const isDragging = dragState.issueId === issue.id;
+                    // Skip if not visible or invalid
+                    if (!barPos || !barPos.isVisible) return null;
+
+                    const isDraggingIssue = dragState.issueId === issue.id;
                     const isLinkingFromThis = linkingFrom === issue.id;
                     const isLinkTarget = hoverTarget?.issueId === issue.id;
 
                     const baseLeft = parseFloat(barPos.left);
                     const baseWidth = parseFloat(barPos.width);
 
-                    const snappedLeft = isDragging && (dragState.mode === 'move' || dragState.mode === 'resize-start')
+                    const snappedLeft = isDraggingIssue && (dragState.mode === 'move' || dragState.mode === 'resize-start')
                       ? baseLeft + snappedDelta : baseLeft;
-                    const snappedWidth = isDragging && (dragState.mode === 'resize-end' || dragState.mode === 'resize-start')
+
+                    const snappedWidth = isDraggingIssue && (dragState.mode === 'resize-end' || dragState.mode === 'resize-start')
                       ? (dragState.mode === 'resize-end'
                         ? Math.max(cellWidth, baseWidth + snappedDelta)
                         : Math.max(cellWidth, baseWidth - snappedDelta))
                       : baseWidth;
 
-                    const visualLeft = isDragging && (dragState.mode === 'move' || dragState.mode === 'resize-start')
+                    const visualLeft = isDraggingIssue && (dragState.mode === 'move' || dragState.mode === 'resize-start')
                       ? baseLeft + dragDelta : baseLeft;
-                    const visualWidth = isDragging && (dragState.mode === 'resize-end' || dragState.mode === 'resize-start')
+
+                    const visualWidth = isDraggingIssue && (dragState.mode === 'resize-end' || dragState.mode === 'resize-start')
                       ? (dragState.mode === 'resize-end'
                         ? Math.max(cellWidth, baseWidth + dragDelta)
                         : Math.max(cellWidth, baseWidth - dragDelta))
@@ -552,10 +577,10 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                     return (
                       <SortableIssueBar key={issue.id} issue={issue}>
                         <div
-                          className="h-9 relative border-b border-gray-200/40 dark:border-gray-700/40"
+                          className="h-9 relative border-b border-gray-200/40 dark:border-gray-700/40 group/row"
                         >
-                          {/* Grid Background */}
-                          <div className="absolute inset-0 flex">
+                          {/* Grid Background for Row */}
+                          <div className="absolute inset-0 flex pointer-events-none">
                             {dateRange.days.map((day, index) => (
                               <div
                                 key={index}
@@ -569,163 +594,149 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                           </div>
 
                           {/* Issue Bar */}
-                          {barPos.isVisible && (
-                            <>
-                              {/* Ghost bar - Notion-style preview */}
-                              {isDragging && (snappedDelta !== 0 || dragDelta !== 0) && (
+                          {/* Ghost bar */}
+                          {isDraggingIssue && (snappedDelta !== 0 || dragDelta !== 0) && (
+                            <div
+                              className={cn(
+                                "absolute top-1/2 -translate-y-1/2 h-6 rounded border-2 border-dashed pointer-events-none z-20",
+                                "border-blue-400/50 dark:border-blue-500/50 bg-blue-50/30 dark:bg-blue-900/20"
+                              )}
+                              style={{
+                                left: `${snappedLeft}px`,
+                                width: `${snappedWidth}px`,
+                              }}
+                            />
+                          )}
+
+                          {/* Main bar - Notion-style */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div
+                                data-bar-id={issue.id}
+                                className={cn(
+                                  "absolute top-1/2 -translate-y-1/2 h-6 rounded border group/bar select-none",
+                                  getStatusColor(issue.status),
+                                  "shadow-sm hover:shadow-md",
+                                  !barPos.hasDueDate && "border-2 border-dashed",
+                                  isDraggingIssue && "z-30 cursor-grabbing shadow-lg scale-105",
+                                  !isDraggingIssue && "transition-all duration-150 ease-out cursor-grab",
+                                  isLinkingFromThis && "ring-2 ring-yellow-400/80 dark:ring-yellow-500/80 z-30",
+                                  isLinkTarget && "ring-2 ring-green-400/80 dark:ring-green-500/80 z-30 scale-105"
+                                )}
+                                style={{
+                                  left: `${visualLeft}px`,
+                                  width: `${visualWidth}px`,
+                                }}
+                                onMouseDown={(e) => handleMouseDown(e, issue, 'move')}
+                              >
+                                {/* Resize Handles */}
                                 <div
-                                  className={cn(
-                                    "absolute top-1/2 -translate-y-1/2 h-6 rounded border-2 border-dashed pointer-events-none z-20",
-                                    "border-blue-400/50 dark:border-blue-500/50 bg-blue-50/30 dark:bg-blue-900/20"
-                                  )}
-                                  style={{
-                                    left: `${snappedLeft}px`,
-                                    width: `${snappedWidth}px`,
+                                  className="absolute left-0 top-0 bottom-0 w-2 cursor-w-resize hover:bg-black/10 transition-colors z-40 rounded-l"
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    handleMouseDown(e, issue, 'resize-start');
                                   }}
                                 />
-                              )}
+                                <div
+                                  className="absolute right-0 top-0 bottom-0 w-2 cursor-e-resize hover:bg-black/10 transition-colors z-40 rounded-r"
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    handleMouseDown(e, issue, 'resize-end');
+                                  }}
+                                />
 
-                              {/* Main bar - Notion-style */}
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div
-                                    data-bar-id={issue.id}
-                                    className={cn(
-                                      "absolute top-1/2 -translate-y-1/2 h-6 rounded border group/bar select-none",
-                                      getStatusColor(issue.status),
-                                      "shadow-sm hover:shadow-md",
-                                      !barPos.hasDueDate && "border-2 border-dashed",
-                                      isDragging && "z-30 cursor-grabbing shadow-lg scale-105",
-                                      !isDragging && "transition-all duration-150 ease-out cursor-grab",
-                                      isLinkingFromThis && "ring-2 ring-yellow-400/80 dark:ring-yellow-500/80 z-30",
-                                      isLinkTarget && "ring-2 ring-green-400/80 dark:ring-green-500/80 z-30 scale-105"
-                                    )}
-                                    style={{
-                                      left: `${visualLeft}px`,
-                                      width: `${visualWidth}px`,
-                                      minWidth: '40px',
-                                      opacity: isDragging ? 0.75 : 1,
-                                    }}
-                                    onMouseDown={(e) => {
-                                      const rect = e.currentTarget.getBoundingClientRect();
-                                      const relativeX = e.clientX - rect.left;
-                                      const isOnLeftHandle = relativeX < 12;
-                                      const isOnRightHandle = relativeX > rect.width - 12;
+                                {/* Link Points */}
+                                <div
+                                  className={cn(
+                                    "absolute left-[-6px] top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-500 z-50 opacity-0 group-hover/bar:opacity-100 hover:scale-125 transition-all shadow-sm cursor-crosshair",
+                                    isLinkingFromThis && "opacity-100 border-yellow-500 scale-110"
+                                  )}
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    setLinkingFrom(issue.id);
+                                    setLinkingFromSide('left');
+                                  }}
+                                  onMouseUp={(e) => {
+                                    e.stopPropagation();
+                                    if (linkingFrom && linkingFrom !== issue.id) {
+                                      onDependencyCreate?.(linkingFrom, issue.id);
+                                      setLinkingFrom(null);
+                                    }
+                                  }}
+                                />
+                                <div
+                                  className={cn(
+                                    "absolute right-[-6px] top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-500 z-50 opacity-0 group-hover/bar:opacity-100 hover:scale-125 transition-all shadow-sm cursor-crosshair",
+                                    isLinkingFromThis && "opacity-100 border-yellow-500 scale-110"
+                                  )}
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    setLinkingFrom(issue.id);
+                                    setLinkingFromSide('right');
+                                  }}
+                                  onMouseUp={(e) => {
+                                    e.stopPropagation();
+                                    if (linkingFrom && linkingFrom !== issue.id) {
+                                      onDependencyCreate?.(linkingFrom, issue.id);
+                                      setLinkingFrom(null);
+                                    }
+                                  }}
+                                />
 
-                                      if (!isOnLeftHandle && !isOnRightHandle) {
-                                        handleBarMouseDown(e, issue, 'move');
-                                      }
-                                    }}
-                                    onDoubleClick={() => handleIssueClick(issue)}
-                                  >
-                                    {/* Left resize handle */}
-                                    <div
-                                      className="absolute left-0 top-0 bottom-0 w-3 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 hover:bg-white/20 dark:hover:bg-white/10 rounded-l flex items-center justify-center z-30 transition-opacity"
-                                      onMouseDown={(e) => {
-                                        e.stopPropagation();
-                                        e.preventDefault();
-                                        handleBarMouseDown(e, issue, 'resize-start');
-                                      }}
-                                    >
-                                      <div className="w-0.5 h-2.5 bg-white/80 rounded-full" />
-                                    </div>
-
-                                    {/* Bar content */}
-                                    <div className="h-full flex items-center px-2 overflow-hidden pointer-events-none">
-                                      <StatusIcon status={issue.status} className="h-3 w-3 mr-1.5 flex-shrink-0 text-white" />
-                                      <span className="text-[11px] text-white font-medium truncate">
-                                        {issue.identifier}
-                                      </span>
-                                    </div>
-
-                                    {/* Right resize handle */}
-                                    <div
-                                      className="absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 hover:bg-white/20 dark:hover:bg-white/10 rounded-r flex items-center justify-center z-30 transition-opacity"
-                                      onMouseDown={(e) => {
-                                        e.stopPropagation();
-                                        e.preventDefault();
-                                        handleBarMouseDown(e, issue, 'resize-end');
-                                      }}
-                                    >
-                                      <div className="w-0.5 h-2.5 bg-white/80 rounded-full" />
-                                    </div>
-
-                                    {/* Link points - Notion-style (smaller) */}
-                                    <div
-                                      data-link-point="left"
-                                      data-issue-id={issue.id}
-                                      className={cn(
-                                        "absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full border-2 border-white cursor-crosshair z-40 transition-all duration-150",
-                                        linkingFrom
-                                          ? (isLinkTarget && hoverTarget?.side === 'left'
-                                            ? "opacity-100 bg-green-500 scale-[2.5] border-green-300 shadow-lg"
-                                            : "opacity-100 bg-amber-500")
-                                          : "opacity-0 group-hover/bar:opacity-100 bg-amber-500 hover:scale-[1.8]"
-                                      )}
-                                      onMouseDown={(e) => {
-                                        e.stopPropagation();
-                                        e.preventDefault();
-                                        handleStartLinking(e, issue.id, 'left');
-                                      }}
-                                      onMouseEnter={() => handleLinkPointEnter(issue.id, 'left')}
-                                      onMouseLeave={handleLinkPointLeave}
-                                    />
-                                    <div
-                                      data-link-point="right"
-                                      data-issue-id={issue.id}
-                                      className={cn(
-                                        "absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full border-2 border-white cursor-crosshair z-40 transition-all duration-150",
-                                        linkingFrom
-                                          ? (isLinkTarget && hoverTarget?.side === 'right'
-                                            ? "opacity-100 bg-green-500 scale-[2.5] border-green-300 shadow-lg"
-                                            : "opacity-100 bg-amber-500")
-                                          : "opacity-0 group-hover/bar:opacity-100 bg-amber-500 hover:scale-[1.8]"
-                                      )}
-                                      onMouseDown={(e) => {
-                                        e.stopPropagation();
-                                        e.preventDefault();
-                                        handleStartLinking(e, issue.id, 'right');
-                                      }}
-                                      onMouseEnter={() => handleLinkPointEnter(issue.id, 'right')}
-                                      onMouseLeave={handleLinkPointLeave}
-                                    />
+                                <div className="flex items-center h-full px-2 overflow-hidden">
+                                  {/* Icon */}
+                                  <div className="mr-1.5 opacity-70 flex-shrink-0">
+                                    <IssueTypeIcon type={(issue as any).type || 'task'} size="xs" />
                                   </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="top" className="max-w-xs">
-                                  <div className="space-y-1">
-                                    <p className="font-medium text-sm">{issue.title}</p>
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                      <span>{issue.identifier}</span>
-                                      <span>•</span>
-                                      <span>{t(`status.${issue.status}`)}</span>
-                                    </div>
-                                    {issue.dueDate && (
+                                  <span className="text-[11px] font-medium truncate text-gray-700 dark:text-gray-200">
+                                    {issue.title}
+                                  </span>
+                                </div>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">
+                              <div className="flex flex-col gap-1">
+                                <p className="font-semibold">{issue.title}</p>
+                                <div className="flex items-center gap-2 text-gray-500">
+                                  <StatusIcon status={issue.status} size="sm" />
+                                  <span>{issue.status}</span>
+                                </div>
+                                {issue.startDate && issue.dueDate && (
+                                  <>
+                                    <div className="h-px bg-white/20 my-1" />
+                                    <div className="flex flex-col gap-0.5">
                                       <p className="text-xs">
-                                        {t('issues.dueDate')}: {format(parseISO(issue.dueDate), 'PPP', { locale: dateLocale })}
+                                        {format(parseISO(issue.startDate), 'MMM d')} - {format(parseISO(issue.dueDate), 'MMM d')}
                                       </p>
-                                    )}
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </>
-                          )}
+                                      <p className="text-xs opacity-70">
+                                        ({differenceInDays(parseISO(issue.dueDate), parseISO(issue.startDate)) + 1} days)
+                                      </p>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </SortableIssueBar>
                     );
                   })}
                 </div>
 
+
                 {/* Today Line - Optimized */}
-                {dateRange.days.some(d => isToday(d)) && (
-                  <div
-                    className="absolute top-10 bottom-0 w-[2px] bg-blue-500/60 z-20 pointer-events-none"
-                    style={{
-                      left: `${(dateRange.days.findIndex(d => isToday(d)) * cellWidth) + (cellWidth / 2) - 1}px`
-                    }}
-                  >
-                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-blue-500 shadow-sm" />
-                  </div>
-                )}
+                {
+                  dateRange.days.some(d => isToday(d)) && (
+                    <div
+                      className="absolute top-10 bottom-0 w-[2px] bg-blue-500/60 z-20 pointer-events-none"
+                      style={{
+                        left: `${(dateRange.days.findIndex(d => isToday(d)) * cellWidth) + (cellWidth / 2) - 1}px`
+                      }}
+                    >
+                      <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-blue-500 shadow-sm" />
+                    </div>
+                  )
+                }
                 {/* Dependency Lines SVG - MOVED INSIDE SCROLL CONTAINER */}
                 <svg
                   className="absolute top-10 left-0 w-full h-[calc(100%-40px)] pointer-events-none z-[15]"
@@ -937,10 +948,10 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                     })()
                   )}
                 </svg>
-              </div>
-            </div>
+              </div >
+            </div >
 
-          </SortableContext>
+          </SortableContext >
 
           <DragOverlay>
             {activeId ? (
@@ -952,7 +963,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
               </div>
             ) : null}
           </DragOverlay>
-        </DndContext>
+        </DndContext >
       </div >
     </div >
   );
