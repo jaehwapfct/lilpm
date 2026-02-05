@@ -232,19 +232,41 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
     // Filter issues that have at least a due date
     const issuesWithDates = issues.filter(issue => issue.dueDate || issue.createdAt);
 
-    // Sort by sortOrder first, then by due date
+    // Sort by sortOrder first, then by due date, then by creation date, then by ID (deterministic)
     const sortIssues = (issueList: Issue[]) => {
       return [...issueList].sort((a, b) => {
         // Primary sort: sortOrder (if defined)
         if (a.sortOrder !== undefined && b.sortOrder !== undefined) {
-          return a.sortOrder - b.sortOrder;
+          if (a.sortOrder !== b.sortOrder) {
+            return a.sortOrder - b.sortOrder;
+          }
+        } else if (a.sortOrder !== undefined) {
+          return -1;
+        } else if (b.sortOrder !== undefined) {
+          return 1;
         }
-        if (a.sortOrder !== undefined) return -1;
-        if (b.sortOrder !== undefined) return 1;
-        // Fallback: sort by due date
-        const dateA = new Date(a.dueDate || a.createdAt);
-        const dateB = new Date(b.dueDate || b.createdAt);
-        return dateA.getTime() - dateB.getTime();
+
+        // Fallback 1: Due Date
+        const dateA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+        const dateB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+        if (dateA !== dateB) {
+          // If only one has a due date, put it first (non-zero vs zero)
+          if (dateA === 0) return 1;
+          if (dateB === 0) return -1;
+          return dateA - dateB;
+        }
+
+        // Fallback 2: Creation Date (Newest first per default, but let's stick to standard stable sort)
+        // Actually, usually newest items are at bottom in Gantt unless sorted otherwise?
+        // Let's stick to a consistent arbitrary order.
+        const createdA = new Date(a.createdAt).getTime();
+        const createdB = new Date(b.createdAt).getTime();
+        if (createdA !== createdB) {
+          return createdA - createdB;
+        }
+
+        // Fallback 3: ID (Absolute tie-breaker)
+        return a.id.localeCompare(b.id);
       });
     };
 
