@@ -256,6 +256,9 @@ export const teamInviteService = {
         },
         body: JSON.stringify({
           inviteId: data.id,
+          email: email,
+          teamName: teamName,
+          inviterName: inviterName,
           role: role,
           token: token,
           isExistingUser: isExistingUser,
