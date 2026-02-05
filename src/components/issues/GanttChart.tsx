@@ -524,21 +524,22 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
           }
         }
       }
+    }
 
-      setDragDelta(0);
-      setSnappedDelta(0);
-      setDragDeltaY(0);
-      setDragState({
-        issueId: null,
-        mode: null,
-        startX: 0,
-        startY: 0,
-        originalDueDate: null,
-        originalCreatedAt: null,
-      });
-      setRowDropTargetIndex(null);
-      setRowDropPosition(null);
-    }, [linkingFrom, hoverTarget, dragState, snappedDelta, cellWidth, issues, onIssueUpdate, onDependencyCreate, rowDropTargetIndex, rowDropPosition, groupedIssues]);
+    setDragDelta(0);
+    setSnappedDelta(0);
+    setDragDeltaY(0);
+    setDragState({
+      issueId: null,
+      mode: null,
+      startX: 0,
+      startY: 0,
+      originalDueDate: null,
+      originalCreatedAt: null,
+    });
+    setRowDropTargetIndex(null);
+    setRowDropPosition(null);
+  }, [linkingFrom, hoverTarget, dragState, snappedDelta, cellWidth, issues, onIssueUpdate, onDependencyCreate, rowDropTargetIndex, rowDropPosition, groupedIssues]);
 
   const handleStartLinking = useCallback((e: React.MouseEvent, issueId: string, side: 'left' | 'right') => {
     e.preventDefault();
