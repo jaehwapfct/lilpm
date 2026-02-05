@@ -366,6 +366,8 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
                     status: issue.status,
                     priority: issue.priority,
                     assigneeId: issue.assignee_id,
+                    sortOrder: issue.sort_order,
+                    dueDate: issue.due_date,
                     updatedAt: issue.updated_at,
                   }
                   : i
