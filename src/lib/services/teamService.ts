@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import type { Profile, Team, TeamMember, TeamInvite, TeamRole } from '@/types/database';
+import { logInviteSent, logInviteCancelled, logInviteAccepted, logRoleChanged, logMemberRemoved } from './activityService';
 
 // ============================================
 // PROFILE SERVICES
@@ -291,16 +292,31 @@ export const teamInviteService = {
       // Don't fail the invite creation if email fails
     }
 
+    // Log activity
+    logInviteSent(teamId, data.id, email, role, isExistingUser);
+
     return { ...data, isExistingUser } as TeamInvite & { isExistingUser?: boolean };
   },
 
   async cancelInvite(inviteId: string): Promise<void> {
+    // Get invite info for logging before cancelling
+    const { data: invite } = await supabase
+      .from('team_invites')
+      .select('team_id, email')
+      .eq('id', inviteId)
+      .maybeSingle();
+
     const { error } = await supabase
       .from('team_invites')
       .update({ status: 'cancelled' } as any)
       .eq('id', inviteId);
 
     if (error) throw error;
+
+    // Log activity
+    if (invite) {
+      logInviteCancelled(invite.team_id, inviteId, invite.email);
+    }
   },
 
   async acceptInvite(token: string): Promise<Team> {
@@ -386,6 +402,9 @@ export const teamInviteService = {
     } catch (notifError) {
       console.error('Failed to create acceptance notification:', notifError);
     }
+
+    // Log activity
+    logInviteAccepted(typedInvite.team_id, typedInvite.id, user.id);
 
     return typedInvite.team as Team;
   },

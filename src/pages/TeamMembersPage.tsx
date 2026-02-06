@@ -76,6 +76,7 @@ export function TeamMembersPage() {
   const [inviteRole, setInviteRole] = useState<TeamRole>('member');
   const [isSending, setIsSending] = useState(false);
   const [removeMember, setRemoveMember] = useState<TeamMemberWithProfile | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('members');
 
   const roleLabels: Record<TeamRole, string> = {
     owner: t('team.owner'),
@@ -195,6 +196,7 @@ export function TeamMembersPage() {
 
       setInviteEmail('');
       setInviteOpen(false);
+      setActiveTab('invites'); // Switch to Pending tab after invite
 
       // Also reload data to ensure consistency
       await loadData();
@@ -300,7 +302,7 @@ export function TeamMembersPage() {
           </Button>
         </div>
 
-        <Tabs defaultValue="members" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:flex">
             <TabsTrigger value="members" className="text-xs sm:text-sm">{t('team.members')} ({members.length})</TabsTrigger>
             <TabsTrigger value="invites" className="text-xs sm:text-sm">{t('team.pending')} ({invites.length})</TabsTrigger>
