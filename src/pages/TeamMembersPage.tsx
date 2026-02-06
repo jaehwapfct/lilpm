@@ -116,6 +116,12 @@ export function TeamMembersPage() {
     }
   };
 
+  // Use ref to track inviteOpen state without causing useEffect re-runs
+  const inviteOpenRef = React.useRef(inviteOpen);
+  React.useEffect(() => {
+    inviteOpenRef.current = inviteOpen;
+  }, [inviteOpen]);
+
   // Set up realtime subscription for team members and invites
   useEffect(() => {
     if (!currentTeam) return;
@@ -124,7 +130,7 @@ export function TeamMembersPage() {
 
     // Subscribe to team_members changes
     const memberSubscription = supabase
-      .channel(`team_members:${currentTeam.id}`)
+      .channel(`team_members_page:${currentTeam.id}`)
       .on(
         'postgres_changes',
         {
@@ -136,7 +142,7 @@ export function TeamMembersPage() {
         (payload) => {
           console.log('Team member change:', payload);
           // Only reload if dialog is not open to prevent closing it
-          if (!inviteOpen) {
+          if (!inviteOpenRef.current) {
             loadData();
           }
         }
@@ -145,7 +151,7 @@ export function TeamMembersPage() {
 
     // Subscribe to team_invites changes
     const inviteSubscription = supabase
-      .channel(`team_invites:${currentTeam.id}`)
+      .channel(`team_invites_page:${currentTeam.id}`)
       .on(
         'postgres_changes',
         {
@@ -157,7 +163,7 @@ export function TeamMembersPage() {
         (payload) => {
           console.log('Team invite change:', payload);
           // Only reload if dialog is not open to prevent closing it
-          if (!inviteOpen) {
+          if (!inviteOpenRef.current) {
             loadData();
           }
         }
@@ -168,7 +174,7 @@ export function TeamMembersPage() {
       memberSubscription.unsubscribe();
       inviteSubscription.unsubscribe();
     };
-  }, [currentTeam?.id, inviteOpen]);
+  }, [currentTeam?.id]); // Only depend on team ID, not inviteOpen
 
   const handleInvite = async () => {
     if (!currentTeam || !inviteEmail) return;

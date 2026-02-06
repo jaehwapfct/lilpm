@@ -558,113 +558,80 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
           // Reset and return
         } else if (rowDropTargetIndex >= 0 && rowDropTargetIndex < allIssues.length && draggedIssueIndex !== -1) {
           const issueId = dragState.issueId;
-
-          // Use large base values (1,000,000) to ensure enough gap between items
           const BASE_GAP = 1000000;
 
-          // Create a copy of issues array WITHOUT the dragged item
+          // SIMPLIFIED APPROACH: Calculate final target position directly
+          // 1. Remove dragged item from list conceptually
+          // 2. Determine where it should be inserted
+          // 3. Calculate sortOrder based on neighbors
+
           const issuesWithoutDragged = allIssues.filter(i => i.id !== issueId);
 
-          // Adjust target index if we're moving down
-          let adjustedTargetIndex = rowDropTargetIndex;
-          if (draggedIssueIndex < rowDropTargetIndex) {
-            adjustedTargetIndex -= 1;
-          }
-
-
-          // Calculate bounds for the new sortOrder using TRUE effective sort orders
-          // This prevents random jumps by aligning drag-logic with render-logic
-          // CRITICAL FIX: Use allIssues directly - it's already in render order from groupedIssues!
-          // Don't re-calculate sort order independently, as that caused mismatches.
-
-          // Create map: IssueID -> EffectiveSortOrder based on RENDER POSITION
-          // Use large positive values based on render position to ensure gaps
-          const effectiveOrderMap = new Map<string, number>();
-          allIssues.forEach((issue, index) => {
-            // Always use render position * BASE_GAP as the effective order
-            // This ensures consistent ordering based on visual position
-            const effectiveOrder = (index + 1) * BASE_GAP;
-            effectiveOrderMap.set(issue.id, effectiveOrder);
-          });
-
-          // Helper to safely get order from issuesWithoutDragged (which excludes dragged item)
-          const getOrderForPosition = (index: number): number => {
-            if (index < 0) return BASE_GAP / 2; // Before first item
-            if (index >= issuesWithoutDragged.length) return (issuesWithoutDragged.length + 2) * BASE_GAP; // After last
-            const targetId = issuesWithoutDragged[index].id;
-            return effectiveOrderMap.get(targetId) ?? ((index + 1) * BASE_GAP);
-          };
-
-          let lowerBound: number;
-          let upperBound: number;
-
+          // Calculate the actual insertion index
+          let insertIndex: number;
           if (rowDropPosition === 'above') {
-            // Insert BEFORE the target
-            upperBound = getOrderForPosition(adjustedTargetIndex);
-            lowerBound = adjustedTargetIndex > 0
-              ? getOrderForPosition(adjustedTargetIndex - 1)
-              : BASE_GAP / 2;
+            // Insert before the target
+            insertIndex = draggedIssueIndex < rowDropTargetIndex
+              ? rowDropTargetIndex - 1  // Moving down, target shifts up
+              : rowDropTargetIndex;      // Moving up, target stays
           } else {
-            // Insert AFTER the target (below)
-            lowerBound = getOrderForPosition(adjustedTargetIndex);
-            upperBound = adjustedTargetIndex < issuesWithoutDragged.length - 1
-              ? getOrderForPosition(adjustedTargetIndex + 1)
-              : lowerBound + BASE_GAP;
+            // Insert after the target
+            insertIndex = draggedIssueIndex < rowDropTargetIndex
+              ? rowDropTargetIndex       // Moving down, insert at target
+              : rowDropTargetIndex + 1;  // Moving up, insert after target
           }
 
-          // Ensure we have a valid gap (minimum 2)
-          if (upperBound <= lowerBound) {
-            upperBound = lowerBound + BASE_GAP;
+          // Clamp to valid range
+          insertIndex = Math.max(0, Math.min(insertIndex, issuesWithoutDragged.length));
+
+          // Get the items that will be before and after the insertion point
+          const itemBefore = insertIndex > 0 ? issuesWithoutDragged[insertIndex - 1] : null;
+          const itemAfter = insertIndex < issuesWithoutDragged.length ? issuesWithoutDragged[insertIndex] : null;
+
+          // Calculate sortOrder based on neighbors
+          let newSortOrder: number;
+
+          if (!itemBefore && !itemAfter) {
+            // Only item in list
+            newSortOrder = BASE_GAP;
+          } else if (!itemBefore) {
+            // Insert at beginning - use half of first item's order
+            const afterOrder = itemAfter!.sortOrder ?? BASE_GAP;
+            newSortOrder = Math.max(1, Math.floor(afterOrder / 2));
+          } else if (!itemAfter) {
+            // Insert at end - use last item's order + gap
+            const beforeOrder = itemBefore.sortOrder ?? (insertIndex * BASE_GAP);
+            newSortOrder = beforeOrder + BASE_GAP;
+          } else {
+            // Insert between two items - use midpoint
+            const beforeOrder = itemBefore.sortOrder ?? (insertIndex * BASE_GAP);
+            const afterOrder = itemAfter.sortOrder ?? ((insertIndex + 1) * BASE_GAP);
+
+            if (afterOrder <= beforeOrder) {
+              // Invalid ordering, use timestamp
+              newSortOrder = beforeOrder + Math.floor(BASE_GAP / 2);
+            } else {
+              newSortOrder = Math.floor((beforeOrder + afterOrder) / 2);
+            }
           }
 
-          console.log('[Gantt Reorder Debug]', {
-            rowDropPosition,
-            adjustedTargetIndex,
-            lowerBound,
-            upperBound,
-            dragging: issueId,
-            targetEffective: getOrderForPosition(adjustedTargetIndex),
-            issuesWithoutDraggedLength: issuesWithoutDragged.length
-          });
-
-
-          // Calculate midpoint with high precision
-          let newSortOrder = Math.round((lowerBound + upperBound) / 2);
-
-          // If the gap is too small (less than 2), use timestamp for uniqueness
-          if (upperBound - lowerBound < 2) {
-            // Use current timestamp as a unique tiebreaker
-            newSortOrder = lowerBound + (Date.now() % 1000) + 1;
-          }
-
-          // Ensure the new value is strictly between bounds and positive
-          if (newSortOrder <= lowerBound) {
-            newSortOrder = lowerBound + 1;
-          }
-          if (newSortOrder >= upperBound) {
-            newSortOrder = upperBound - 1;
-          }
-          // Final safety: ensure positive
+          // Safety check: ensure positive
           if (newSortOrder < 1) {
-            newSortOrder = Math.round(Date.now() / 1000);
+            newSortOrder = Date.now();
           }
 
           console.log('[Gantt Reorder]', {
-            draggedIssueIndex,
-            rowDropTargetIndex,
-            adjustedTargetIndex,
-            rowDropPosition,
-            lowerBound,
-            upperBound,
+            from: draggedIssueIndex,
+            to: rowDropTargetIndex,
+            position: rowDropPosition,
+            insertIndex,
             newSortOrder,
             issueId
           });
 
-          // Mark that we just completed a drag to prevent click-after-drag navigation
           wasDraggedRef.current = true;
           onIssueUpdate?.(issueId, { sortOrder: newSortOrder });
         }
-        // Also mark as dragged even if dropped on same position
         wasDraggedRef.current = true;
       } else if (snappedDelta !== 0) {
         const daysDelta = Math.round(snappedDelta / cellWidth);
