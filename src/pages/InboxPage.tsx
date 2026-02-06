@@ -34,7 +34,7 @@ import { teamInviteService } from '@/lib/services';
 import { toast } from 'sonner';
 import type { Profile } from '@/types/database';
 
-export type InboxItemType = 
+export type InboxItemType =
   | 'issue_assigned'
   | 'issue_mentioned'
   | 'comment_mentioned'
@@ -96,14 +96,14 @@ export function InboxPage() {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'ko' ? ko : enUS;
   const { user } = useAuthStore();
-  
+
   const [items, setItems] = useState<InboxItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread' | 'mentions'>('all');
 
   const loadInboxItems = useCallback(async () => {
     if (!user?.id) return;
-    
+
     setIsLoading(true);
     try {
       // Load from database notifications table
@@ -113,23 +113,23 @@ export function InboxPage() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(100);
-      
+
       if (error) throw error;
-      
+
       if (notifications && notifications.length > 0) {
         // Fetch actor profiles
         const actorIds = [...new Set(notifications.map((n: any) => n.actor_id).filter(Boolean))];
         let profilesMap = new Map();
-        
+
         if (actorIds.length > 0) {
           const { data: profiles } = await supabase
             .from('profiles')
             .select('*')
             .in('id', actorIds);
-          
+
           profilesMap = new Map((profiles || []).map(p => [p.id, p]));
         }
-        
+
         const enriched = notifications.map((notif: any) => ({
           id: notif.id,
           user_id: notif.user_id,
@@ -146,7 +146,7 @@ export function InboxPage() {
           created_at: notif.created_at,
           data: notif.data,
         }));
-        
+
         setItems(enriched);
       } else {
         setItems([]);
@@ -164,7 +164,7 @@ export function InboxPage() {
   }, [loadInboxItems]);
 
   const unreadCount = items.filter(i => !i.read).length;
-  const mentionCount = items.filter(i => 
+  const mentionCount = items.filter(i =>
     ['issue_mentioned', 'comment_mentioned', 'prd_mentioned'].includes(i.type)
   ).length;
 
@@ -194,7 +194,7 @@ export function InboxPage() {
       }
       return;
     }
-    
+
     // Mark as read
     if (!item.read && user?.id) {
       await markAsRead(item.id);
@@ -202,7 +202,7 @@ export function InboxPage() {
 
     // Navigate to entity
     if (!item.entity_type || !item.entity_id) return;
-    
+
     switch (item.entity_type) {
       case 'issue':
         navigate(`/issue/${item.entity_id}`);
@@ -226,8 +226,8 @@ export function InboxPage() {
         .from('notifications')
         .update({ read: true })
         .eq('id', itemId);
-      
-      setItems(prev => prev.map(i => 
+
+      setItems(prev => prev.map(i =>
         i.id === itemId ? { ...i, read: true } : i
       ));
     } catch (error) {
@@ -244,10 +244,10 @@ export function InboxPage() {
     try {
       await teamInviteService.acceptInvite(item.data.token);
       toast.success(`You've joined ${item.data.teamName}!`);
-      
+
       // Remove or update the notification
       await deleteItem(item.id);
-      
+
       // Reload to refresh teams
       window.location.reload();
     } catch (error: any) {
@@ -264,7 +264,7 @@ export function InboxPage() {
     try {
       await teamInviteService.rejectInvite(item.data.token);
       toast.success('Invite declined');
-      
+
       // Remove the notification
       await deleteItem(item.id);
     } catch (error: any) {
@@ -274,14 +274,14 @@ export function InboxPage() {
 
   const markAllAsRead = async () => {
     if (!user?.id) return;
-    
+
     try {
       await supabase
         .from('notifications')
         .update({ read: true })
         .eq('user_id', user.id)
         .eq('read', false);
-      
+
       setItems(prev => prev.map(i => ({ ...i, read: true })));
       toast.success('All notifications marked as read');
     } catch (error) {
@@ -290,13 +290,22 @@ export function InboxPage() {
     }
   };
 
-  const deleteItem = async (itemId: string) => {
+  const deleteItem = async (itemId: string, item?: InboxItem) => {
     try {
+      // If this is a team invite, auto-decline it first
+      if (item?.type === 'team_invite' && item.data?.token) {
+        try {
+          await teamInviteService.rejectInvite(item.data.token);
+        } catch (declineError) {
+          console.log('Invite may already be declined:', declineError);
+        }
+      }
+
       await supabase
         .from('notifications')
         .delete()
         .eq('id', itemId);
-      
+
       setItems(prev => prev.filter(i => i.id !== itemId));
     } catch (error) {
       console.error('Failed to delete notification:', error);
@@ -306,13 +315,13 @@ export function InboxPage() {
 
   const clearAll = async () => {
     if (!user?.id) return;
-    
+
     try {
       await supabase
         .from('notifications')
         .delete()
         .eq('user_id', user.id);
-      
+
       setItems([]);
       toast.success('All notifications cleared');
     } catch (error) {
@@ -347,7 +356,7 @@ export function InboxPage() {
               {t('nav.inbox')}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {unreadCount > 0 
+              {unreadCount > 0
                 ? t('inbox.unreadCount', { count: unreadCount })
                 : t('inbox.allRead')
               }
@@ -401,11 +410,11 @@ export function InboxPage() {
             <CardContent className="flex flex-col items-center justify-center py-16">
               <Inbox className="h-12 w-12 text-muted-foreground/50 mb-4" />
               <h3 className="text-lg font-medium mb-2">
-                {filter === 'unread' 
+                {filter === 'unread'
                   ? t('inbox.noUnread')
                   : filter === 'mentions'
-                  ? t('inbox.noMentions')
-                  : t('inbox.empty')
+                    ? t('inbox.noMentions')
+                    : t('inbox.empty')
                 }
               </h3>
               <p className="text-sm text-muted-foreground text-center max-w-md">
@@ -425,7 +434,7 @@ export function InboxPage() {
                     {dateItems.map((item) => {
                       const Icon = ITEM_TYPE_ICONS[item.type] || Inbox;
                       const colorClass = ITEM_TYPE_COLORS[item.type] || 'bg-muted text-muted-foreground';
-                      
+
                       return (
                         <div
                           key={item.id}
@@ -441,7 +450,7 @@ export function InboxPage() {
                           )}>
                             <Icon className="h-5 w-5" />
                           </div>
-                          
+
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1 min-w-0">
@@ -464,7 +473,7 @@ export function InboxPage() {
                                 <p className="text-sm text-muted-foreground line-clamp-2">
                                   {item.message || item.body}
                                 </p>
-                                
+
                                 {/* Team Invite Actions */}
                                 {item.type === 'team_invite' && (
                                   <div className="flex items-center gap-2 mt-3">
@@ -494,12 +503,12 @@ export function InboxPage() {
                                   </div>
                                 )}
                               </div>
-                              
+
                               <div className="flex items-center gap-2 flex-shrink-0">
                                 <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                  {formatDistanceToNow(new Date(item.created_at), { 
-                                    addSuffix: true, 
-                                    locale 
+                                  {formatDistanceToNow(new Date(item.created_at), {
+                                    addSuffix: true,
+                                    locale
                                   })}
                                 </span>
                                 {!item.read && (
@@ -507,7 +516,7 @@ export function InboxPage() {
                                 )}
                               </div>
                             </div>
-                            
+
                             {item.entity_identifier && (
                               <Badge variant="outline" className="mt-2 text-xs">
                                 {item.entity_identifier}
@@ -518,10 +527,10 @@ export function InboxPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 opacity-0 group-hover:opacity-100 flex-shrink-0"
+                            className="h-8 w-8 flex-shrink-0"
                             onClick={(e) => {
                               e.stopPropagation();
-                              deleteItem(item.id);
+                              deleteItem(item.id, item);
                             }}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -559,19 +568,19 @@ export function InboxPage() {
 export function addInboxItem(userId: string, item: Omit<InboxItem, 'id' | 'created_at' | 'read'>) {
   const stored = localStorage.getItem(`${INBOX_STORAGE_KEY}_${userId}`);
   const items: InboxItem[] = stored ? JSON.parse(stored) : [];
-  
+
   const newItem: InboxItem = {
     ...item,
     id: crypto.randomUUID(),
     read: false,
     created_at: new Date().toISOString(),
   };
-  
+
   items.unshift(newItem);
-  
+
   // Keep only last 100 items
   const trimmed = items.slice(0, 100);
   localStorage.setItem(`${INBOX_STORAGE_KEY}_${userId}`, JSON.stringify(trimmed));
-  
+
   return newItem;
 }

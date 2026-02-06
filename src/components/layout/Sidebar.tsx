@@ -31,6 +31,7 @@ import { useLilyStore } from '@/stores/lilyStore';
 import { useCollaborationStore } from '@/stores/collaborationStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { projectService } from '@/lib/services/projectService';
+import { supabase } from '@/lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
 import { ko, enUS } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -259,6 +260,7 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [projects, setProjects] = useState<Project[]>([]);
+  const [isProjectsLoading, setIsProjectsLoading] = useState(true);
 
   // Lily mode state - manually controlled sidebar mode
   const isOnLilyPage = location.pathname === '/lily';
@@ -298,8 +300,39 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
   // Load projects when team changes
   useEffect(() => {
     if (currentTeam?.id) {
-      projectService.getProjects(currentTeam.id).then(setProjects).catch(console.error);
+      setIsProjectsLoading(true);
+      projectService.getProjects(currentTeam.id)
+        .then(setProjects)
+        .catch(console.error)
+        .finally(() => setIsProjectsLoading(false));
     }
+  }, [currentTeam?.id]);
+
+  // Real-time subscription for projects
+  useEffect(() => {
+    if (!currentTeam?.id) return;
+
+    const channel = supabase
+      .channel(`projects-${currentTeam.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'projects',
+          filter: `team_id=eq.${currentTeam.id}`,
+        },
+        async () => {
+          // Reload projects on any change
+          const updatedProjects = await projectService.getProjects(currentTeam.id);
+          setProjects(updatedProjects);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [currentTeam?.id]);
 
   // Keyboard shortcut for search
@@ -366,7 +399,6 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
 
   const workspaceNav = [
     { icon: Layers, label: t('nav.allIssues'), href: '/issues', shortcut: 'G I' },
-    { icon: GanttChartSquare, label: t('nav.gantt', 'Gantt'), href: '/issues?view=gantt' },
     { icon: Target, label: t('nav.cycles'), href: '/cycles' },
     { icon: FileText, label: t('nav.prd', 'PRD'), href: '/prd' },
     { icon: Folder, label: t('nav.projects'), href: '/projects' },
@@ -690,7 +722,11 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
             </Button>
           </div>
           <CollapsibleContent className="space-y-0.5 mt-1">
-            {projects.length === 0 ? (
+            {isProjectsLoading ? (
+              <p className="px-2 py-1 text-xs text-muted-foreground">
+                Loading...
+              </p>
+            ) : projects.length === 0 ? (
               <p className="px-2 py-1 text-xs text-muted-foreground">
                 No projects yet
               </p>
