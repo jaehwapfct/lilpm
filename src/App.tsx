@@ -155,9 +155,11 @@ function AppRoutes() {
     loadUser();
   }, [loadUser]);
 
-  // Subscribe to realtime team member changes
+  // Subscribe to realtime team changes (only for user being removed from teams)
   useUserTeamsRealtime();
-  useTeamMemberRealtime();
+  // NOTE: useTeamMemberRealtime is NOT used globally because each page
+  // (like TeamMembersPage) handles its own member subscriptions with proper
+  // dialog state awareness. Using it globally causes conflicts.
 
   return (
     <Routes>
