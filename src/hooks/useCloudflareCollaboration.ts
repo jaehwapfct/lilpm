@@ -4,10 +4,10 @@
  * Connects to our Cloudflare Workers Durable Objects backend for Yjs sync.
  */
 
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import * as Y from 'yjs';
 
-type SyncStatus = 'connecting' | 'connected' | 'disconnected' | 'synced';
+type SyncStatus = 'disconnected' | 'connecting' | 'connected' | 'synced';
 
 interface UseCloudflareCollaborationOptions {
     documentId: string;
@@ -33,33 +33,22 @@ const WORKER_URL = import.meta.env.VITE_COLLAB_WORKER_URL || 'https://lilpm-coll
 /**
  * Custom Yjs Provider for Cloudflare Workers
  */
-class CloudflareYjsProvider {
+export class CloudflareYjsProvider {
     private ws: WebSocket | null = null;
-    private doc: Y.Doc;
-    private roomId: string;
     private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    private _awareness: {
-        getLocalState: () => any;
-        setLocalState: (state: any) => void;
-        localState: any;
-    };
+    private _awareness: AwarenessState;
 
+    public doc: Y.Doc;
+    public roomId: string;
     public onStatusChange: ((status: SyncStatus) => void) | null = null;
-    public onSync: ((synced: boolean) => void) | null = null;
+    public onSync: (() => void) | null = null;
 
     constructor(doc: Y.Doc, roomId: string, userInfo: { id: string; name: string; color: string }) {
         this.doc = doc;
         this.roomId = roomId;
 
-        // Simple awareness implementation
-        this._awareness = {
-            localState: { user: userInfo },
-            getLocalState: () => this._awareness.localState,
-            setLocalState: (state: any) => {
-                this._awareness.localState = state;
-                this.sendAwareness();
-            },
-        };
+        // Awareness for cursor tracking
+        this._awareness = new AwarenessState(userInfo);
 
         // Listen for local document updates
         this.doc.on('update', this.handleLocalUpdate);
@@ -88,18 +77,22 @@ class CloudflareYjsProvider {
                 const msg = JSON.parse(event.data);
 
                 if (msg.type === 'sync') {
-                    // Initial sync - apply full state
-                    const update = new Uint8Array(msg.data);
-                    Y.applyUpdate(this.doc, update, 'remote');
-                    console.log('[CloudflareProvider] Initial sync received');
-                    this.onSync?.(true);
+                    // Initial sync - apply full state from server
+                    if (msg.data && msg.data.length > 0) {
+                        const update = new Uint8Array(msg.data);
+                        Y.applyUpdate(this.doc, update, 'remote');
+                        console.log('[CloudflareProvider] Initial sync received, doc size:', msg.data.length);
+                    } else {
+                        console.log('[CloudflareProvider] Initial sync received (empty doc)');
+                    }
                     this.onStatusChange?.('synced');
+                    this.onSync?.();
                 } else if (msg.type === 'update') {
-                    // Incremental update
+                    // Incremental update from another user
                     const update = new Uint8Array(msg.data);
                     Y.applyUpdate(this.doc, update, 'remote');
+                    console.log('[CloudflareProvider] Received update from peer');
                 } else if (msg.type === 'awareness') {
-                    // Awareness update (cursors, etc.)
                     console.log('[CloudflareProvider] Awareness update:', msg.data);
                 }
             } catch (error) {
@@ -113,7 +106,9 @@ class CloudflareYjsProvider {
 
             // Reconnect after delay
             this.reconnectTimer = setTimeout(() => {
-                this.connect();
+                if (this.ws?.readyState !== WebSocket.OPEN) {
+                    this.connect();
+                }
             }, 3000);
         };
 
@@ -144,6 +139,8 @@ class CloudflareYjsProvider {
         // Don't send updates that came from remote
         if (origin === 'remote') return;
 
+        console.log('[CloudflareProvider] Sending local update, size:', update.length);
+
         if (this.ws?.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify({
                 type: 'update',
@@ -156,9 +153,32 @@ class CloudflareYjsProvider {
         if (this.ws?.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify({
                 type: 'awareness',
-                data: this._awareness.localState,
+                data: this._awareness.getLocalState(),
             }));
         }
+    }
+}
+
+/**
+ * Simple awareness state for cursor tracking
+ */
+class AwarenessState {
+    private localState: { user: { id: string; name: string; color: string } };
+
+    constructor(userInfo: { id: string; name: string; color: string }) {
+        this.localState = { user: userInfo };
+    }
+
+    getLocalState() {
+        return this.localState;
+    }
+
+    setLocalState(state: any) {
+        this.localState = state;
+    }
+
+    setLocalStateField(field: string, value: any) {
+        (this.localState as any)[field] = value;
     }
 }
 
@@ -172,9 +192,10 @@ export function useCloudflareCollaboration(options: UseCloudflareCollaborationOp
         enabled = true,
     } = options;
 
+    // Use useState so changes trigger re-renders
+    const [yjsDoc, setYjsDoc] = useState<Y.Doc | null>(null);
+    const [provider, setProvider] = useState<CloudflareYjsProvider | null>(null);
     const [status, setStatus] = useState<SyncStatus>('disconnected');
-    const docRef = useRef<Y.Doc | null>(null);
-    const providerRef = useRef<CloudflareYjsProvider | null>(null);
 
     // Create room name from team and document ID
     const roomId = useMemo(() => `${teamId}-prd-${documentId}`, [teamId, documentId]);
@@ -188,36 +209,46 @@ export function useCloudflareCollaboration(options: UseCloudflareCollaborationOp
 
         // Create Yjs document
         const doc = new Y.Doc();
-        docRef.current = doc;
 
         // Create provider
-        const provider = new CloudflareYjsProvider(doc, roomId, {
+        const newProvider = new CloudflareYjsProvider(doc, roomId, {
             id: userId,
             name: userName,
             color: userColor || getRandomColor(),
         });
-        providerRef.current = provider;
 
         // Listen for status changes
-        provider.onStatusChange = (newStatus) => {
+        newProvider.onStatusChange = (newStatus) => {
+            console.log('[useCloudflareCollaboration] Status changed:', newStatus);
             setStatus(newStatus);
         };
 
+        // When synced, update state to trigger re-render
+        newProvider.onSync = () => {
+            console.log('[useCloudflareCollaboration] Synced! Updating state...');
+            // Force re-render by setting new references - they're memoized by the editor
+        };
+
+        // Set state BEFORE connecting so editor can mount with the doc
+        setYjsDoc(doc);
+        setProvider(newProvider);
+
         // Connect
-        provider.connect();
+        newProvider.connect();
 
         return () => {
-            provider.destroy();
+            console.log('[useCloudflareCollaboration] Cleanup');
+            newProvider.destroy();
             doc.destroy();
-            docRef.current = null;
-            providerRef.current = null;
+            setYjsDoc(null);
+            setProvider(null);
             setStatus('disconnected');
         };
     }, [enabled, documentId, teamId, userId, userName, userColor, roomId]);
 
     return {
-        yjsDoc: docRef.current,
-        provider: providerRef.current,
+        yjsDoc,
+        provider,
         status,
         isConnected: status === 'connected' || status === 'synced',
         isSynced: status === 'synced',
