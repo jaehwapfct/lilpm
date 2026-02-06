@@ -324,6 +324,9 @@ export const teamInviteService = {
     // Generate a unique token
     const token = crypto.randomUUID();
 
+    // Set expiration to 24 hours from now
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
     const { data, error } = await supabase
       .from('team_invites')
       .insert({
@@ -333,6 +336,7 @@ export const teamInviteService = {
         invited_by: user.id,
         token,
         status: 'pending',
+        expires_at: expiresAt,
       } as any)
       .select()
       .single();
