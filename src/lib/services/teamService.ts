@@ -53,9 +53,10 @@ export const teamService = {
     }
 
     // Extract teams from the joined result
+    // Supabase returns team as an object, not an array for single relations
     const teams = (data || [])
-      .map(row => row.team)
-      .filter((team): team is Team => team !== null);
+      .map(row => row.team as unknown as Team)
+      .filter((team): team is Team => team !== null && typeof team === 'object' && 'id' in team);
 
     return teams;
   },
