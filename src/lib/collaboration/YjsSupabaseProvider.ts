@@ -2,7 +2,7 @@
  * YjsSupabaseProvider - Custom Yjs provider using Supabase Realtime for synchronization
  * 
  * This provider syncs Yjs document state between multiple clients using Supabase Realtime
- * broadcast channels. It also persists state to the database for recovery.
+ * broadcast channels. Uses broadcast-only sync (no database persistence).
  */
 
 import * as Y from 'yjs';
@@ -29,7 +29,18 @@ export class YjsSupabaseProvider {
     private synced = false;
     private destroyed = false;
     private statusListeners: Set<(status: SyncStatus) => void> = new Set();
-    private saveTimeout: ReturnType<typeof setTimeout> | null = null;
+    private respondedToClients: Set<number> = new Set(); // Track clients we've already responded to
+    private lastBroadcastTime = 0;
+    private readonly MIN_BROADCAST_INTERVAL = 1000; // Minimum 1 second between full state broadcasts
+
+    // Public getters for Tiptap CollaborationCursor
+    public get userName(): string {
+        return this.options.userName;
+    }
+
+    public get userColor(): string {
+        return this.options.userColor || this.getRandomColor();
+    }
 
     constructor(doc: Y.Doc, options: YjsSupabaseProviderOptions) {
         this.doc = doc;
@@ -78,6 +89,12 @@ export class YjsSupabaseProvider {
                 try {
                     const update = this.base64ToUint8Array(payload.payload.update);
                     Y.applyUpdate(this.doc, update, 'remote');
+
+                    // Mark as synced on first update received
+                    if (!this.synced) {
+                        this.synced = true;
+                        this.notifyStatus('synced');
+                    }
                 } catch (error) {
                     console.error('[YjsSupabase] Failed to apply update:', error);
                 }
@@ -88,7 +105,6 @@ export class YjsSupabaseProvider {
         this.channel.on('broadcast', { event: 'awareness' }, (payload) => {
             if (payload.payload?.states) {
                 try {
-                    // Update awareness state from other clients
                     const states = payload.payload.states;
                     Object.entries(states).forEach(([clientId, state]) => {
                         if (parseInt(clientId) !== this.doc.clientID) {
@@ -104,12 +120,43 @@ export class YjsSupabaseProvider {
             }
         });
 
-        // Handle sync request (new client joining)
+        // Handle sync request (new client joining) - with debounce and tracking
         this.channel.on('broadcast', { event: 'sync-request' }, (payload) => {
-            // Send full state to new client
-            if (payload.payload?.clientId !== this.doc.clientID) {
-                this.broadcastFullState();
+            const requestingClientId = payload.payload?.clientId;
+
+            // Skip if it's our own request
+            if (requestingClientId === this.doc.clientID) return;
+
+            // Skip if we've already responded to this client recently
+            if (this.respondedToClients.has(requestingClientId)) {
+                console.log('[YjsSupabase] Already responded to client:', requestingClientId);
+                return;
             }
+
+            // Rate limit: don't broadcast too frequently
+            const now = Date.now();
+            if (now - this.lastBroadcastTime < this.MIN_BROADCAST_INTERVAL) {
+                console.log('[YjsSupabase] Rate limiting full state broadcast');
+                return;
+            }
+
+            // Only respond if we have content in our doc
+            const docState = Y.encodeStateAsUpdate(this.doc);
+            if (docState.length <= 2) { // Empty doc is ~2 bytes
+                console.log('[YjsSupabase] Doc is empty, skipping full state broadcast');
+                return;
+            }
+
+            // Mark this client as responded and broadcast
+            this.respondedToClients.add(requestingClientId);
+            this.lastBroadcastTime = now;
+
+            // Clear the tracking after 30 seconds (allow re-sync if client reconnects)
+            setTimeout(() => {
+                this.respondedToClients.delete(requestingClientId);
+            }, 30000);
+
+            this.broadcastFullState();
         });
 
         // Subscribe to channel
@@ -117,21 +164,20 @@ export class YjsSupabaseProvider {
             if (status === 'SUBSCRIBED') {
                 this.notifyStatus('connected');
 
-                // Skip DB load - use broadcast-only sync to avoid 406 errors
-                // Request sync from other clients (they will send their full state)
+                // Request sync from other clients
                 this.channel?.send({
                     type: 'broadcast',
                     event: 'sync-request',
                     payload: { clientId: this.doc.clientID }
                 });
 
-                // Mark as synced after a short delay (other clients will send state if they have it)
+                // Mark as synced after a short delay if no response
                 setTimeout(() => {
                     if (!this.synced) {
                         this.synced = true;
                         this.notifyStatus('synced');
                     }
-                }, 500);
+                }, 1000);
             } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
                 this.notifyStatus('disconnected');
                 // Attempt reconnect after delay
@@ -145,7 +191,7 @@ export class YjsSupabaseProvider {
     private handleDocUpdate = (update: Uint8Array, origin: any): void => {
         if (origin === 'remote') return; // Don't broadcast remote updates
 
-        // Broadcast update to other clients (no DB save - broadcast only)
+        // Broadcast update to other clients
         this.broadcastUpdate(update);
     };
 
@@ -166,6 +212,8 @@ export class YjsSupabaseProvider {
         if (!this.channel) return;
 
         const state = Y.encodeStateAsUpdate(this.doc);
+        console.log('[YjsSupabase] Broadcasting full state:', state.length, 'bytes');
+
         this.channel.send({
             type: 'broadcast',
             event: 'sync',
@@ -177,94 +225,25 @@ export class YjsSupabaseProvider {
         });
     }
 
-    private async loadInitialState(): Promise<void> {
-        try {
-            const tableName = this.options.documentType === 'prd'
-                ? 'prd_yjs_state'
-                : 'issue_yjs_state';
-
-            const { data, error } = await supabase
-                .from(tableName)
-                .select('state')
-                .eq(`${this.options.documentType}_id`, this.options.documentId)
-                .single();
-
-            // PGRST116 = no rows found (expected for new docs)
-            // 406 = schema mismatch/table access issue - continue with broadcast-only sync
-            const is406 = String(error?.message || '').includes('406') || error?.code === '406';
-            if (error && error.code !== 'PGRST116' && !is406) {
-                console.error('[YjsSupabase] Failed to load state:', error);
-                return;
-            }
-
-            // If 406, log once and continue without DB persistence
-            if (is406) {
-                console.warn('[YjsSupabase] Table not accessible, using broadcast-only sync');
-            }
-
-            if (data?.state) {
-                const state = this.base64ToUint8Array(data.state);
-                Y.applyUpdate(this.doc, state, 'db');
-            }
-
-            this.synced = true;
-            this.notifyStatus('synced');
-        } catch (error) {
-            console.error('[YjsSupabase] Failed to load initial state:', error);
-        }
+    // Awareness getter
+    get awareness(): Awareness {
+        return this._awareness;
     }
 
-    private scheduleSave(): void {
-        if (this.saveTimeout) {
-            clearTimeout(this.saveTimeout);
-        }
-
-        // Save after 2 seconds of inactivity
-        this.saveTimeout = setTimeout(() => {
-            this.saveState();
-        }, 2000);
+    // Status listener management
+    onStatusChange(callback: (status: SyncStatus) => void): () => void {
+        this.statusListeners.add(callback);
+        return () => this.statusListeners.delete(callback);
     }
 
-    private async saveState(): Promise<void> {
-        if (this.destroyed) return;
-
-        try {
-            const state = Y.encodeStateAsUpdate(this.doc);
-            const tableName = this.options.documentType === 'prd'
-                ? 'prd_yjs_state'
-                : 'issue_yjs_state';
-
-            const { error } = await supabase
-                .from(tableName)
-                .upsert({
-                    [`${this.options.documentType}_id`]: this.options.documentId,
-                    state: this.uint8ArrayToBase64(state),
-                    updated_at: new Date().toISOString()
-                }, {
-                    onConflict: `${this.options.documentType}_id`
-                });
-
-            if (error) {
-                // Suppress 406 errors (table access issues)
-                const is406 = String(error?.message || '').includes('406') || error?.code === '406';
-                if (!is406) {
-                    console.error('[YjsSupabase] Failed to save state:', error);
-                }
-            }
-        } catch (err) {
-            // Suppress 406 errors
-            const errorStr = String(err);
-            if (!errorStr.includes('406')) {
-                console.error('[YjsSupabase] Failed to save state:', err);
-            }
-        }
+    private notifyStatus(status: SyncStatus): void {
+        this.statusListeners.forEach(callback => callback(status));
     }
 
-    // Utility functions for base64 encoding/decoding
+    // Base64 utilities
     private uint8ArrayToBase64(bytes: Uint8Array): string {
         let binary = '';
-        const len = bytes.byteLength;
-        for (let i = 0; i < len; i++) {
+        for (let i = 0; i < bytes.byteLength; i++) {
             binary += String.fromCharCode(bytes[i]);
         }
         return btoa(binary);
@@ -272,78 +251,25 @@ export class YjsSupabaseProvider {
 
     private base64ToUint8Array(base64: string): Uint8Array {
         const binary = atob(base64);
-        const len = binary.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
             bytes[i] = binary.charCodeAt(i);
         }
         return bytes;
     }
 
-    private notifyStatus(status: SyncStatus): void {
-        this.statusListeners.forEach(listener => listener(status));
-    }
-
-    // Public API
-
-    get isSynced(): boolean {
-        return this.synced;
-    }
-
-    get userName(): string {
-        return this.options.userName;
-    }
-
-    get userColor(): string | undefined {
-        return this.options.userColor;
-    }
-
-    get awareness(): Awareness {
-        return this._awareness;
-    }
-
-    getAwareness(): Awareness {
-        return this._awareness;
-    }
-
-    onStatus(callback: (status: SyncStatus) => void): () => void {
-        this.statusListeners.add(callback);
-        return () => this.statusListeners.delete(callback);
-    }
-
-    updateAwareness(field: string, value: any): void {
-        this._awareness.setLocalStateField(field, value);
-
-        // Broadcast awareness update
-        if (this.channel) {
-            this.channel.send({
-                type: 'broadcast',
-                event: 'awareness',
-                payload: {
-                    states: { [this.doc.clientID]: this._awareness.getLocalState() }
-                }
-            });
-        }
-    }
-
+    // Cleanup
     destroy(): void {
         this.destroyed = true;
-
-        if (this.saveTimeout) {
-            clearTimeout(this.saveTimeout);
-        }
-
-        // Save final state
-        this.saveState();
-
         this.doc.off('update', this.handleDocUpdate);
-        this._awareness.destroy();
 
         if (this.channel) {
-            this.channel.unsubscribe();
+            supabase.removeChannel(this.channel);
             this.channel = null;
         }
 
+        this._awareness.destroy();
         this.statusListeners.clear();
+        this.respondedToClients.clear();
     }
 }
