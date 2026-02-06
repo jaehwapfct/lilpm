@@ -135,7 +135,10 @@ export function TeamMembersPage() {
         },
         (payload) => {
           console.log('Team member change:', payload);
-          loadData(); // Reload data on any change
+          // Only reload if dialog is not open to prevent closing it
+          if (!inviteOpen) {
+            loadData();
+          }
         }
       )
       .subscribe();
@@ -153,7 +156,10 @@ export function TeamMembersPage() {
         },
         (payload) => {
           console.log('Team invite change:', payload);
-          loadData(); // Reload data on any change
+          // Only reload if dialog is not open to prevent closing it
+          if (!inviteOpen) {
+            loadData();
+          }
         }
       )
       .subscribe();
@@ -162,7 +168,7 @@ export function TeamMembersPage() {
       memberSubscription.unsubscribe();
       inviteSubscription.unsubscribe();
     };
-  }, [currentTeam?.id]);
+  }, [currentTeam?.id, inviteOpen]);
 
   const handleInvite = async () => {
     if (!currentTeam || !inviteEmail) return;
