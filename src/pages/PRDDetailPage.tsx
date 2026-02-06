@@ -252,12 +252,14 @@ export function PRDDetailPage() {
   };
 
   // Yjs CRDT Real-time Collaboration
-  // Cloudflare Durable Objects real-time collaboration (Yjs sync)
+  // Cloudflare Durable Objects real-time collaboration (Yjs sync + Cursor sync)
   const {
     yjsDoc,
     provider: yjsProvider,
     isConnected: isYjsConnected,
     isSynced: isYjsSynced,
+    remoteCursors,
+    updateCursorPosition,
   } = useCloudflareCollaboration({
     documentId: prdId || '',
     teamId: currentTeam?.id || '',
@@ -925,14 +927,8 @@ Respond in the same language as the user's message.`
                   onMention={handleMention}
                   yjsDoc={yjsDoc || undefined}
                   yjsProvider={yjsProvider || undefined}
-                  collaboration={user && currentTeam ? {
-                    prdId: prdId || '',
-                    teamId: currentTeam.id,
-                    userName: user.name || user.email?.split('@')[0] || 'Anonymous',
-                    userId: user.id,
-                    userColor: getUserColor(user.id),
-                    avatarUrl: user.avatarUrl,
-                  } : undefined}
+                  remoteCursors={remoteCursors}
+                  onCursorPositionChange={updateCursorPosition}
                 />
               </div>
 

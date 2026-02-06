@@ -114,6 +114,20 @@ export class YjsRoom implements DurableObject {
                         }));
                     }
                 }
+            } else if (msg.type === 'cursor') {
+                // Broadcast cursor position to other clients
+                console.log('[YjsRoom] Cursor update from:', msg.userName, 'pos:', msg.position);
+                for (const [conn] of this.connections) {
+                    if (conn !== ws && conn.readyState === WebSocket.OPEN) {
+                        conn.send(JSON.stringify({
+                            type: 'cursor',
+                            userId: msg.userId,
+                            userName: msg.userName,
+                            color: msg.color,
+                            position: msg.position,
+                        }));
+                    }
+                }
             } else if (msg.type === 'awareness' && msg.data) {
                 // Broadcast awareness to other clients
                 for (const [conn] of this.connections) {

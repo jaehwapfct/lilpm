@@ -1,15 +1,21 @@
 /**
  * Cloudflare Yjs Provider for PRD Real-time Collaboration
  * 
- * Connects to our Cloudflare Workers Durable Objects backend for Yjs sync.
- * Uses y-protocols Awareness for cursor tracking.
+ * Handles both document sync (Yjs) and cursor sync via Cloudflare Durable Objects.
  */
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import * as Y from 'yjs';
-import { Awareness } from 'y-protocols/awareness';
 
 type SyncStatus = 'disconnected' | 'connecting' | 'connected' | 'synced';
+
+export interface RemoteCursor {
+    odId: string;
+    name: string;
+    color: string;
+    position: number;
+    lastUpdate: number;
+}
 
 interface UseCloudflareCollaborationOptions {
     documentId: string;
@@ -27,14 +33,15 @@ interface UseCloudflareCollaborationReturn {
     status: SyncStatus;
     isConnected: boolean;
     isSynced: boolean;
+    remoteCursors: Map<string, RemoteCursor>;
+    updateCursorPosition: (position: number) => void;
 }
 
 // Cloudflare Worker URL
 const WORKER_URL = import.meta.env.VITE_COLLAB_WORKER_URL || 'https://lilpm-collab.pfct.workers.dev';
 
 /**
- * Custom Yjs Provider for Cloudflare Workers
- * Uses real y-protocols Awareness for cursor tracking
+ * CloudflareYjsProvider - handles Yjs doc sync and cursor positions
  */
 export class CloudflareYjsProvider {
     private ws: WebSocket | null = null;
@@ -42,29 +49,19 @@ export class CloudflareYjsProvider {
 
     public doc: Y.Doc;
     public roomId: string;
-    public awareness: Awareness;  // Real y-protocols Awareness
+    public userInfo: { id: string; name: string; color: string };
+    public remoteCursors: Map<string, RemoteCursor> = new Map();
     public onStatusChange: ((status: SyncStatus) => void) | null = null;
     public onSync: (() => void) | null = null;
+    public onCursorsChange: ((cursors: Map<string, RemoteCursor>) => void) | null = null;
 
     constructor(doc: Y.Doc, roomId: string, userInfo: { id: string; name: string; color: string }) {
         this.doc = doc;
         this.roomId = roomId;
-
-        // Create real y-protocols Awareness
-        this.awareness = new Awareness(doc);
-
-        // Set local user state
-        this.awareness.setLocalStateField('user', {
-            name: userInfo.name,
-            color: userInfo.color,
-            id: userInfo.id,
-        });
+        this.userInfo = userInfo;
 
         // Listen for local document updates
         this.doc.on('update', this.handleLocalUpdate);
-
-        // Listen for awareness updates and broadcast them
-        this.awareness.on('update', this.handleAwarenessUpdate);
     }
 
     connect() {
@@ -78,7 +75,8 @@ export class CloudflareYjsProvider {
         this.ws.onopen = () => {
             console.log('[CloudflareProvider] Connected');
             this.onStatusChange?.('connected');
-            this.broadcastAwareness();
+            // Broadcast initial cursor position
+            this.updateCursorPosition(0);
         };
 
         this.ws.onmessage = (event) => {
@@ -101,17 +99,25 @@ export class CloudflareYjsProvider {
                     const update = new Uint8Array(msg.data);
                     Y.applyUpdate(this.doc, update, 'remote');
                     console.log('[CloudflareProvider] Received update from peer');
-                } else if (msg.type === 'awareness') {
-                    // Awareness update from other users
-                    if (msg.states) {
-                        // Apply remote awareness states
-                        for (const [clientIdStr, state] of Object.entries(msg.states)) {
-                            const clientId = parseInt(clientIdStr, 10);
-                            if (clientId !== this.doc.clientID && state) {
-                                // Store remote states (awareness handles this internally)
-                                console.log('[CloudflareProvider] Remote cursor:', clientId, state);
-                            }
-                        }
+                } else if (msg.type === 'cursor') {
+                    // Cursor update from other users
+                    if (msg.userId !== this.userInfo.id) {
+                        console.log('[CloudflareProvider] Remote cursor update:', msg.userName, 'pos:', msg.position);
+                        this.remoteCursors.set(msg.userId, {
+                            odId: msg.userId,
+                            name: msg.userName,
+                            color: msg.color,
+                            position: msg.position,
+                            lastUpdate: Date.now(),
+                        });
+                        this.onCursorsChange?.(new Map(this.remoteCursors));
+                    }
+                } else if (msg.type === 'leave') {
+                    // User left
+                    if (msg.userId !== this.userInfo.id) {
+                        console.log('[CloudflareProvider] User left:', msg.userId);
+                        this.remoteCursors.delete(msg.userId);
+                        this.onCursorsChange?.(new Map(this.remoteCursors));
                     }
                 }
             } catch (error) {
@@ -148,12 +154,22 @@ export class CloudflareYjsProvider {
         }
 
         this.doc.off('update', this.handleLocalUpdate);
-        this.awareness.off('update', this.handleAwarenessUpdate);
     }
 
     destroy() {
-        this.awareness.destroy();
         this.disconnect();
+    }
+
+    updateCursorPosition(position: number) {
+        if (this.ws?.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                type: 'cursor',
+                userId: this.userInfo.id,
+                userName: this.userInfo.name,
+                color: this.userInfo.color,
+                position,
+            }));
+        }
     }
 
     private handleLocalUpdate = (update: Uint8Array, origin: any) => {
@@ -169,28 +185,6 @@ export class CloudflareYjsProvider {
             }));
         }
     };
-
-    private handleAwarenessUpdate = ({ added, updated, removed }: { added: number[], updated: number[], removed: number[] }) => {
-        const changedClients = [...added, ...updated, ...removed];
-        if (changedClients.includes(this.doc.clientID)) {
-            this.broadcastAwareness();
-        }
-    };
-
-    private broadcastAwareness() {
-        if (this.ws?.readyState === WebSocket.OPEN) {
-            const states: Record<number, any> = {};
-            this.awareness.getStates().forEach((state, clientId) => {
-                states[clientId] = state;
-            });
-
-            this.ws.send(JSON.stringify({
-                type: 'awareness',
-                clientId: this.doc.clientID,
-                states,
-            }));
-        }
-    }
 }
 
 export function useCloudflareCollaboration(options: UseCloudflareCollaborationOptions): UseCloudflareCollaborationReturn {
@@ -207,9 +201,14 @@ export function useCloudflareCollaboration(options: UseCloudflareCollaborationOp
     const [yjsDoc, setYjsDoc] = useState<Y.Doc | null>(null);
     const [provider, setProvider] = useState<CloudflareYjsProvider | null>(null);
     const [status, setStatus] = useState<SyncStatus>('disconnected');
+    const [remoteCursors, setRemoteCursors] = useState<Map<string, RemoteCursor>>(new Map());
 
     // Create room name from team and document ID
     const roomId = useMemo(() => `${teamId}-prd-${documentId}`, [teamId, documentId]);
+
+    const updateCursorPosition = useCallback((position: number) => {
+        provider?.updateCursorPosition(position);
+    }, [provider]);
 
     useEffect(() => {
         if (!enabled || !documentId || !teamId || !userId) {
@@ -221,7 +220,7 @@ export function useCloudflareCollaboration(options: UseCloudflareCollaborationOp
         // Create Yjs document
         const doc = new Y.Doc();
 
-        // Create provider with real y-protocols Awareness
+        // Create provider
         const newProvider = new CloudflareYjsProvider(doc, roomId, {
             id: userId,
             name: userName,
@@ -232,6 +231,12 @@ export function useCloudflareCollaboration(options: UseCloudflareCollaborationOp
         newProvider.onStatusChange = (newStatus) => {
             console.log('[useCloudflareCollaboration] Status changed:', newStatus);
             setStatus(newStatus);
+        };
+
+        // Listen for cursor changes
+        newProvider.onCursorsChange = (cursors) => {
+            console.log('[useCloudflareCollaboration] Cursors updated:', cursors.size);
+            setRemoteCursors(cursors);
         };
 
         // Set state BEFORE connecting so editor can mount with the doc
@@ -248,6 +253,7 @@ export function useCloudflareCollaboration(options: UseCloudflareCollaborationOp
             setYjsDoc(null);
             setProvider(null);
             setStatus('disconnected');
+            setRemoteCursors(new Map());
         };
     }, [enabled, documentId, teamId, userId, userName, userColor, roomId]);
 
@@ -257,6 +263,8 @@ export function useCloudflareCollaboration(options: UseCloudflareCollaborationOp
         status,
         isConnected: status === 'connected' || status === 'synced',
         isSynced: status === 'synced',
+        remoteCursors,
+        updateCursorPosition,
     };
 }
 

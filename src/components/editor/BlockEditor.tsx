@@ -62,7 +62,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { CollaborationCursor as LegacyCollaborationCursor, collaborationCursorStyles } from './CollaborationCursor';
+import { WebSocketCursor, webSocketCursorStyles } from './WebSocketCursor';
+import type { RemoteCursor } from '@/hooks/useCloudflareCollaboration';
 
 const lowlight = createLowlight(common);
 
@@ -187,20 +188,12 @@ interface BlockEditorProps {
   // Mention props
   teamMembers?: Profile[];
   onMention?: (userId: string, userName: string) => void;
-  // Yjs collaboration props (works with YPartyKitProvider or any awareness-based provider)
+  // Yjs collaboration props
   yjsDoc?: Y.Doc;
-  yjsProvider?: {
-    awareness: any;
-  };
-  // Legacy collaboration props (cursor only, no doc sync)
-  collaboration?: {
-    prdId: string;
-    teamId: string;
-    userName: string;
-    userId: string;
-    userColor?: string;
-    avatarUrl?: string;
-  };
+  yjsProvider?: any;
+  // Remote cursors from Cloudflare WebSocket
+  remoteCursors?: Map<string, RemoteCursor>;
+  onCursorPositionChange?: (position: number) => void;
 }
 
 // Toolbar Button Component
@@ -346,7 +339,8 @@ export function BlockEditor({
   onMention,
   yjsDoc,
   yjsProvider,
-  collaboration,
+  remoteCursors,
+  onCursorPositionChange,
 }: BlockEditorProps) {
   const [linkUrl, setLinkUrl] = useState('');
   const [showLinkPopover, setShowLinkPopover] = useState(false);
@@ -586,15 +580,11 @@ export function BlockEditor({
       //     },
       //   }),
       // ] : []),
-      // Supabase Realtime cursor (works alongside Yjs doc sync)
-      ...(collaboration ? [
-        LegacyCollaborationCursor.configure({
-          prdId: collaboration.prdId,
-          teamId: collaboration.teamId,
-          userName: collaboration.userName,
-          userId: collaboration.userId,
-          userColor: collaboration.userColor,
-          avatarUrl: collaboration.avatarUrl,
+      // WebSocket-based cursor (via Cloudflare Durable Objects)
+      ...(remoteCursors ? [
+        WebSocketCursor.configure({
+          cursors: remoteCursors,
+          onSelectionChange: onCursorPositionChange,
         }),
       ] : []),
     ],
