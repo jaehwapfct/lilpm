@@ -55,6 +55,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { CollaborationCursor, collaborationCursorStyles } from './CollaborationCursor';
 
 const lowlight = createLowlight(common);
 
@@ -176,6 +177,15 @@ interface BlockEditorProps {
   editable?: boolean;
   className?: string;
   autoFocus?: boolean;
+  // Collaboration props
+  collaboration?: {
+    prdId: string;
+    teamId: string;
+    userName: string;
+    userId: string;
+    userColor?: string;
+    avatarUrl?: string;
+  };
 }
 
 // Toolbar Button Component
@@ -317,6 +327,7 @@ export function BlockEditor({
   editable = true,
   className,
   autoFocus = false,
+  collaboration,
 }: BlockEditorProps) {
   const [linkUrl, setLinkUrl] = useState('');
   const [showLinkPopover, setShowLinkPopover] = useState(false);
@@ -364,6 +375,17 @@ export function BlockEditor({
           class: 'rounded-lg bg-muted p-4 font-mono text-sm',
         },
       }),
+      // Collaboration extension (conditionally added)
+      ...(collaboration ? [
+        CollaborationCursor.configure({
+          prdId: collaboration.prdId,
+          teamId: collaboration.teamId,
+          userName: collaboration.userName,
+          userId: collaboration.userId,
+          userColor: collaboration.userColor,
+          avatarUrl: collaboration.avatarUrl,
+        }),
+      ] : []),
     ],
     content,
     editable,

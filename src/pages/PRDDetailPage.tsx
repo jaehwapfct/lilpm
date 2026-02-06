@@ -63,6 +63,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { userAISettingsService } from '@/lib/services/conversationService';
 import { useAuthStore } from '@/stores/authStore';
+import { useTeamStore } from '@/stores/teamStore';
 import type { AIProvider } from '@/types';
 
 // Timeline Thinking Block Component (like Gemini/Claude)
@@ -229,6 +230,20 @@ export function PRDDetailPage() {
   const [selectedProvider, setSelectedProvider] = useState<AIProvider>('anthropic');
   const [availableProviders, setAvailableProviders] = useState<AIProvider[]>([]);
   const { user } = useAuthStore();
+  const { currentTeam } = useTeamStore();
+
+  // Generate a consistent user color based on user ID
+  const getUserColor = (userId: string) => {
+    const colors = [
+      '#F87171', '#FB923C', '#FBBF24', '#4ADE80', '#22D3EE',
+      '#60A5FA', '#A78BFA', '#F472B6', '#94A3B8'
+    ];
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+      hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  };
 
   // Provider display names
   const PROVIDER_LABELS: Record<AIProvider, string> = {
@@ -838,6 +853,14 @@ Respond in the same language as the user's message.`
                   placeholder="Start writing your PRD... Type '/' for commands"
                   editable={true}
                   autoFocus={false}
+                  collaboration={user && currentTeam ? {
+                    prdId: prdId || '',
+                    teamId: currentTeam.id,
+                    userName: user.name || user.email?.split('@')[0] || 'Anonymous',
+                    userId: user.id,
+                    userColor: getUserColor(user.id),
+                    avatarUrl: user.avatarUrl,
+                  } : undefined}
                 />
               </div>
 
