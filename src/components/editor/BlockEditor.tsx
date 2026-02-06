@@ -13,7 +13,10 @@ import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import Image from '@tiptap/extension-image';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import Collaboration from '@tiptap/extension-collaboration';
+import TiptapCollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import { common, createLowlight } from 'lowlight';
+import * as Y from 'yjs';
 import { Button } from '@/components/ui/button';
 import {
   Bold,
@@ -55,7 +58,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { CollaborationCursor, collaborationCursorStyles } from './CollaborationCursor';
+import { CollaborationCursor as LegacyCollaborationCursor, collaborationCursorStyles } from './CollaborationCursor';
 
 const lowlight = createLowlight(common);
 
@@ -177,7 +180,14 @@ interface BlockEditorProps {
   editable?: boolean;
   className?: string;
   autoFocus?: boolean;
-  // Collaboration props
+  // Yjs collaboration props
+  yjsDoc?: Y.Doc;
+  yjsProvider?: {
+    awareness: any;
+    userName: string;
+    userColor?: string;
+  };
+  // Legacy collaboration props (cursor only, no doc sync)
   collaboration?: {
     prdId: string;
     teamId: string;
@@ -327,6 +337,8 @@ export function BlockEditor({
   editable = true,
   className,
   autoFocus = false,
+  yjsDoc,
+  yjsProvider,
   collaboration,
 }: BlockEditorProps) {
   const [linkUrl, setLinkUrl] = useState('');
@@ -375,9 +387,25 @@ export function BlockEditor({
           class: 'rounded-lg bg-muted p-4 font-mono text-sm',
         },
       }),
-      // Collaboration extension (conditionally added)
-      ...(collaboration ? [
-        CollaborationCursor.configure({
+      // Yjs Collaboration extension (real-time document sync)
+      ...(yjsDoc ? [
+        Collaboration.configure({
+          document: yjsDoc,
+        }),
+      ] : []),
+      // Yjs Collaboration Cursor (shows other users' cursors when using Yjs)
+      ...(yjsDoc && yjsProvider ? [
+        TiptapCollaborationCursor.configure({
+          provider: yjsProvider,
+          user: {
+            name: yjsProvider.userName,
+            color: yjsProvider.userColor || '#F87171',
+          },
+        }),
+      ] : []),
+      // Legacy collaboration (cursor only, no doc sync) - for backward compatibility
+      ...(collaboration && !yjsDoc ? [
+        LegacyCollaborationCursor.configure({
           prdId: collaboration.prdId,
           teamId: collaboration.teamId,
           userName: collaboration.userName,
@@ -387,7 +415,7 @@ export function BlockEditor({
         }),
       ] : []),
     ],
-    content,
+    content: yjsDoc ? undefined : content, // Don't set content when using Yjs (doc is the source of truth)
     editable,
     autofocus: autoFocus,
     editorProps: {
