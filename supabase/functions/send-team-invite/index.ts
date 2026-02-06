@@ -72,8 +72,8 @@ serve(async (req) => {
       }
     }
 
-    // Create the invite link
-    const inviteLink = `${siteUrl}/accept-invite/${token}`;
+    // Create the invite link (matches App.tsx route: /invite/accept?token=xxx)
+    const inviteLink = `${siteUrl}/invite/accept?token=${token}`;
     let emailSendError = null;
 
     // Send email using Supabase Auth Admin API
