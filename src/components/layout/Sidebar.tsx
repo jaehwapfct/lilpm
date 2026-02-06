@@ -607,7 +607,12 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
             {teams.map((team) => (
               <DropdownMenuItem
                 key={team.id}
-                onClick={() => selectTeam(team.id)}
+                onClick={() => {
+                  if (currentTeam?.id !== team.id) {
+                    selectTeam(team.id);
+                    navigate('/'); // Navigate to dashboard when team changes
+                  }
+                }}
                 className={cn(currentTeam?.id === team.id && "bg-accent")}
               >
                 <div
@@ -722,17 +727,7 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
             </Button>
           </div>
           <CollapsibleContent className="space-y-0.5 mt-1">
-            {isProjectsLoading ? (
-              // Skeleton placeholders that match project item height
-              <>
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-2 px-2 py-1.5 animate-pulse">
-                    <div className="h-4 w-4 rounded bg-muted" />
-                    <div className="h-4 flex-1 rounded bg-muted" />
-                  </div>
-                ))}
-              </>
-            ) : projects.length === 0 ? (
+            {projects.length === 0 ? (
               <p className="px-2 py-1 text-xs text-muted-foreground">
                 No projects yet
               </p>

@@ -31,6 +31,7 @@ interface IssueStore {
   createDependency: (sourceIssueId: string, targetIssueId: string) => Promise<void>;
   deleteDependency: (sourceIssueId: string, targetIssueId: string) => Promise<void>;
 }
+const VIEW_PREFS_STORAGE_KEY = 'lilpm_issue_view_preferences';
 
 const defaultViewPreferences: ViewPreferences = {
   layout: 'list',
@@ -40,12 +41,25 @@ const defaultViewPreferences: ViewPreferences = {
   filters: {},
 };
 
+// Load persisted preferences from localStorage
+const loadPersistedPreferences = (): ViewPreferences => {
+  try {
+    const stored = localStorage.getItem(VIEW_PREFS_STORAGE_KEY);
+    if (stored) {
+      return { ...defaultViewPreferences, ...JSON.parse(stored) };
+    }
+  } catch (e) {
+    console.warn('Failed to load view preferences:', e);
+  }
+  return defaultViewPreferences;
+};
+
 export const useIssueStore = create<IssueStore>((set, get) => ({
   issues: [],
   selectedIssue: null,
   isLoading: false,
   error: null,
-  viewPreferences: defaultViewPreferences,
+  viewPreferences: loadPersistedPreferences(),
   realtimeChannel: null,
 
   loadIssues: async (teamId: string, filters?: ViewFilters) => {
@@ -290,9 +304,17 @@ export const useIssueStore = create<IssueStore>((set, get) => ({
   },
 
   setViewPreferences: (prefs: Partial<ViewPreferences>) => {
-    set((state) => ({
-      viewPreferences: { ...state.viewPreferences, ...prefs },
-    }));
+    set((state) => {
+      const newPrefs = { ...state.viewPreferences, ...prefs };
+      // Persist to localStorage (exclude filters)
+      try {
+        const toStore = { layout: newPrefs.layout, groupBy: newPrefs.groupBy, sortBy: newPrefs.sortBy, sortOrder: newPrefs.sortOrder };
+        localStorage.setItem(VIEW_PREFS_STORAGE_KEY, JSON.stringify(toStore));
+      } catch (e) {
+        console.warn('Failed to save view preferences:', e);
+      }
+      return { viewPreferences: newPrefs };
+    });
   },
 
   setFilters: (filters: Partial<ViewFilters>) => {

@@ -863,7 +863,7 @@ Respond in the same language as the user's message.`
                     }}
                     autoFocus
                     placeholder={t('prd.titlePlaceholder', 'Untitled PRD')}
-                    className="text-3xl sm:text-4xl font-bold border-none px-0 focus-visible:ring-0 h-auto py-2 bg-transparent"
+                    className="text-3xl sm:text-4xl font-bold border-none px-2 -mx-2 focus-visible:ring-0 h-auto py-2 bg-transparent w-full"
                   />
                 ) : (
                   <h1
