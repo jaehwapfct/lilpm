@@ -63,6 +63,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { WebSocketCursor, webSocketCursorStyles } from './WebSocketCursor';
+import { CursorOverlay } from './CursorOverlay';
 import type { RemoteCursor } from '@/hooks/useCloudflareCollaboration';
 
 const lowlight = createLowlight(common);
@@ -938,8 +939,11 @@ export function BlockEditor({
       )}
 
 
-      {/* Editor Content */}
-      <EditorContent editor={editor} />
+      {/* Editor Content with Cursor Overlay */}
+      <div style={{ position: 'relative' }}>
+        <EditorContent editor={editor} />
+        <CursorOverlay editor={editor} cursors={remoteCursors || new Map()} />
+      </div>
 
       {/* Editor Styles */}
       <style>{`
