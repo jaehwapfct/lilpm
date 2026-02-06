@@ -15,8 +15,12 @@ import Image from '@tiptap/extension-image';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Collaboration from '@tiptap/extension-collaboration';
 import TiptapCollaborationCursor from '@tiptap/extension-collaboration-cursor';
+import Mention from '@tiptap/extension-mention';
 import { common, createLowlight } from 'lowlight';
 import * as Y from 'yjs';
+import tippy, { Instance as TippyInstance } from 'tippy.js';
+import { createRoot, Root } from 'react-dom/client';
+import type { Profile } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import {
   Bold,
@@ -180,6 +184,9 @@ interface BlockEditorProps {
   editable?: boolean;
   className?: string;
   autoFocus?: boolean;
+  // Mention props
+  teamMembers?: Profile[];
+  onMention?: (userId: string, userName: string) => void;
   // Yjs collaboration props
   yjsDoc?: Y.Doc;
   yjsProvider?: {
@@ -337,6 +344,8 @@ export function BlockEditor({
   editable = true,
   className,
   autoFocus = false,
+  teamMembers = [],
+  onMention,
   yjsDoc,
   yjsProvider,
   collaboration,
@@ -346,6 +355,153 @@ export function BlockEditor({
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
+  const mentionCallbackRef = useRef(onMention);
+  const teamMembersRef = useRef(teamMembers);
+
+  // Keep refs updated
+  useEffect(() => {
+    mentionCallbackRef.current = onMention;
+    teamMembersRef.current = teamMembers;
+  }, [onMention, teamMembers]);
+
+  // Create mention suggestion configuration
+  const mentionSuggestion = useCallback(() => ({
+    items: ({ query }: { query: string }) => {
+      return teamMembersRef.current
+        .filter((member) =>
+          member.name?.toLowerCase().includes(query.toLowerCase()) ||
+          member.email?.toLowerCase().includes(query.toLowerCase())
+        )
+        .slice(0, 5);
+    },
+    render: () => {
+      let component: HTMLDivElement | null = null;
+      let popup: TippyInstance[] | null = null;
+      let root: Root | null = null;
+      let selectedIndex = 0;
+      let items: Profile[] = [];
+
+      return {
+        onStart: (props: any) => {
+          items = props.items;
+          selectedIndex = 0;
+
+          component = document.createElement('div');
+          root = createRoot(component);
+
+          const renderComponent = () => {
+            root?.render(
+              <div className="bg-popover border border-border rounded-md shadow-lg overflow-hidden">
+                <div className="max-h-48 overflow-y-auto p-1">
+                  {items.length === 0 ? (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                      No members found
+                    </div>
+                  ) : (
+                    items.map((item: Profile, index: number) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm text-left ${index === selectedIndex ? 'bg-accent' : 'hover:bg-accent/50'
+                          }`}
+                        onClick={() => {
+                          props.command({ id: item.id, label: item.name || item.email || 'User' });
+                        }}
+                      >
+                        <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs text-primary flex-shrink-0">
+                          {item.name?.charAt(0) || item.email?.charAt(0) || '?'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate text-foreground">{item.name || 'User'}</p>
+                          <p className="text-xs text-muted-foreground truncate">{item.email}</p>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            );
+          };
+
+          renderComponent();
+
+          popup = tippy('body', {
+            getReferenceClientRect: props.clientRect,
+            appendTo: () => document.body,
+            content: component,
+            showOnCreate: true,
+            interactive: true,
+            trigger: 'manual',
+            placement: 'bottom-start',
+          });
+        },
+        onUpdate: (props: any) => {
+          items = props.items;
+          selectedIndex = 0;
+
+          if (root && component) {
+            root.render(
+              <div className="bg-popover border border-border rounded-md shadow-lg overflow-hidden">
+                <div className="max-h-48 overflow-y-auto p-1">
+                  {items.length === 0 ? (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                      No members found
+                    </div>
+                  ) : (
+                    items.map((item: Profile, index: number) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm text-left ${index === selectedIndex ? 'bg-accent' : 'hover:bg-accent/50'
+                          }`}
+                        onClick={() => {
+                          props.command({ id: item.id, label: item.name || item.email || 'User' });
+                        }}
+                      >
+                        <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs text-primary flex-shrink-0">
+                          {item.name?.charAt(0) || item.email?.charAt(0) || '?'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate text-foreground">{item.name || 'User'}</p>
+                          <p className="text-xs text-muted-foreground truncate">{item.email}</p>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            );
+          }
+
+          if (popup?.[0]) {
+            popup[0].setProps({ getReferenceClientRect: props.clientRect });
+          }
+        },
+        onKeyDown: (props: any) => {
+          if (props.event.key === 'ArrowUp') {
+            selectedIndex = selectedIndex === 0 ? items.length - 1 : selectedIndex - 1;
+            return true;
+          }
+          if (props.event.key === 'ArrowDown') {
+            selectedIndex = selectedIndex === items.length - 1 ? 0 : selectedIndex + 1;
+            return true;
+          }
+          if (props.event.key === 'Enter') {
+            if (items[selectedIndex]) {
+              const item = items[selectedIndex];
+              props.command({ id: item.id, label: item.name || item.email || 'User' });
+            }
+            return true;
+          }
+          return false;
+        },
+        onExit: () => {
+          popup?.[0]?.destroy();
+          root?.unmount();
+        },
+      };
+    },
+  }), []);
 
   const editor = useEditor({
     extensions: [
@@ -387,6 +543,34 @@ export function BlockEditor({
           class: 'rounded-lg bg-muted p-4 font-mono text-sm',
         },
       }),
+      // Mention extension for @mentions
+      ...(teamMembers.length > 0 ? [
+        Mention.configure({
+          HTMLAttributes: {
+            class: 'mention bg-primary/10 text-primary rounded px-1 py-0.5 font-medium',
+          },
+          suggestion: {
+            ...mentionSuggestion(),
+            char: '@',
+          },
+          renderHTML({ options, node }) {
+            // Trigger onMention callback when mention is rendered
+            const userId = node.attrs.id;
+            const userName = node.attrs.label;
+            if (mentionCallbackRef.current && userId) {
+              // Use setTimeout to avoid calling during render
+              setTimeout(() => {
+                mentionCallbackRef.current?.(userId, userName);
+              }, 0);
+            }
+            return [
+              'span',
+              { ...options.HTMLAttributes, 'data-mention-id': userId },
+              `@${userName}`,
+            ];
+          },
+        }),
+      ] : []),
       // Yjs Collaboration extension (real-time document sync)
       ...(yjsDoc ? [
         Collaboration.configure({
