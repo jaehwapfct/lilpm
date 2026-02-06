@@ -7,7 +7,9 @@ import { AppLayout } from '@/components/layout';
 import { prdService, type PRDWithRelations } from '@/lib/services/prdService';
 import { teamMemberService } from '@/lib/services/teamService';
 import { notificationService } from '@/lib/services/notificationService';
+import { prdVersionService } from '@/lib/services/prdVersionService';
 import { BlockEditor } from '@/components/editor';
+import { VersionHistoryPanel } from '@/components/prd/VersionHistoryPanel';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -354,6 +356,10 @@ export function PRDDetailPage() {
     aiMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [aiMessages]);
 
+  // Track version creation time (create version every 5 minutes)
+  const lastVersionTimeRef = useRef<number>(0);
+  const VERSION_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
   // Auto-save content (matching Issue pattern)
   const { debouncedSave: debouncedSaveContent, setInitialValue: setInitialContent } = useAutoSave({
     onSave: async (value) => {
@@ -364,6 +370,17 @@ export function PRDDetailPage() {
         setLastSaved(new Date());
         setContentSaved(true);
         setTimeout(() => setContentSaved(false), 2000);
+
+        // Create version if 5 minutes have passed since last version
+        const now = Date.now();
+        if (now - lastVersionTimeRef.current > VERSION_INTERVAL) {
+          try {
+            await prdVersionService.createVersion(prdId, value, title, 'Auto-saved');
+            lastVersionTimeRef.current = now;
+          } catch (versionError) {
+            console.error('Failed to create version:', versionError);
+          }
+        }
       } catch (error) {
         console.error('Failed to auto-save:', error);
       } finally {
@@ -906,6 +923,15 @@ Respond in the same language as the user's message.`
                 </div>
 
                 <div className="flex items-center gap-3">
+                  <VersionHistoryPanel
+                    prdId={prd.id}
+                    currentContent={content}
+                    onRestore={(restoredContent, restoredTitle) => {
+                      setContent(restoredContent);
+                      setTitle(restoredTitle);
+                      window.location.reload(); // Refresh to get latest
+                    }}
+                  />
                   <Button variant="outline" onClick={() => setShowAIPanel(true)} className="gap-2">
                     <Sparkles className="h-4 w-4" />
                     Edit with AI
