@@ -328,8 +328,6 @@ export function BlockEditor({
     extensions: [
       StarterKit.configure({
         codeBlock: false, // Use CodeBlockLowlight instead
-        // @ts-ignore - StarterKit typing might not include link but it does have it
-        link: false, // Disable built-in link - we use our own Link extension with custom config
       }),
       Placeholder.configure({
         placeholder,
@@ -397,6 +395,7 @@ export function BlockEditor({
     return () => {
       editor?.destroy();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const setLink = useCallback(() => {
