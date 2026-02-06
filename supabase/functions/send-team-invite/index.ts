@@ -147,7 +147,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'Lil PM <noreply@lilpm.ai>',
+            from: 'Lil PM <onboarding@resend.dev>',
             to: [email],
             subject: `${inviterName} invited you to join ${teamName} on Lil PM`,
             html: emailContent,
