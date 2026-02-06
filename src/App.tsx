@@ -8,6 +8,7 @@ import { useTeamStore } from "@/stores/teamStore";
 import { useMCPStore } from "@/stores/mcpStore";
 import { useThemeStore } from "@/stores/themeStore";
 import { useEffect } from "react";
+import { useUserTeamsRealtime, useTeamMemberRealtime } from "@/hooks/useTeamRealtime";
 
 // Pages
 import { LoginPage, SignupPage, AcceptInvitePage, CancelledInvitePage, EmailVerificationPage } from "./pages/auth";
@@ -153,6 +154,10 @@ function AppRoutes() {
   useEffect(() => {
     loadUser();
   }, [loadUser]);
+
+  // Subscribe to realtime team member changes
+  useUserTeamsRealtime();
+  useTeamMemberRealtime();
 
   return (
     <Routes>
