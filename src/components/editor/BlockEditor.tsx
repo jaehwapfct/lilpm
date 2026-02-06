@@ -65,30 +65,30 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: NodeViewP
   const imageRef = useRef<HTMLImageElement>(null);
   const startX = useRef(0);
   const startWidth = useRef(0);
-  
+
   const handleMouseDown = (e: React.MouseEvent, direction: 'left' | 'right') => {
     e.preventDefault();
     setIsResizing(true);
     startX.current = e.clientX;
     startWidth.current = imageRef.current?.offsetWidth || 0;
-    
+
     const handleMouseMove = (e: MouseEvent) => {
       const diff = direction === 'right' ? e.clientX - startX.current : startX.current - e.clientX;
       const newWidth = Math.max(50, startWidth.current + diff);
       updateAttributes({ width: newWidth });
       setWidthInput(newWidth.toString());
     };
-    
+
     const handleMouseUp = () => {
       setIsResizing(false);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-    
+
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   };
-  
+
   const handleWidthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setWidthInput(value);
@@ -97,7 +97,7 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: NodeViewP
       updateAttributes({ width: numValue });
     }
   };
-  
+
   return (
     <NodeViewWrapper className="relative inline-block my-2 group">
       <div className={cn(
@@ -113,21 +113,21 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: NodeViewP
           className="rounded-lg max-w-full"
           draggable={false}
         />
-        
+
         {/* Resize handles */}
         {selected && (
           <>
             {/* Left handle */}
-            <div 
+            <div
               className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity rounded-l-lg"
               onMouseDown={(e) => handleMouseDown(e, 'left')}
             />
             {/* Right handle */}
-            <div 
+            <div
               className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity rounded-r-lg"
               onMouseDown={(e) => handleMouseDown(e, 'right')}
             />
-            
+
             {/* Width input at bottom center */}
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full pt-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
               <div className="flex items-center gap-1 bg-background border border-border rounded px-1.5 py-0.5 shadow-sm">
@@ -163,7 +163,7 @@ const ResizableImage = Image.extend({
       },
     };
   },
-  
+
   addNodeView() {
     return ReactNodeViewRenderer(ResizableImageComponent);
   },
@@ -179,15 +179,15 @@ interface BlockEditorProps {
 }
 
 // Toolbar Button Component
-const ToolbarButton = ({ 
-  onClick, 
-  active, 
-  disabled, 
-  children, 
-  title 
-}: { 
-  onClick: () => void; 
-  active?: boolean; 
+const ToolbarButton = ({
+  onClick,
+  active,
+  disabled,
+  children,
+  title
+}: {
+  onClick: () => void;
+  active?: boolean;
   disabled?: boolean;
   children: React.ReactNode;
   title?: string;
@@ -209,73 +209,73 @@ const ToolbarButton = ({
 );
 
 // Slash Commands Menu
-const SlashCommandsMenu = ({ 
-  editor, 
-  isOpen, 
-  onClose 
-}: { 
-  editor: any; 
+const SlashCommandsMenu = ({
+  editor,
+  isOpen,
+  onClose
+}: {
+  editor: any;
   isOpen: boolean;
   onClose: () => void;
 }) => {
   const commands = [
-    { 
-      icon: <Heading1 className="h-4 w-4" />, 
-      label: 'Heading 1', 
+    {
+      icon: <Heading1 className="h-4 w-4" />,
+      label: 'Heading 1',
       description: 'Large section heading',
       action: () => editor.chain().focus().toggleHeading({ level: 1 }).run()
     },
-    { 
-      icon: <Heading2 className="h-4 w-4" />, 
-      label: 'Heading 2', 
+    {
+      icon: <Heading2 className="h-4 w-4" />,
+      label: 'Heading 2',
       description: 'Medium section heading',
       action: () => editor.chain().focus().toggleHeading({ level: 2 }).run()
     },
-    { 
-      icon: <Heading3 className="h-4 w-4" />, 
-      label: 'Heading 3', 
+    {
+      icon: <Heading3 className="h-4 w-4" />,
+      label: 'Heading 3',
       description: 'Small section heading',
       action: () => editor.chain().focus().toggleHeading({ level: 3 }).run()
     },
-    { 
-      icon: <List className="h-4 w-4" />, 
-      label: 'Bullet List', 
+    {
+      icon: <List className="h-4 w-4" />,
+      label: 'Bullet List',
       description: 'Create a simple bullet list',
       action: () => editor.chain().focus().toggleBulletList().run()
     },
-    { 
-      icon: <ListOrdered className="h-4 w-4" />, 
-      label: 'Numbered List', 
+    {
+      icon: <ListOrdered className="h-4 w-4" />,
+      label: 'Numbered List',
       description: 'Create a numbered list',
       action: () => editor.chain().focus().toggleOrderedList().run()
     },
-    { 
-      icon: <ListTodo className="h-4 w-4" />, 
-      label: 'Task List', 
+    {
+      icon: <ListTodo className="h-4 w-4" />,
+      label: 'Task List',
       description: 'Create a todo list with checkboxes',
       action: () => editor.chain().focus().toggleTaskList().run()
     },
-    { 
-      icon: <Quote className="h-4 w-4" />, 
-      label: 'Quote', 
+    {
+      icon: <Quote className="h-4 w-4" />,
+      label: 'Quote',
       description: 'Capture a quote',
       action: () => editor.chain().focus().toggleBlockquote().run()
     },
-    { 
-      icon: <CodeSquare className="h-4 w-4" />, 
-      label: 'Code Block', 
+    {
+      icon: <CodeSquare className="h-4 w-4" />,
+      label: 'Code Block',
       description: 'Add a code snippet',
       action: () => editor.chain().focus().toggleCodeBlock().run()
     },
-    { 
-      icon: <Minus className="h-4 w-4" />, 
-      label: 'Divider', 
+    {
+      icon: <Minus className="h-4 w-4" />,
+      label: 'Divider',
       description: 'Visual divider line',
       action: () => editor.chain().focus().setHorizontalRule().run()
     },
-    { 
-      icon: <TableIcon className="h-4 w-4" />, 
-      label: 'Table', 
+    {
+      icon: <TableIcon className="h-4 w-4" />,
+      label: 'Table',
       description: 'Insert a table',
       action: () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
     },
@@ -328,6 +328,8 @@ export function BlockEditor({
     extensions: [
       StarterKit.configure({
         codeBlock: false, // Use CodeBlockLowlight instead
+        // @ts-ignore - StarterKit typing might not include link but it does have it
+        link: false, // Disable built-in link - we use our own Link extension with custom config
       }),
       Placeholder.configure({
         placeholder,
@@ -399,7 +401,7 @@ export function BlockEditor({
 
   const setLink = useCallback(() => {
     if (!editor) return;
-    
+
     if (linkUrl) {
       editor.chain().focus().extendMarkRange('link').setLink({ href: linkUrl }).run();
     } else {
@@ -412,9 +414,9 @@ export function BlockEditor({
   // Handle file to base64 conversion and insert image
   const handleImageFiles = useCallback(async (files: FileList | File[]) => {
     if (!editor) return;
-    
+
     const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
-    
+
     for (const file of imageFiles) {
       const reader = new FileReader();
       reader.onload = () => {
@@ -456,7 +458,7 @@ export function BlockEditor({
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-    
+
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
       handleImageFiles(files);
@@ -479,7 +481,7 @@ export function BlockEditor({
   }
 
   return (
-    <div 
+    <div
       ref={editorContainerRef}
       className={cn(
         "relative",
@@ -499,7 +501,7 @@ export function BlockEditor({
         multiple
         className="hidden"
       />
-      
+
       {/* Drag overlay */}
       {isDragging && (
         <div className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary rounded-lg z-50 flex items-center justify-center">
