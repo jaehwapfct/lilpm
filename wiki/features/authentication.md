@@ -114,12 +114,19 @@ interface AuthState {
 ### 팀 초대
 
 ```typescript
-// 초대 링크 생성
-const inviteLink = `${siteUrl}/auth/accept-invite?token=${inviteToken}`;
+// Edge Function 호출 (자동 인증 처리)
+const { data, error } = await supabase.functions.invoke('send-team-invite', {
+  body: { inviteId, email, teamName, inviterName, role, token, isExistingUser, targetUserId },
+});
+
+// 초대 링크 (신규 유저용)
+const inviteLink = `${siteUrl}/invite/accept?token=${inviteToken}`;
 
 // 초대 수락 처리
 acceptInvite(token: string): Promise<void>
 ```
+
+**참고:** 기존 유저의 경우 이메일 대신 인앱 알림으로 초대가 전송됩니다.
 
 ## 보안 고려사항
 

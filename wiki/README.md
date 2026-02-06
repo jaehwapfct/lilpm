@@ -16,6 +16,7 @@
 - [PRD](./features/prd.md) - 제품 요구사항 문서 관리
 - [사이클](./features/cycles.md) - 스프린트 관리
 - [인증](./features/authentication.md) - 이메일 인증, 로그인
+- [팀 멤버 관리](./features/team-members.md) - 초대, 권한, 실시간 동기화
 
 ### 아키텍처
 - [프론트엔드 구조](./architecture/frontend.md)
