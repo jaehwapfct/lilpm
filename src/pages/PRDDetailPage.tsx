@@ -11,7 +11,7 @@ import { prdVersionService } from '@/lib/services/prdVersionService';
 import { BlockEditor } from '@/components/editor';
 import { VersionHistoryPanel } from '@/components/prd/VersionHistoryPanel';
 import { useAutoSave } from '@/hooks/useAutoSave';
-import { useLiveblocksCollaboration } from '@/hooks/useLiveblocksCollaboration';
+import { useCloudflareCollaboration } from '@/hooks/useCloudflareCollaboration';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -252,20 +252,20 @@ export function PRDDetailPage() {
   };
 
   // Yjs CRDT Real-time Collaboration
-  // Liveblocks real-time collaboration (Yjs over Liveblocks)
+  // Cloudflare Durable Objects real-time collaboration (Yjs sync)
   const {
     yjsDoc,
     provider: yjsProvider,
     isConnected: isYjsConnected,
     isSynced: isYjsSynced,
-  } = useLiveblocksCollaboration({
+  } = useCloudflareCollaboration({
     documentId: prdId || '',
     teamId: currentTeam?.id || '',
     userId: user?.id || '',
     userName: user?.name || user?.email?.split('@')[0] || 'Anonymous',
     userColor: user?.id ? getUserColor(user.id) : undefined,
     avatarUrl: user?.avatarUrl,
-    enabled: !!(prdId && currentTeam?.id && user?.id && !isLoading && import.meta.env.VITE_LIVEBLOCKS_PUBLIC_KEY),
+    enabled: !!(prdId && currentTeam?.id && user?.id && !isLoading),
   });
 
   // Provider display names
