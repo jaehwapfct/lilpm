@@ -912,9 +912,10 @@ Respond in the same language as the user's message.`
                 </div>
               </div>
 
-              {/* Block Editor */}
+              {/* Block Editor - key forces remount when yjsDoc becomes available */}
               <div className="min-h-[500px]">
                 <BlockEditor
+                  key={yjsDoc ? `collab-${yjsDoc.guid}` : 'no-collab'}
                   content={content}
                   onChange={handleContentChange}
                   placeholder="Start writing your PRD... Type '/' for commands or '@' to mention"
