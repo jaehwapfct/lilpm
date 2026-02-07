@@ -33,6 +33,7 @@ export function AcceptInvitePage() {
   const [teamName, setTeamName] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [isAccepting, setIsAccepting] = useState(false);
+  const [isDeclining, setIsDeclining] = useState(false);
 
   // Signup form for unauthenticated users
   const [signupMode, setSignupMode] = useState(false);
@@ -91,12 +92,8 @@ export function AcceptInvitePage() {
     }
   };
 
-  // Auto-accept for authenticated users when status is pending
-  useEffect(() => {
-    if (!authLoading && isAuthenticated && status === 'pending' && token) {
-      acceptInvite();
-    }
-  }, [authLoading, isAuthenticated, status, token]);
+  // DO NOT auto-accept - show UI for user to explicitly accept/decline
+  // Removed auto-accept for authenticated users
 
   const acceptInvite = async () => {
     if (!token || isAccepting) return;
@@ -122,6 +119,18 @@ export function AcceptInvitePage() {
       }
     } finally {
       setIsAccepting(false);
+    }
+  };
+
+  const declineInvite = async () => {
+    if (!token || isDeclining) return;
+    setIsDeclining(true);
+
+    try {
+      // Just navigate away - no need to update DB for decline
+      navigate('/');
+    } finally {
+      setIsDeclining(false);
     }
   };
 
@@ -328,6 +337,53 @@ export function AcceptInvitePage() {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
             <p className="text-muted-foreground">{t('team.acceptingInvite', 'Accepting invitation...')}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Pending state for authenticated users - Show accept/decline buttons
+  if (status === 'pending' && isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Users className="h-6 w-6 text-primary" />
+            </div>
+            <CardTitle>{t('team.teamInvite', 'Team Invitation')}</CardTitle>
+            <CardDescription>
+              {invitePreview.inviterName
+                ? t('team.invitedBy', '{{name}} has invited you to join', { name: invitePreview.inviterName })
+                : t('team.youveBeenInvited', "You've been invited to join")}
+            </CardDescription>
+            {invitePreview.teamName && (
+              <div className="mt-2 px-3 py-2 bg-muted rounded-md">
+                <p className="font-semibold text-lg">{invitePreview.teamName}</p>
+              </div>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button
+              onClick={acceptInvite}
+              className="w-full"
+              disabled={isAccepting || isDeclining}
+            >
+              {isAccepting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              {t('team.acceptInvite', 'Accept Invitation')}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={declineInvite}
+              className="w-full"
+              disabled={isAccepting || isDeclining}
+            >
+              {isDeclining && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <XCircle className="h-4 w-4 mr-2" />
+              {t('team.declineInvite', 'Decline')}
+            </Button>
           </CardContent>
         </Card>
       </div>
