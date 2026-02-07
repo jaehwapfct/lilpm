@@ -139,7 +139,7 @@ export const teamMemberService = {
       .from('team_members')
       .select(`
         *,
-        profile:profiles!team_members_user_id_fkey(*)
+        profile:profiles(id, name, email, avatar_url)
       `)
       .eq('team_id', teamId)
       .order('joined_at', { ascending: true });
@@ -660,7 +660,7 @@ export const teamInviteService = {
           expires_at,
           email,
           team:teams(name),
-          inviter:profiles!team_invites_invited_by_fkey(name)
+          inviter:profiles(name)
         `)
         .eq('token', token)
         .maybeSingle();

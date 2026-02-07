@@ -29,7 +29,7 @@ export const prdVersionService = {
             .from('prd_versions')
             .select(`
         *,
-        creator:profiles!prd_versions_created_by_fkey(id, name, email, avatar_url)
+        creator:profiles(id, name, email, avatar_url)
       `)
             .eq('prd_id', prdId)
             .order('version_number', { ascending: false });
@@ -46,7 +46,7 @@ export const prdVersionService = {
             .from('prd_versions')
             .select(`
         *,
-        creator:profiles!prd_versions_created_by_fkey(id, name, email, avatar_url)
+        creator:profiles(id, name, email, avatar_url)
       `)
             .eq('id', versionId)
             .single();
