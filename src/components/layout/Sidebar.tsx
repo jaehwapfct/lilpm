@@ -727,7 +727,7 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
             </Button>
           </div>
           <CollapsibleContent className="space-y-0.5 mt-1">
-            {projects.length === 0 ? (
+            {!isProjectsLoading && projects.length === 0 ? (
               <p className="px-2 py-1 text-xs text-muted-foreground">
                 No projects yet
               </p>

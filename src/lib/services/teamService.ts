@@ -588,4 +588,68 @@ export const teamInviteService = {
       return { valid: false, status: 'not_found' };
     }
   },
+
+  async getInvitePreview(token: string): Promise<{
+    valid: boolean;
+    status: 'pending' | 'expired' | 'cancelled' | 'accepted' | 'rejected' | 'not_found';
+    teamName?: string;
+    inviterName?: string;
+    email?: string;
+  }> {
+    try {
+      const { data: invite, error } = await supabase
+        .from('team_invites')
+        .select(`
+          status,
+          expires_at,
+          email,
+          team:teams(name),
+          inviter:profiles!team_invites_invited_by_fkey(name)
+        `)
+        .eq('token', token)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Failed to get invite preview:', error);
+        return { valid: false, status: 'not_found' };
+      }
+
+      if (!invite) {
+        return { valid: false, status: 'not_found' };
+      }
+
+      // Check if expired
+      if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
+        return {
+          valid: false,
+          status: 'expired',
+          teamName: (invite.team as any)?.name,
+          inviterName: (invite.inviter as any)?.name,
+          email: invite.email,
+        };
+      }
+
+      // Check status
+      if (invite.status !== 'pending') {
+        return {
+          valid: false,
+          status: invite.status as any,
+          teamName: (invite.team as any)?.name,
+          inviterName: (invite.inviter as any)?.name,
+          email: invite.email,
+        };
+      }
+
+      return {
+        valid: true,
+        status: 'pending',
+        teamName: (invite.team as any)?.name,
+        inviterName: (invite.inviter as any)?.name,
+        email: invite.email,
+      };
+    } catch (error) {
+      console.error('Failed to get invite preview:', error);
+      return { valid: false, status: 'not_found' };
+    }
+  },
 };
