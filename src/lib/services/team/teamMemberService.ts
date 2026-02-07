@@ -1,0 +1,155 @@
+import { supabase } from '@/lib/supabase';
+import type { Profile, TeamMember, TeamRole } from '@/types/database';
+import { logRoleChanged, logMemberRemoved } from '../activityService';
+
+// ============================================
+// TEAM MEMBER SERVICES
+// ============================================
+
+export interface TeamMemberWithProfile extends TeamMember {
+    profile: Profile;
+}
+
+export const teamMemberService = {
+    async getMembers(teamId: string): Promise<TeamMemberWithProfile[]> {
+        const { data, error } = await supabase
+            .from('team_members')
+            .select(`
+        *,
+        profile:profiles(id, name, email, avatar_url)
+      `)
+            .eq('team_id', teamId)
+            .order('joined_at', { ascending: true });
+
+        if (error) throw error;
+        return (data || []) as unknown as TeamMemberWithProfile[];
+    },
+
+    async addMember(teamId: string, userId: string, role: TeamRole = 'member'): Promise<TeamMember> {
+        const { data, error } = await supabase
+            .from('team_members')
+            .insert({ team_id: teamId, user_id: userId, role } as any)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data as TeamMember;
+    },
+
+    async updateMemberRole(memberId: string, role: TeamRole): Promise<TeamMember> {
+        // Get current member info for logging old role
+        const { data: currentMember } = await supabase
+            .from('team_members')
+            .select('team_id, user_id, role')
+            .eq('id', memberId)
+            .single();
+
+        const oldRole = currentMember?.role;
+        const teamId = currentMember?.team_id;
+        const userId = currentMember?.user_id;
+
+        const { data, error } = await supabase
+            .from('team_members')
+            .update({ role } as any)
+            .eq('id', memberId)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        // Log role change activity
+        if (teamId && userId && oldRole !== role) {
+            logRoleChanged(teamId, memberId, userId, oldRole, role);
+        }
+
+        return data as TeamMember;
+    },
+
+    async removeMember(memberId: string): Promise<void> {
+        // First, get the member info for notification/logging
+        const { data: member, error: fetchError } = await supabase
+            .from('team_members')
+            .select(`
+        *,
+        team:teams(id, name),
+        profile:profiles(id, email, name)
+      `)
+            .eq('id', memberId)
+            .single();
+
+        if (fetchError) throw fetchError;
+        if (!member) throw new Error('Member not found');
+
+        const typedMember = member as any;
+        const teamId = typedMember.team_id;
+        const removedUserId = typedMember.user_id;
+        const teamName = typedMember.team?.name || 'the team';
+        const userEmail = typedMember.profile?.email;
+        const userName = typedMember.profile?.name || userEmail;
+        const userRole = typedMember.role;
+
+        // Delete the member
+        const { error } = await supabase
+            .from('team_members')
+            .delete()
+            .eq('id', memberId);
+
+        if (error) throw error;
+
+        // Get current user info for notification message
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        const { data: currentProfile } = await supabase
+            .from('profiles')
+            .select('name, email')
+            .eq('id', currentUser?.id)
+            .maybeSingle();
+        const removerName = currentProfile?.name || currentProfile?.email || 'A team admin';
+
+        // Create notification for removed user
+        try {
+            await supabase
+                .from('notifications')
+                .insert({
+                    user_id: removedUserId,
+                    type: 'team_removed',
+                    title: `You have been removed from ${teamName}`,
+                    message: `${removerName} has removed you from ${teamName}.`,
+                    data: {
+                        teamId,
+                        teamName,
+                        removedBy: currentUser?.id,
+                        removerName,
+                    },
+                } as any);
+        } catch (notifErr) {
+            console.error('Failed to create removal notification:', notifErr);
+        }
+
+        // Send email notification via Edge Function
+        if (userEmail) {
+            try {
+                await supabase.functions.invoke('send-member-removed', {
+                    body: {
+                        email: userEmail,
+                        userName,
+                        teamName,
+                        removerName,
+                    },
+                });
+            } catch (emailErr) {
+                console.error('Failed to send removal email:', emailErr);
+            }
+        }
+
+        // Log activity
+        logMemberRemoved(teamId, memberId, removedUserId, userRole);
+    },
+
+    async getUserRole(teamId: string, userId: string): Promise<TeamRole | null> {
+        const { data, error } = await supabase
+            .rpc('get_team_role', { _user_id: userId, _team_id: teamId } as any);
+
+        if (error) return null;
+        return data as TeamRole | null;
+    },
+};
