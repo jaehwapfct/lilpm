@@ -103,4 +103,93 @@ export const prdService = {
   async updateStatus(prdId: string, status: PRDStatus): Promise<PRDDocument> {
     return this.updatePRD(prdId, { status });
   },
+
+  // PRD-Project linking functions (many-to-many)
+  async linkToProject(prdId: string, projectId: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const { error } = await supabase
+      .from('prd_projects')
+      .insert({
+        prd_id: prdId,
+        project_id: projectId,
+        created_by: user?.id,
+      });
+
+    if (error && !error.message.includes('duplicate')) {
+      throw error;
+    }
+  },
+
+  async unlinkFromProject(prdId: string, projectId: string): Promise<void> {
+    const { error } = await supabase
+      .from('prd_projects')
+      .delete()
+      .eq('prd_id', prdId)
+      .eq('project_id', projectId);
+
+    if (error) throw error;
+  },
+
+  async getLinkedProjects(prdId: string): Promise<Array<{ id: string; name: string; icon?: string }>> {
+    const { data, error } = await supabase
+      .from('prd_projects')
+      .select(`
+        project:projects(id, name, icon)
+      `)
+      .eq('prd_id', prdId);
+
+    if (error) throw error;
+    return (data || []).map((d: any) => d.project).filter(Boolean);
+  },
+
+  async getPRDsForProject(projectId: string): Promise<PRDWithRelations[]> {
+    const { data, error } = await supabase
+      .from('prd_projects')
+      .select(`
+        prd:prd_documents(*)
+      `)
+      .eq('project_id', projectId);
+
+    if (error) throw error;
+    return (data || []).map((d: any) => d.prd).filter(Boolean);
+  },
+
+  async updateProjectLinks(prdId: string, projectIds: string[]): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Get current links
+    const { data: currentLinks } = await supabase
+      .from('prd_projects')
+      .select('project_id')
+      .eq('prd_id', prdId);
+
+    const currentProjectIds = (currentLinks || []).map((l: any) => l.project_id);
+
+    // Find links to remove and add
+    const toRemove = currentProjectIds.filter((id: string) => !projectIds.includes(id));
+    const toAdd = projectIds.filter((id: string) => !currentProjectIds.includes(id));
+
+    // Remove old links
+    if (toRemove.length > 0) {
+      await supabase
+        .from('prd_projects')
+        .delete()
+        .eq('prd_id', prdId)
+        .in('project_id', toRemove);
+    }
+
+    // Add new links
+    if (toAdd.length > 0) {
+      await supabase
+        .from('prd_projects')
+        .insert(
+          toAdd.map((projectId: string) => ({
+            prd_id: prdId,
+            project_id: projectId,
+            created_by: user?.id,
+          }))
+        );
+    }
+  },
 };

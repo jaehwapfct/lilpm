@@ -6,26 +6,28 @@ import { useTeamStore } from '@/stores/teamStore';
 import { projectService } from '@/lib/services/projectService';
 import { issueService } from '@/lib/services/issueService';
 import { teamMemberService } from '@/lib/services/teamService';
-import { 
-  ProjectStatsCard, 
-  ProjectProgressChart, 
+import { prdService, type PRDWithRelations } from '@/lib/services/prdService';
+import {
+  ProjectStatsCard,
+  ProjectProgressChart,
   ProjectMembersList,
   ProjectActivityTimeline,
-  EditProjectModal 
+  EditProjectModal
 } from '@/components/projects';
 import { IssueRow } from '@/components/issues';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  ArrowLeft, 
-  Settings, 
-  Calendar, 
+import {
+  ArrowLeft,
+  Settings,
+  Calendar,
   Loader2,
   FolderOpen,
   ListTodo,
   BarChart3,
-  Users
+  Users,
+  FileText
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko, enUS } from 'date-fns/locale';
@@ -56,18 +58,19 @@ export function ProjectDetailPage() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const { currentTeam } = useTeamStore();
-  
+
   const dateLocale = i18n.language === 'ko' ? ko : enUS;
 
   const [project, setProject] = useState<Project | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
+  const [prds, setPrds] = useState<PRDWithRelations[]>([]);
   const [members, setMembers] = useState<{ profile: Profile; role: string; issueCount: number }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
 
   const loadProject = useCallback(async () => {
     if (!projectId) return;
-    
+
     setIsLoading(true);
     try {
       const projectData = await projectService.getProject(projectId);
@@ -81,7 +84,7 @@ export function ProjectDetailPage() {
 
   const loadIssues = useCallback(async () => {
     if (!currentTeam?.id || !projectId) return;
-    
+
     try {
       const allIssues = await issueService.getIssues(currentTeam.id, { project_id: projectId } as any);
       setIssues(allIssues);
@@ -90,12 +93,23 @@ export function ProjectDetailPage() {
     }
   }, [currentTeam?.id, projectId]);
 
+  const loadPRDs = useCallback(async () => {
+    if (!projectId) return;
+
+    try {
+      const linkedPRDs = await prdService.getPRDsForProject(projectId);
+      setPrds(linkedPRDs);
+    } catch (error) {
+      console.error('Failed to load linked PRDs:', error);
+    }
+  }, [projectId]);
+
   const loadMembers = useCallback(async () => {
     if (!currentTeam?.id) return;
-    
+
     try {
       const membersData = await teamMemberService.getMembers(currentTeam.id);
-      
+
       // Count issues per member
       const memberIssueCount = issues.reduce((acc, issue) => {
         if (issue.assignee_id) {
@@ -117,7 +131,8 @@ export function ProjectDetailPage() {
   useEffect(() => {
     loadProject();
     loadIssues();
-  }, [loadProject, loadIssues]);
+    loadPRDs();
+  }, [loadProject, loadIssues, loadPRDs]);
 
   useEffect(() => {
     loadMembers();
@@ -191,14 +206,14 @@ export function ProjectDetailPage() {
               <Button variant="ghost" size="icon" onClick={() => navigate('/projects')}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              
-              <div 
+
+              <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
                 style={{ backgroundColor: `${project.color}20` }}
               >
                 {icon}
               </div>
-              
+
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-xl font-semibold">{project.name}</h1>
@@ -217,7 +232,7 @@ export function ProjectDetailPage() {
                 )}
               </div>
             </div>
-            
+
             <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
               <Settings className="h-4 w-4 mr-2" />
               {t('common.settings')}
@@ -236,6 +251,10 @@ export function ProjectDetailPage() {
               <TabsTrigger value="issues" className="gap-1.5">
                 <ListTodo className="h-4 w-4" />
                 {t('issues.title')} ({issues.length})
+              </TabsTrigger>
+              <TabsTrigger value="prds" className="gap-1.5">
+                <FileText className="h-4 w-4" />
+                PRDs ({prds.length})
               </TabsTrigger>
               <TabsTrigger value="members" className="gap-1.5">
                 <Users className="h-4 w-4" />
@@ -262,7 +281,7 @@ export function ProjectDetailPage() {
                   </div>
                 ) : (
                   issues.map((issue) => (
-                    <div 
+                    <div
                       key={issue.id}
                       className="p-3 hover:bg-muted/50 cursor-pointer transition-colors"
                       onClick={() => navigate(`/issue/${issue.id}`)}
@@ -270,8 +289,40 @@ export function ProjectDetailPage() {
                       <IssueRow
                         issue={issue as any}
                         isSelected={false}
-                        onSelect={() => {}}
+                        onSelect={() => { }}
                       />
+                    </div>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+
+            {/* PRDs Tab */}
+            <TabsContent value="prds">
+              <div className="divide-y divide-border rounded-lg border">
+                {prds.length === 0 ? (
+                  <div className="py-12 text-center text-muted-foreground">
+                    <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>{t('prd.noPRDs', 'No PRDs linked to this project')}</p>
+                    <p className="text-xs mt-1">{t('prd.linkFromPRD', 'Link PRDs from the PRD detail page')}</p>
+                  </div>
+                ) : (
+                  prds.map((prd) => (
+                    <div
+                      key={prd.id}
+                      className="p-4 hover:bg-muted/50 cursor-pointer transition-colors flex items-center justify-between"
+                      onClick={() => navigate(`/prd/${prd.id}`)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <FileText className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">{prd.title || t('prd.untitled')}</p>
+                          {prd.overview && (
+                            <p className="text-sm text-muted-foreground line-clamp-1">{prd.overview}</p>
+                          )}
+                        </div>
+                      </div>
+                      <Badge variant="outline">{prd.status || 'draft'}</Badge>
                     </div>
                   ))
                 )}
@@ -280,7 +331,7 @@ export function ProjectDetailPage() {
 
             {/* Members Tab */}
             <TabsContent value="members">
-              <ProjectMembersList 
+              <ProjectMembersList
                 members={members as any}
               />
             </TabsContent>
