@@ -27,6 +27,8 @@ export function SignupPage() {
 
   // Get returnUrl from query params for redirect after signup
   const returnUrl = searchParams.get('returnUrl');
+  // Get email from query params for pre-fill (from invite flow)
+  const prefilledEmail = searchParams.get('email');
 
   const signupSchema = z.object({
     name: z.string().min(2, t('auth.nameTooShort')),
@@ -44,7 +46,7 @@ export function SignupPage() {
     resolver: zodResolver(signupSchema),
     defaultValues: {
       name: '',
-      email: '',
+      email: prefilledEmail || '',
       password: '',
       confirmPassword: '',
     },

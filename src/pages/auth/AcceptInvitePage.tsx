@@ -121,48 +121,74 @@ export function AcceptInvitePage() {
   const acceptInvite = async () => {
     if (!token || isAccepting) return;
 
-    // Check if user has valid Supabase session before calling service
-    if (!hasValidSession) {
-      // Redirect to login with return URL
-      const returnUrl = `/invite/accept?token=${token}`;
-      navigate(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
+    const inviteEmail = invitePreview.email;
+    const returnUrl = `/invite/accept?token=${token}`;
+
+    // CASE 1: User is logged in with valid session
+    if (hasValidSession) {
+      setIsAccepting(true);
+      try {
+        const team = await teamInviteService.acceptInvite(token);
+        if (!team) {
+          throw new Error('Team not found');
+        }
+        setTeamName(team.name || 'Team');
+        await loadTeams();
+        await selectTeam(team.id);
+        // Mark onboarding as completed to skip /welcome redirect
+        setOnboardingCompleted(true);
+        // Navigate directly to dashboard after acceptance
+        navigate('/dashboard');
+        return;
+      } catch (err: any) {
+        console.error('Accept invite error:', err.message);
+        const msg = err.message || '';
+
+        // Handle authentication errors - redirect to login
+        if (msg.toLowerCase().includes('authenticated') || msg.toLowerCase().includes('auth')) {
+          navigate(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
+          return;
+        }
+
+        if (msg.includes('cancelled')) {
+          setStatus('cancelled');
+        } else if (msg.includes('24 hours')) {
+          setStatus('expired');
+        } else {
+          setError(msg || t('team.inviteError'));
+          setStatus('error');
+        }
+      } finally {
+        setIsAccepting(false);
+      }
       return;
     }
 
-    setIsAccepting(true);
+    // CASE 2: User is NOT logged in - check if invite email is an existing user
+    if (inviteEmail) {
+      try {
+        // Check if email exists in profiles table (existing user)
+        const { data: existingProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', inviteEmail)
+          .maybeSingle();
 
-    try {
-      const team = await teamInviteService.acceptInvite(token);
-      if (!team) {
-        throw new Error('Team not found');
-      }
-      setTeamName(team.name || 'Team');
-      await loadTeams();
-      await selectTeam(team.id);
-      // Mark onboarding as completed to skip /welcome redirect
-      setOnboardingCompleted(true);
-      setStatus('success');
-    } catch (err: any) {
-      console.error('Accept invite error:', err.message);
-      const msg = err.message || '';
-
-      // Handle authentication errors - redirect to login
-      if (msg.toLowerCase().includes('authenticated') || msg.toLowerCase().includes('auth')) {
-        const returnUrl = `/invite/accept?token=${token}`;
+        if (existingProfile) {
+          // EXISTING USER - redirect to login
+          navigate(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
+        } else {
+          // NEW USER - redirect to signup with pre-filled email
+          navigate(`/signup?email=${encodeURIComponent(inviteEmail)}&returnUrl=${encodeURIComponent(returnUrl)}`);
+        }
+      } catch (err) {
+        console.error('Error checking user existence:', err);
+        // On error, default to login page
         navigate(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
-        return;
       }
-
-      if (msg.includes('cancelled')) {
-        setStatus('cancelled');
-      } else if (msg.includes('24 hours')) {
-        setStatus('expired');
-      } else {
-        setError(msg || t('team.inviteError'));
-        setStatus('error');
-      }
-    } finally {
-      setIsAccepting(false);
+    } else {
+      // No email in invite preview, default to login
+      navigate(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
     }
   };
 
