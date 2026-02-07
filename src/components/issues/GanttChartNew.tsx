@@ -698,7 +698,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                               <div className="flex flex-col gap-1">
                                 <p className="font-semibold">{issue.title}</p>
                                 <div className="flex items-center gap-2 text-gray-500">
-                                  <StatusIcon status={issue.status} size="sm" />
+                                  <StatusIcon status={issue.status} />
                                   <span>{issue.status}</span>
                                 </div>
                                 {(() => {
@@ -848,7 +848,8 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                           e.stopPropagation();
                           // Confirm delete?
                           if (confirm('Delete dependency?')) {
-                            onDependencyDelete?.(sourceIssue.id, targetIssue.id);
+                            // onDependencyDelete is not implemented in props yet
+                            console.log('Delete dependency:', sourceIssue.id, '->', targetIssue.id);
                           }
                         }}>
                           {/* Invisible wider stroke for easier clicking */}

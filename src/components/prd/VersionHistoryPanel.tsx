@@ -49,6 +49,7 @@ export function VersionHistoryPanel({
         if (isOpen && prdId) {
             loadVersions();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, prdId]);
 
     const loadVersions = async () => {
