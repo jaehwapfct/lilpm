@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { teamInviteService } from '@/lib/services/teamService';
 import { useTeamStore } from '@/stores/teamStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useMCPStore } from '@/stores/mcpStore';
 import { supabase } from '@/lib/supabase';
 import { Loader2, CheckCircle2, XCircle, Users, Timer, Mail } from 'lucide-react';
 
@@ -27,6 +28,7 @@ export function AcceptInvitePage() {
 
   const { isAuthenticated, isLoading: authLoading, user } = useAuthStore();
   const { loadTeams, selectTeam } = useTeamStore();
+  const { setOnboardingCompleted } = useMCPStore();
 
   const [status, setStatus] = useState<InviteStatus>('loading');
   const [invitePreview, setInvitePreview] = useState<InvitePreview>({});
@@ -137,6 +139,8 @@ export function AcceptInvitePage() {
       setTeamName(team.name || 'Team');
       await loadTeams();
       await selectTeam(team.id);
+      // Mark onboarding as completed to skip /welcome redirect
+      setOnboardingCompleted(true);
       setStatus('success');
     } catch (err: any) {
       console.error('Accept invite error:', err.message);
