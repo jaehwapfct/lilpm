@@ -1,7 +1,7 @@
--- Create RPC function for getting invite preview without authentication
--- Uses SECURITY DEFINER to bypass RLS for public invite link access
+-- Fix the get_invite_preview RPC function to accept TEXT parameter 
+-- (original migration used UUID which causes type mismatch with JSON input)
 
--- Drop existing function if exists
+-- Drop existing function(s)
 DROP FUNCTION IF EXISTS public.get_invite_preview(UUID);
 DROP FUNCTION IF EXISTS public.get_invite_preview(TEXT);
 
@@ -40,7 +40,7 @@ BEGIN
   FROM team_invites ti
   LEFT JOIN teams t ON ti.team_id = t.id
   LEFT JOIN profiles p ON ti.invited_by = p.id
-  WHERE ti.token = token_uuid;
+  WHERE ti.token = invite_token;  -- Compare TEXT with TEXT (not UUID)
   
   -- Check if invite exists
   IF invite_record IS NULL THEN
@@ -95,4 +95,4 @@ GRANT EXECUTE ON FUNCTION public.get_invite_preview(TEXT) TO authenticated;
 
 -- Add comment for documentation
 COMMENT ON FUNCTION public.get_invite_preview(TEXT) IS 
-  'Retrieves team invite preview information by token. Uses SECURITY DEFINER to bypass RLS for public access. Returns team name, inviter info, and invite status.';
+  'Retrieves team invite preview information by token (accepts TEXT, casts to UUID internally). Uses SECURITY DEFINER to bypass RLS for public access.';
