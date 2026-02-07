@@ -12,7 +12,7 @@ interface AuthState {
 
 interface AuthStore extends AuthState {
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string) => Promise<void>;
+  signup: (email: string, password: string, name: string, returnUrl?: string) => Promise<void>;
   logout: () => Promise<void>;
   loadUser: () => Promise<void>;
   updateUser: (data: Partial<User>) => void;
@@ -61,13 +61,15 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      signup: async (email: string, password: string, name: string) => {
+      signup: async (email: string, password: string, name: string, returnUrl?: string) => {
         set({ isLoading: true });
 
         // Use environment variable for production URL, fallback to current origin
-        // Email verification link redirects to team creation page
         const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
-        const redirectUrl = `${siteUrl}/onboarding/create-team`;
+        // If returnUrl provided (invite flow), use it. Otherwise default to team creation.
+        const redirectUrl = returnUrl
+          ? `${siteUrl}${returnUrl}`
+          : `${siteUrl}/onboarding/create-team`;
 
         const { data, error } = await supabase.auth.signUp({
           email,

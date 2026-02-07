@@ -1,18 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { teamInviteService } from '@/lib/services/teamService';
 import { useTeamStore } from '@/stores/teamStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useMCPStore } from '@/stores/mcpStore';
 import { supabase } from '@/lib/supabase';
-import { Loader2, CheckCircle2, XCircle, Users, Timer, Mail } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Users, Mail, LogIn, UserPlus } from 'lucide-react';
+import { toast } from 'sonner';
 
-type InviteStatus = 'loading' | 'pending' | 'success' | 'error' | 'cancelled' | 'expired' | 'not_found';
+type InviteStatus = 'loading' | 'pending' | 'processing' | 'success' | 'error' | 'magic_link_sent';
 
 interface InvitePreview {
   teamName?: string;
@@ -20,63 +19,42 @@ interface InvitePreview {
   email?: string;
 }
 
+interface AcceptInviteResponse {
+  success: boolean;
+  action: 'accepted' | 'needs_auth' | 'needs_signup' | 'error';
+  teamId?: string;
+  teamName?: string;
+  userExists?: boolean;
+  email?: string;
+  magicLinkSent?: boolean;
+  error?: string;
+}
+
 export function AcceptInvitePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
+  const autoAccept = searchParams.get('auto') === 'true';
 
-  const { isAuthenticated, isLoading: authLoading, user } = useAuthStore();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
   const { loadTeams, selectTeam } = useTeamStore();
   const { setOnboardingCompleted } = useMCPStore();
 
   const [status, setStatus] = useState<InviteStatus>('loading');
   const [invitePreview, setInvitePreview] = useState<InvitePreview>({});
-  const [teamName, setTeamName] = useState<string>('');
   const [error, setError] = useState<string>('');
-  const [isAccepting, setIsAccepting] = useState(false);
-  const [isDeclining, setIsDeclining] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Signup form for unauthenticated users
-  const [signupMode, setSignupMode] = useState(false);
-  const [signupForm, setSignupForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  });
-  const [signupLoading, setSignupLoading] = useState(false);
-  const [signupError, setSignupError] = useState('');
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://lbzjnhlribtfwnoydpdv.supabase.co';
 
-  // Verify actual Supabase session (not just authStore state)
-  const [hasValidSession, setHasValidSession] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    const verifySession = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        setHasValidSession(!!user);
-      } catch {
-        setHasValidSession(false);
-      }
-    };
-
-    // Only verify if authStore thinks we're authenticated
-    if (isAuthenticated && !authLoading) {
-      verifySession();
-    } else if (!authLoading) {
-      setHasValidSession(false);
-    }
-  }, [isAuthenticated, authLoading]);
-
-  // Load invite preview first (before auth check)
+  // Load invite preview on mount
   useEffect(() => {
     if (!token) {
       setError(t('team.invalidInvite', 'Invalid invitation link'));
       setStatus('error');
       return;
     }
-
     loadInvitePreview();
   }, [token]);
 
@@ -91,176 +69,122 @@ export function AcceptInvitePage() {
         email: result.email,
       });
 
-      // Pre-fill email for signup
-      if (result.email) {
-        setSignupForm(prev => ({ ...prev, email: result.email! }));
-      }
-
       if (result.status === 'expired') {
-        setStatus('expired');
+        setError(t('team.inviteExpired', 'This invitation has expired'));
+        setStatus('error');
       } else if (result.status === 'cancelled') {
-        setStatus('cancelled');
+        setError(t('team.inviteCancelled', 'This invitation has been cancelled'));
+        setStatus('error');
       } else if (result.status === 'not_found') {
-        setStatus('not_found');
         setError(t('team.inviteNotFound', 'Invitation not found'));
+        setStatus('error');
       } else if (result.status === 'accepted') {
-        setError(t('team.inviteAlreadyAccepted', 'This invitation has already been accepted.'));
+        setError(t('team.inviteAlreadyAccepted', 'This invitation has already been accepted'));
         setStatus('error');
       } else {
         setStatus('pending');
       }
     } catch (err) {
       console.error('Failed to load invite preview:', err);
-      setStatus('not_found');
+      setError(t('team.inviteNotFound', 'Invitation not found'));
+      setStatus('error');
     }
   };
 
-  // DO NOT auto-accept - show UI for user to explicitly accept/decline
-  // Removed auto-accept for authenticated users
-
-  const acceptInvite = async () => {
-    if (!token || isAccepting) return;
-
-    const inviteEmail = invitePreview.email;
-    const returnUrl = `/invite/accept?token=${token}`;
-
-    // CASE 1: User is logged in with valid session
-    if (hasValidSession) {
-      setIsAccepting(true);
-      try {
-        const team = await teamInviteService.acceptInvite(token);
-        if (!team) {
-          throw new Error('Team not found');
-        }
-        setTeamName(team.name || 'Team');
-        await loadTeams();
-        await selectTeam(team.id);
-        // Mark onboarding as completed to skip /welcome redirect
-        setOnboardingCompleted(true);
-        // Navigate directly to dashboard after acceptance
-        navigate('/dashboard');
-        return;
-      } catch (err: any) {
-        console.error('Accept invite error:', err.message);
-        const msg = err.message || '';
-
-        // Handle authentication errors - redirect to login
-        if (msg.toLowerCase().includes('authenticated') || msg.toLowerCase().includes('auth')) {
-          navigate(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
-          return;
-        }
-
-        if (msg.includes('cancelled')) {
-          setStatus('cancelled');
-        } else if (msg.includes('24 hours')) {
-          setStatus('expired');
-        } else {
-          setError(msg || t('team.inviteError'));
-          setStatus('error');
-        }
-      } finally {
-        setIsAccepting(false);
-      }
-      return;
+  // Auto-accept when returning from Magic Link authentication
+  useEffect(() => {
+    if (autoAccept && isAuthenticated && user?.id && status === 'pending' && token) {
+      handleAcceptInvite();
     }
+  }, [autoAccept, isAuthenticated, user?.id, status, token]);
 
-    // CASE 2: User is NOT logged in - check if invite email is an existing user
-    if (inviteEmail) {
-      try {
-        // Check if email exists in profiles table (existing user)
-        const { data: existingProfile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', inviteEmail)
-          .maybeSingle();
+  // Main accept handler - calls Edge Function
+  const handleAcceptInvite = useCallback(async () => {
+    if (!token || isProcessing) return;
 
-        if (existingProfile) {
-          // EXISTING USER - redirect to login
-          navigate(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
-        } else {
-          // NEW USER - redirect to signup with pre-filled email
-          navigate(`/signup?email=${encodeURIComponent(inviteEmail)}&returnUrl=${encodeURIComponent(returnUrl)}`);
-        }
-      } catch (err) {
-        console.error('Error checking user existence:', err);
-        // On error, default to login page
-        navigate(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
-      }
-    } else {
-      // No email in invite preview, default to login
-      navigate(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
-    }
-  };
-
-  const declineInvite = async () => {
-    if (!token || isDeclining) return;
-    setIsDeclining(true);
+    setIsProcessing(true);
+    setStatus('processing');
 
     try {
-      // Just navigate away - no need to update DB for decline
-      navigate('/');
-    } finally {
-      setIsDeclining(false);
-    }
-  };
+      // Get current user ID if authenticated
+      let userId: string | undefined;
+      if (isAuthenticated) {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        userId = currentUser?.id;
+      }
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSignupError('');
-
-    if (signupForm.password !== signupForm.confirmPassword) {
-      setSignupError(t('auth.passwordMismatch', 'Passwords do not match'));
-      return;
-    }
-
-    if (signupForm.password.length < 6) {
-      setSignupError(t('auth.passwordTooShort', 'Password must be at least 6 characters'));
-      return;
-    }
-
-    setSignupLoading(true);
-
-    try {
-      // Sign up with Supabase
-      const { data, error } = await supabase.auth.signUp({
-        email: signupForm.email,
-        password: signupForm.password,
-        options: {
-          data: {
-            name: signupForm.name,
-            invited_team_token: token, // Store token for post-verification
-          },
-          emailRedirectTo: `${window.location.origin}/accept-invite?token=${token}`,
-        },
+      // Call Edge Function
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/accept-invite-v2`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, userId }),
       });
 
-      if (error) throw error;
+      const result: AcceptInviteResponse = await response.json();
 
-      if (data.user && !data.user.email_confirmed_at) {
-        // Email confirmation required
-        setStatus('success');
-        setError(''); // Clear any errors
-        // Show confirmation message
-        navigate(`/auth/verify-email?email=${encodeURIComponent(signupForm.email)}&returnUrl=${encodeURIComponent(`/invite/accept?token=${token}`)}`);
-      } else if (data.user) {
-        // Auto-confirmed (dev mode), accept invite immediately
-        await acceptInvite();
+      if (!result.success && result.action === 'error') {
+        setError(result.error || t('team.inviteError', 'Failed to accept invitation'));
+        setStatus('error');
+        return;
       }
-    } catch (err: any) {
-      console.error('Signup error:', err);
-      setSignupError(err.message || t('auth.signupFailed', 'Sign up failed'));
+
+      switch (result.action) {
+        case 'accepted':
+          // Success! Reload teams and navigate to dashboard
+          toast.success(t('team.inviteAccepted', `You've joined ${result.teamName}!`));
+          await loadTeams();
+          if (result.teamId) {
+            await selectTeam(result.teamId);
+          }
+          setOnboardingCompleted(true);
+          setStatus('success');
+          setTimeout(() => navigate('/dashboard'), 1500);
+          break;
+
+        case 'needs_auth':
+          // Existing user - Magic Link was sent or needs to login
+          if (result.magicLinkSent) {
+            setStatus('magic_link_sent');
+            toast.success(t('team.magicLinkSent', 'Check your email for a login link!'));
+          } else {
+            // Magic link failed, redirect to login
+            const returnUrl = `/invite/accept?token=${token}&auto=true`;
+            navigate(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
+          }
+          break;
+
+        case 'needs_signup':
+          // New user - redirect to signup
+          const signupUrl = `/signup?email=${encodeURIComponent(result.email || '')}&returnUrl=${encodeURIComponent(`/invite/accept?token=${token}&auto=true`)}`;
+          navigate(signupUrl);
+          break;
+
+        default:
+          setError(t('team.inviteError', 'Unexpected error'));
+          setStatus('error');
+      }
+    } catch (err) {
+      console.error('Accept invite error:', err);
+      setError(err instanceof Error ? err.message : t('team.inviteError', 'Failed to accept invitation'));
+      setStatus('error');
     } finally {
-      setSignupLoading(false);
+      setIsProcessing(false);
     }
-  };
+  }, [token, isProcessing, isAuthenticated, navigate, loadTeams, selectTeam, setOnboardingCompleted, t, SUPABASE_URL]);
 
   const handleLoginRedirect = () => {
-    const returnUrl = window.location.pathname + window.location.search;
+    const returnUrl = `/invite/accept?token=${token}&auto=true`;
     navigate(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
   };
 
-  // Loading state (including session verification)
-  if (authLoading || status === 'loading' || hasValidSession === null) {
+  const handleSignupRedirect = () => {
+    const returnUrl = `/invite/accept?token=${token}&auto=true`;
+    const email = invitePreview.email || '';
+    navigate(`/signup?email=${encodeURIComponent(email)}&returnUrl=${encodeURIComponent(returnUrl)}`);
+  };
+
+  // Loading state
+  if (authLoading || status === 'loading') {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -273,261 +197,18 @@ export function AcceptInvitePage() {
     );
   }
 
-  // Pending state for unauthenticated users - Show invite info + signup/login options
-  // Use hasValidSession to check actual Supabase session, not just authStore state
-  if (status === 'pending' && !hasValidSession) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Users className="h-6 w-6 text-primary" />
-            </div>
-            <CardTitle>{t('team.teamInvite', 'Team Invitation')}</CardTitle>
-            <CardDescription>
-              {invitePreview.inviterName
-                ? t('team.invitedBy', '{{name}} has invited you to join', { name: invitePreview.inviterName })
-                : t('team.youveBeenInvited', "You've been invited to join")}
-            </CardDescription>
-            {invitePreview.teamName && (
-              <div className="mt-2 px-3 py-2 bg-muted rounded-md">
-                <p className="font-semibold text-lg">{invitePreview.teamName}</p>
-              </div>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!signupMode ? (
-              <>
-                <Button onClick={acceptInvite} className="w-full">
-                  {t('auth.createAccountToAccept', 'Create account to accept')}
-                </Button>
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                      {t('common.or', 'Or')}
-                    </span>
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleLoginRedirect}
-                >
-                  {t('auth.alreadyHaveAccount', 'Already have an account? Log in')}
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full text-muted-foreground"
-                  onClick={declineInvite}
-                >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  {t('team.declineInvite', 'Decline invitation')}
-                </Button>
-              </>
-            ) : (
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">{t('auth.name', 'Name')}</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    value={signupForm.name}
-                    onChange={(e) => setSignupForm(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder={t('auth.namePlaceholder', 'John Doe')}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">{t('auth.email', 'Email')}</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={signupForm.email}
-                    onChange={(e) => setSignupForm(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="you@example.com"
-                    required
-                    disabled={!!invitePreview.email} // Disable if pre-filled from invite
-                  />
-                  {invitePreview.email && (
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Mail className="h-3 w-3" />
-                      {t('team.invitedEmail', 'This invitation was sent to this email')}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">{t('auth.password', 'Password')}</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={signupForm.password}
-                    onChange={(e) => setSignupForm(prev => ({ ...prev, password: e.target.value }))}
-                    placeholder="••••••••"
-                    required
-                    minLength={6}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">{t('auth.confirmPassword', 'Confirm Password')}</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={signupForm.confirmPassword}
-                    onChange={(e) => setSignupForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    placeholder="••••••••"
-                    required
-                    minLength={6}
-                  />
-                </div>
-
-                {signupError && (
-                  <p className="text-sm text-destructive">{signupError}</p>
-                )}
-
-                <Button type="submit" className="w-full" disabled={signupLoading}>
-                  {signupLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  {t('auth.signupAndJoin', 'Sign up & Join Team')}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full"
-                  onClick={() => setSignupMode(false)}
-                >
-                  {t('common.back', 'Back')}
-                </Button>
-              </form>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Accepting state (authenticated user)
-  if (isAccepting) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-            <p className="text-muted-foreground">{t('team.acceptingInvite', 'Accepting invitation...')}</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Pending state for authenticated users - Show accept/decline buttons
-  // Only show if we have a verified valid Supabase session
-  if (status === 'pending' && hasValidSession) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Users className="h-6 w-6 text-primary" />
-            </div>
-            <CardTitle>{t('team.teamInvite', 'Team Invitation')}</CardTitle>
-            <CardDescription>
-              {invitePreview.inviterName
-                ? t('team.invitedBy', '{{name}} has invited you to join', { name: invitePreview.inviterName })
-                : t('team.youveBeenInvited', "You've been invited to join")}
-            </CardDescription>
-            {invitePreview.teamName && (
-              <div className="mt-2 px-3 py-2 bg-muted rounded-md">
-                <p className="font-semibold text-lg">{invitePreview.teamName}</p>
-              </div>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button
-              onClick={acceptInvite}
-              className="w-full"
-              disabled={isAccepting || isDeclining}
-            >
-              {isAccepting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              {t('team.acceptInvite', 'Accept Invitation')}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={declineInvite}
-              className="w-full"
-              disabled={isAccepting || isDeclining}
-            >
-              {isDeclining && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              <XCircle className="h-4 w-4 mr-2" />
-              {t('team.declineInvite', 'Decline')}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Cancelled state
-  if (status === 'cancelled') {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
-              <XCircle className="h-6 w-6 text-red-500" />
-            </div>
-            <CardTitle>{t('team.inviteCancelled', 'Invitation Cancelled')}</CardTitle>
-            <CardDescription>{t('team.inviteCancelledMessage', 'This invitation has been cancelled by the team owner.')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button onClick={() => navigate('/')} className="w-full">
-              {t('common.goToDashboard', 'Go to Dashboard')}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Expired state
-  if (status === 'expired') {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto h-12 w-12 rounded-full bg-orange-500/10 flex items-center justify-center mb-4">
-              <Timer className="h-6 w-6 text-orange-500" />
-            </div>
-            <CardTitle>{t('team.inviteExpired', 'Invitation Expired')}</CardTitle>
-            <CardDescription>
-              {t('team.inviteExpiredMessage', 'This invitation has expired after 24 hours. Please ask the team owner to send a new invitation.')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button onClick={() => navigate('/')} className="w-full">
-              {t('common.goToDashboard', 'Go to Dashboard')}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   // Error state
-  if (status === 'error' || status === 'not_found') {
+  if (status === 'error') {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
-              <XCircle className="h-6 w-6 text-destructive" />
-            </div>
-            <h2 className="text-xl font-semibold mb-2">{t('team.inviteFailed', 'Failed to Accept Invitation')}</h2>
+            <XCircle className="h-12 w-12 text-destructive mb-4" />
+            <h2 className="text-xl font-semibold mb-2">{t('team.inviteError', 'Invitation Error')}</h2>
             <p className="text-muted-foreground text-center mb-6">{error}</p>
-            <Button onClick={() => navigate('/')}>{t('common.back', 'Back')}</Button>
+            <Button onClick={() => navigate('/')} variant="outline">
+              {t('common.goHome', 'Go to Home')}
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -535,18 +216,141 @@ export function AcceptInvitePage() {
   }
 
   // Success state
+  if (status === 'success') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <CheckCircle2 className="h-12 w-12 text-green-500 mb-4" />
+            <h2 className="text-xl font-semibold mb-2">{t('team.welcomeToTeam', 'Welcome to the team!')}</h2>
+            <p className="text-muted-foreground text-center mb-6">
+              {t('team.redirectingToDashboard', 'Redirecting to dashboard...')}
+            </p>
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Magic Link sent state
+  if (status === 'magic_link_sent') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
+              <Mail className="h-6 w-6 text-green-600" />
+            </div>
+            <CardTitle>{t('team.checkEmail', 'Check Your Email')}</CardTitle>
+            <CardDescription>
+              {t('team.magicLinkDescription', 'We sent a login link to your email. Click it to join the team automatically.')}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-center text-muted-foreground">
+              {invitePreview.email && (
+                <span>Sent to: <strong>{invitePreview.email}</strong></span>
+              )}
+            </p>
+            <div className="flex flex-col gap-2">
+              <Button variant="outline" onClick={handleLoginRedirect} className="w-full">
+                <LogIn className="h-4 w-4 mr-2" />
+                {t('auth.loginWithPassword', 'Login with password instead')}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Processing state
+  if (status === 'processing') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+            <p className="text-muted-foreground">{t('team.processingInvite', 'Processing invitation...')}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Pending state - show invite details and accept button
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center mb-4">
-            <CheckCircle2 className="h-6 w-6 text-green-500" />
+        <CardHeader className="text-center">
+          <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <Users className="h-6 w-6 text-primary" />
           </div>
-          <h2 className="text-xl font-semibold mb-2">{t('team.welcomeToTeam', 'Welcome to the Team!')}</h2>
-          <p className="text-muted-foreground text-center mb-6">
-            {t('team.joinedTeam', 'You have successfully joined {{team}}', { team: teamName || invitePreview.teamName })}
-          </p>
-          <Button onClick={() => navigate('/')}>{t('team.goToDashboard', 'Go to Dashboard')}</Button>
+          <CardTitle>{t('team.teamInvite', 'Team Invitation')}</CardTitle>
+          <CardDescription>
+            {invitePreview.inviterName
+              ? t('team.invitedBy', '{{name}} has invited you to join', { name: invitePreview.inviterName })
+              : t('team.youveBeenInvited', "You've been invited to join")}
+          </CardDescription>
+          {invitePreview.teamName && (
+            <div className="mt-4 px-4 py-3 bg-muted rounded-lg">
+              <p className="font-semibold text-lg">{invitePreview.teamName}</p>
+            </div>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Single Accept Button */}
+          <Button
+            onClick={handleAcceptInvite}
+            className="w-full"
+            size="lg"
+            disabled={isProcessing}
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                {t('common.processing', 'Processing...')}
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                {t('team.acceptInvitation', 'Accept Invitation')}
+              </>
+            )}
+          </Button>
+
+          {/* Secondary options */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                {t('common.or', 'Or')}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" onClick={handleLoginRedirect} className="w-full">
+              <LogIn className="h-4 w-4 mr-2" />
+              {t('auth.login', 'Log In')}
+            </Button>
+            <Button variant="outline" onClick={handleSignupRedirect} className="w-full">
+              <UserPlus className="h-4 w-4 mr-2" />
+              {t('auth.signup', 'Sign Up')}
+            </Button>
+          </div>
+
+          <Button
+            variant="ghost"
+            className="w-full text-muted-foreground"
+            onClick={() => navigate('/')}
+          >
+            <XCircle className="h-4 w-4 mr-2" />
+            {t('team.declineInvite', 'Decline invitation')}
+          </Button>
         </CardContent>
       </Card>
     </div>

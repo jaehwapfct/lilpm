@@ -55,7 +55,7 @@ export function SignupPage() {
   const onSubmit = async (data: SignupForm) => {
     try {
       setError(null);
-      await signup(data.email, data.password, data.name);
+      await signup(data.email, data.password, data.name, returnUrl || undefined);
       toast.success(t('auth.signupSuccess'));
       // Pass returnUrl to email verification page
       const verifyUrl = returnUrl
