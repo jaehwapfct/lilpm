@@ -91,6 +91,13 @@ function OnboardingCheck({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading: authLoading, isEmailVerified } = useAuthStore();
   const { teams, isLoading: teamsLoading, loadTeams } = useTeamStore();
   const { onboardingCompleted } = useMCPStore();
+  const location = useLocation();
+
+  // CRITICAL: Skip onboarding redirects for invite-related paths
+  // This ensures users can accept invites even without existing teams
+  const isInvitePath = location.pathname.startsWith('/invite/') ||
+    location.pathname.includes('/accept-invite') ||
+    location.search.includes('returnUrl=') && location.search.includes('/invite/');
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -110,6 +117,11 @@ function OnboardingCheck({ children }: { children: React.ReactNode }) {
   // Then check if authenticated - redirect before checking teams
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // SKIP all onboarding redirects for invite paths - let the invite flow handle navigation
+  if (isInvitePath) {
+    return <>{children}</>;
   }
 
   // Now check teams loading (only for authenticated users)
@@ -138,6 +150,12 @@ function OnboardingCheck({ children }: { children: React.ReactNode }) {
 // Auth Route wrapper (redirect if already authenticated)
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
+  const location = useLocation();
+
+  // Check for returnUrl in search params - preserve invite flow
+  const searchParams = new URLSearchParams(location.search);
+  const returnUrl = searchParams.get('returnUrl');
+  const isInviteReturn = returnUrl?.includes('/invite/');
 
   if (isLoading) {
     return (
@@ -147,7 +165,12 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // If authenticated with a returnUrl (especially invite), redirect there instead of /
   if (isAuthenticated) {
+    if (returnUrl) {
+      // Redirect to the returnUrl to complete the invite flow
+      return <Navigate to={decodeURIComponent(returnUrl)} replace />;
+    }
     return <Navigate to="/" replace />;
   }
 

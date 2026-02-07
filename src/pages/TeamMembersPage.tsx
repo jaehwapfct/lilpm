@@ -143,6 +143,27 @@ export function TeamMembersPage() {
         teamMemberService.getMembers(currentTeam.id),
         teamInviteService.getInvites(currentTeam.id),
       ]);
+
+      // Check if team has an owner - if not, auto-fix by making current user the owner
+      const hasOwner = membersData.some(m => m.role === 'owner');
+      if (!hasOwner && membersData.length === 0) {
+        // No members at all - call RPC to add current user as owner
+        try {
+          const { error } = await supabase.rpc('ensure_current_user_is_owner_if_no_owner', {
+            _team_id: currentTeam.id
+          });
+          if (!error) {
+            // Reload members after fix
+            const updatedMembers = await teamMemberService.getMembers(currentTeam.id);
+            setMembers(updatedMembers);
+            setInvites(invitesData);
+            return;
+          }
+        } catch (rpcError) {
+          console.error('Failed to auto-fix team owner:', rpcError);
+        }
+      }
+
       setMembers(membersData);
       setInvites(invitesData);
     } catch (error) {
