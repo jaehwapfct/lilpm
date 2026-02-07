@@ -40,48 +40,15 @@ import { cn } from '@/lib/utils';
 import { StatusIcon, PriorityIcon } from './IssueIcons';
 import { IssueTypeIcon } from './IssueTypeIcon';
 import type { Issue } from '@/types';
-
-interface GanttCycle {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  status: 'upcoming' | 'active' | 'completed';
-}
-
-interface GanttChartProps {
-  issues: Issue[];
-  cycles?: GanttCycle[];
-  onIssueClick?: (issue: Issue) => void;
-  onIssueUpdate?: (issueId: string, updates: { dueDate?: string; startDate?: string; sortOrder?: number }) => void;
-  onDependencyCreate?: (fromIssueId: string, toIssueId: string) => void;
-  onDependencyDelete?: (fromIssueId: string, toIssueId: string) => void;
-  onCycleCreate?: (startDate: string, endDate: string, name: string) => void;
-}
-
-interface DragState {
-  issueId: string | null;
-  mode: 'move' | 'resize-start' | 'resize-end' | 'link' | 'row-reorder' | 'pending-bar' | 'pending-row' | null;
-  startX: number;
-  startY: number;
-  originalDueDate: string | null;
-  originalCreatedAt: string | null;
-}
-
-interface Dependency {
-  from: string;
-  to: string;
-}
-
-type ViewMode = 'day' | 'week' | 'month' | 'quarter';
-type GroupBy = 'none' | 'project' | 'assignee' | 'status';
-
-interface GroupedIssues {
-  key: string;
-  label: string;
-  issues: Issue[];
-  isCollapsed: boolean;
-}
+import type {
+  GanttCycle,
+  GanttChartProps,
+  DragState,
+  Dependency,
+  ViewMode,
+  GroupBy,
+  GroupedIssues
+} from './GanttChart.types';
 
 export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, onDependencyCreate, onDependencyDelete, onCycleCreate }: GanttChartProps) {
   const { t, i18n } = useTranslation();

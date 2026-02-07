@@ -113,11 +113,13 @@ git reset --hard HEAD~1
 
 ---
 
-## ⚠️ 분할 금지 대상
+## ⚠️ 분할 금지/주의 대상
 
-| 파일 | 이유 |
-|------|------|
-| lilyStore.ts | AI 상태 핵심, 동기화 버그 위험 |
-| BlockEditor.tsx | TipTap 통합, 에디터 손상 위험 |
-| Sidebar.tsx | UI 상태 복잡, UX 버그 위험 |
-| database.ts | 타입 정의, 이미 구조화됨 |
+| 파일 | 줄 수 | 상태 | 이유 |
+|------|-------|------|------|
+| LilyChat.tsx | 1807 | ✅ 일부 완료 | -223줄, 추가 분할 가능 |
+| GanttChart.tsx | 1880 | ✅ 타입 추출 | 타입만 분리, 로직 유지 |
+| IssueDetailPage.tsx | 1503 | ⚠️ 주의 | 페이지 상태 복잡 |
+| BlockEditor.tsx | 1396 | ❌ 금지 | TipTap 통합 |
+| lilyStore.ts | 1066 | ❌ 금지 | AI 상태 핵심 |
+
