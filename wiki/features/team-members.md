@@ -4,7 +4,7 @@
 
 ## 개요
 
-LilPM은 팀 기반 협업 도구로, 멤버 초대 및 권한 관리를 지원합니다. 멤버 변경 사항은 **실시간으로 모든 팀원에게 동기화**됩니다. 모든 중요 액션은 `activity_logs` 테이블에 기록됩니다.
+LilPM은 팀 기반 협업 도구로, 멤버 초대 및 권한 관리를 지원합니다. 멤버 변경 사항은 **실시간으로 모든 팀원에게 동기화**됩니다.
 
 ## 팀 역할
 
@@ -15,6 +15,38 @@ LilPM은 팀 기반 협업 도구로, 멤버 초대 및 권한 관리를 지원�
 | **Member** | 일반 멤버 | 이슈/PRD 생성 및 편집 |
 | **Guest** | 게스트 | 읽기 전용 |
 
+## 팀 생성 시 Owner 자동 할당
+
+팀 생성 시 `create_team_with_owner` RPC 함수를 통해 생성자가 자동으로 **Owner** 역할로 추가됩니다:
+
+```sql
+-- supabase/migrations/20260207115000_fix_create_team_with_owner.sql
+CREATE OR REPLACE FUNCTION create_team_with_owner(_name text, _slug text, _issue_prefix text DEFAULT NULL)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  new_team_id uuid;
+  current_user_id uuid;
+BEGIN
+  current_user_id := auth.uid();
+  
+  -- 팀 생성
+  INSERT INTO teams (name, slug, issue_prefix, created_at, updated_at)
+  VALUES (_name, _slug, COALESCE(_issue_prefix, UPPER(LEFT(_slug, 3))), NOW(), NOW())
+  RETURNING id INTO new_team_id;
+
+  -- 생성자를 Owner로 추가
+  INSERT INTO team_members (team_id, user_id, role, joined_at)
+  VALUES (new_team_id, current_user_id, 'owner', NOW())
+  ON CONFLICT (team_id, user_id) DO UPDATE SET role = 'owner';
+
+  RETURN json_build_object('id', new_team_id, 'name', _name, ...);
+END;
+$$;
+```
+
 ## 멤버 초대 플로우
 
 ```
@@ -24,69 +56,133 @@ LilPM은 팀 기반 협업 도구로, 멤버 초대 및 권한 관리를 지원�
 └────────┬────────┘
          │
          ▼
-┌─────────────────┐    기존 유저?    ┌─────────────────┐
-│ Edge Function   │ ──── YES ──────→│ 인앱 알림 + 이메일│
-│ send-team-invite│                 └─────────────────┘
+┌─────────────────┐
+│  Supabase Auth  │
+│ inviteUserByEmail│
 └────────┬────────┘
-         │ NO (신규 유저)
+         │
          ▼
-┌─────────────────┐     ┌─────────────────┐
-│ Supabase Auth   │ ──→ │ 가입 초대 이메일 │
-│ inviteUserByEmail│    │ /invite/accept  │
-└─────────────────┘     └─────────────────┘
+┌─────────────────┐     ┌─────────────────────────┐
+│   이메일 발송    │ ──→ │  /invite/accept?token=  │
+└─────────────────┘     └────────────┬────────────┘
+                                     │
+                        ┌────────────┴────────────┐
+                        ▼                         ▼
+              ┌──────────────────┐     ┌──────────────────┐
+              │  기존 유저 로그인  │     │   신규 유저 가입   │
+              └────────┬─────────┘     └────────┬─────────┘
+                       │                        │
+                       └───────────┬────────────┘
+                                   ▼
+                        ┌──────────────────┐
+                        │ 초대 미리보기 표시 │
+                        │ • 팀 이름        │
+                        │ • 초대자 이름     │
+                        │ [수락] [거절]    │
+                        └────────┬─────────┘
+                                 │
+                     ┌───────────┴───────────┐
+                     ▼                       ▼
+              [수락 클릭]              [거절 클릭]
+                     │                       │
+                     ▼                       ▼
+              팀 멤버로 추가              홈으로 이동
 ```
 
-## 주요 기능
+## 초대 미리보기 (get-invite-preview Edge Function)
 
-### 1. 멤버 초대
+비인증 사용자도 초대 정보를 미리 볼 수 있도록 **Edge Function**을 사용합니다:
 
 ```typescript
-// teamInviteService.createInvite()
-const token = crypto.randomUUID();
-const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24시간
+// supabase/functions/get-invite-preview/index.ts
+serve(async (req: Request) => {
+  const { token } = await req.json();
+  
+  // Service Role로 RLS 우회
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-const { data } = await supabase.from('team_invites').insert({
-  team_id: teamId,
-  email,
-  role,
-  invited_by: user.id,
-  token,
-  status: 'pending',
-  expires_at: expiresAt,
+  const { data: invite } = await supabase
+    .from('team_invites')
+    .select(`
+      status, expires_at, email,
+      team:teams(name),
+      inviter:profiles!team_invites_invited_by_fkey(name, avatar_url)
+    `)
+    .eq('token', token)
+    .single();
+
+  // 만료 확인
+  if (new Date(invite.expires_at) < new Date()) {
+    return { valid: false, status: 'expired' };
+  }
+
+  return {
+    valid: true,
+    status: invite.status,
+    teamName: invite.team?.name,
+    inviterName: invite.inviter?.name,
+    email: invite.email,
+  };
 });
 ```
 
-- **신규 유저**: Supabase Auth로 가입 초대 이메일 발송
-- **기존 유저**: 인앱 알림 + 이메일 발송
+**배포 명령:**
+```bash
+supabase functions deploy get-invite-preview --no-verify-jwt
+```
 
-### 2. 초대 만료 (24시간)
+## 초대 수락/거절 UI (AcceptInvitePage)
 
-- 초대 생성 시 `expires_at`이 24시간 후로 설정됨
-- Pending 탭에서 실시간 카운트다운 표시 (매분 갱신)
-- 만료된 초대 링크 클릭 시 "Invitation Expired" 페이지 표시
+`/invite/accept?token=xxx` 페이지에서 **명시적인 수락/거절 버튼**을 표시합니다:
 
-**Pending 탭 UI:**
-| 컬럼 | 내용 |
-|------|------|
-| Email | 초대 대상 이메일 |
-| Role | 부여할 역할 |
-| Status | 🟡 Waiting / 🔴 Expired |
-| Time Left | 남은 시간 (예: "23h 45m left") |
+```tsx
+// src/pages/auth/AcceptInvitePage.tsx (lines 335-391)
 
-### 3. 초대 수락/거절
+// 인증된 유저용 수락/거절 UI
+if (status === 'pending' && isAuthenticated) {
+  return (
+    <Card>
+      <CardHeader>
+        <Users className="h-6 w-6" />
+        <CardTitle>Team Invitation</CardTitle>
+        <CardDescription>
+          {invitePreview.inviterName} has invited you to join
+        </CardDescription>
+        <div className="bg-muted rounded-md">
+          <p className="font-semibold">{invitePreview.teamName}</p>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <Button onClick={acceptInvite}>
+          <CheckCircle2 /> Accept Invitation
+        </Button>
+        <Button variant="outline" onClick={declineInvite}>
+          <XCircle /> Decline
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+```
 
-- `/invite/accept?token=xxx` 라우트에서 처리
-- 토큰 + 만료 + 상태 검증 후 `team_members` 테이블에 추가
+### 상태별 랜딩 페이지
 
-**상태별 랜딩 페이지:**
 | 상태 | 표시 내용 |
 |------|----------|
-| pending (유효) | 자동 수락 처리 → 팀 대시보드 |
+| pending (유효) | 팀명, 초대자 표시 + 수락/거절 버튼 |
 | cancelled | ❌ "Invitation Cancelled" |
 | expired | ⏱️ "Invitation Expired (24 hours)" |
 | accepted | ℹ️ "Already accepted" |
 
-### 4. 멤버 제거
+## 초대 만료 (24시간)
+
+- 초대 생성 시 `expires_at`이 24시간 후로 설정
+- Pending 탭에서 실시간 카운트다운 표시
+- 만료된 초대 링크 클릭 시 "Invitation Expired" 페이지 표시
+
+## 멤버 제거
 
 ```typescript
 await teamMemberService.removeMember(memberId);
@@ -94,38 +190,6 @@ await teamMemberService.removeMember(memberId);
 
 - Admin 이상만 제거 가능
 - Owner는 제거 불가 (소유권 이전 필요)
-- **제거된 유저에게 알림 발송**:
-  - 인앱 알림: "You have been removed from [팀명]"
-  - 이메일 알림: Edge Function `send-member-removed` 통해 발송
-
-### 5. 역할 변경
-
-```typescript
-await teamMemberService.updateMemberRole(memberId, newRole);
-```
-
-- 역할 변경 시 `activity_logs`에 기록됨
-
-## 활동 로깅 (Activity Logs)
-
-모든 중요 액션이 `activity_logs` 테이블에 기록됩니다:
-
-| action_type | 설명 |
-|-------------|------|
-| `invite_sent` | 초대 발송 |
-| `invite_cancelled` | 초대 취소 |
-| `invite_accepted` | 초대 수락 |
-| `role_changed` | 역할 변경 (old → new 기록) |
-| `member_removed` | 멤버 제거 |
-
-```typescript
-// activityService.ts
-logInviteSent(teamId, inviteId, email, role, isExistingUser);
-logInviteCancelled(teamId, inviteId, email);
-logInviteAccepted(teamId, inviteId, userId);
-logRoleChanged(teamId, memberId, userId, oldRole, newRole);
-logMemberRemoved(teamId, memberId, userId, role);
-```
 
 ## 실시간 동기화
 
@@ -152,7 +216,7 @@ const channel = supabase
 |------|------|------|
 | id | uuid | PK |
 | team_id | uuid | FK → teams |
-| user_id | uuid | FK → profiles (CASCADE DELETE) |
+| user_id | uuid | FK → profiles |
 | role | text | owner/admin/member/guest |
 | joined_at | timestamp | 가입 일시 |
 
@@ -167,29 +231,16 @@ const channel = supabase
 | token | text | 초대 토큰 (UUID) |
 | status | text | pending/accepted/cancelled/expired |
 | invited_by | uuid | 초대한 유저 ID |
-| expires_at | timestamp | 만료 일시 (생성 후 24시간) |
+| expires_at | timestamp | 만료 일시 (24시간) |
 | created_at | timestamp | 생성 일시 |
-
-### activity_logs
-
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| id | uuid | PK |
-| team_id | uuid | FK → teams |
-| user_id | uuid | 액션 수행자 |
-| action_type | text | 액션 종류 |
-| target_type | text | team_member/team_invite |
-| target_id | uuid | 대상 ID |
-| old_value | jsonb | 변경 전 값 |
-| new_value | jsonb | 변경 후 값 |
-| created_at | timestamp | 액션 일시 |
 
 ## Edge Functions
 
-| 함수명 | 용도 |
-|--------|------|
-| `send-team-invite` | 팀 초대 이메일 발송 |
-| `send-member-removed` | 멤버 제거 알림 이메일 발송 |
+| 함수명 | 용도 | JWT 검증 |
+|--------|------|----------|
+| `get-invite-preview` | 초대 미리보기 (RLS 우회) | ❌ (--no-verify-jwt) |
+| `send-team-invite` | 팀 초대 이메일 발송 | ✅ |
+| `send-member-removed` | 멤버 제거 알림 이메일 | ✅ |
 
 ## 보안
 
@@ -197,6 +248,7 @@ const channel = supabase
 - ✅ Admin 이상만 멤버 관리 가능
 - ✅ 초대 토큰 1회성 사용
 - ✅ 초대 만료 시간 24시간
+- ✅ Service Role로만 미리보기 접근 가능
 
 ---
 

@@ -10,17 +10,37 @@ LilPM은 Supabase Auth를 기반으로 이메일/비밀번호 인증을 제공�
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   회원가입   │ ──→ │ 이메일 인증  │ ──→ │   팀 생성   │
+│   회원가입   │ ──→ │ 이메일 인증  │ ──→ │   /welcome  │
 └─────────────┘     └─────────────┘     └─────────────┘
-                          │
-                          ▼
-                    인증 링크 클릭
-                          │
-                          ▼
-┌─────────────┐     ┌─────────────┐
-│    로그인    │ ←── │ 온보딩 완료  │
-└─────────────┘     └─────────────┘
+                          │                    │
+                          ▼                    ▼
+                    인증 링크 클릭        ┌───────────────┐
+                          │              │ 온보딩 선택    │
+                          │              │ • 팀 생성      │
+                          │              │ • AI 설정      │
+                          │              │ • LLM 설정     │
+                          │              └───────┬───────┘
+                          │                      ↓
+┌─────────────┐     ┌─────────────────────────────────┐
+│    로그인    │ ←── │         홈 대시보드              │
+└─────────────┘     └─────────────────────────────────┘
 ```
+
+## 리디렉션 로직 (App.tsx lines 102-109)
+
+```tsx
+// 이메일 미인증 + 팀 없음 → 이메일 인증 페이지
+if (!isEmailVerified && teams.length === 0) {
+  return <Navigate to="/auth/verify-email" replace />;
+}
+
+// 팀 없음 + 온보딩 미완료 → /welcome 페이지
+if (teams.length === 0 && !onboardingCompleted) {
+  return <Navigate to="/welcome" replace />;
+}
+```
+
+**중요:** 팀이 없는 신규 유저는 `/onboarding/create-team`이 아닌 **`/welcome`** 페이지로 리디렉션됩니다.
 
 ## 주요 기능
 
@@ -35,7 +55,7 @@ signup: async (email, password, name) => {
     email,
     password,
     options: {
-      emailRedirectTo: `${siteUrl}/onboarding/create-team`,
+      emailRedirectTo: `${siteUrl}/welcome`,
       data: { name },
     },
   });
@@ -81,21 +101,48 @@ interface AuthState {
 - "인증 이메일 재발송" 버튼
 - 인증 완료 시 자동 리다이렉트
 
+### Welcome 페이지 (`/welcome`)
+신규 유저의 기본 랜딩 페이지:
+- 팀 생성 옵션
+- AI 설정 옵션
+- 튜토리얼 링크
+
 ### 로그인 (`/login`)
 - 이메일, 비밀번호 입력
 - 미인증 사용자는 `/auth/verify-email`로 리다이렉트
-- 팀 없으면 `/onboarding/create-team`으로 리다이렉트
+- 팀 없으면 `/welcome`으로 리다이렉트
 
 ### 비밀번호 재설정 (`/password-reset`)
 - 이메일 입력으로 재설정 링크 발송
 
+## 초대 수락 페이지 (`/invite/accept`)
+
+팀 초대 링크를 통해 가입한 유저의 플로우:
+
+```
+초대 링크 클릭 → 초대 미리보기 표시 → [수락] / [거절]
+                      ↓
+            ┌────────┴────────┐
+            │  기존 유저?      │
+            └────────┬────────┘
+      YES ↙          ↓          ↘ NO
+ 자동 로그인    로그인/가입 안내   회원가입 폼
+      ↓               ↓              ↓
+   팀 합류          팀 합류       팀 합류
+      ↓               ↓              ↓
+   홈 이동          홈 이동       홈 이동
+```
+
+**중요:** 초대 수락 후에는 온보딩 단계(팀 생성, LLM 설정 등)를 **건너뛰고** 바로 홈으로 이동합니다.
+
 ## 온보딩 플로우
 
-인증 완료 후 온보딩 단계:
+인증 완료 후 `/welcome`에서 시작:
 
 1. **팀 생성** (`/onboarding/create-team`)
    - 팀 이름 입력
    - 팀 URL slug 설정
+   - 생성자가 자동으로 **Owner** 역할 부여
 
 2. **AI 설정** (`/onboarding/ai-setup`)
    - AI API 키 입력 (선택)
@@ -110,23 +157,14 @@ interface AuthState {
 | **Owner** | 모든 권한, 팀 삭제 |
 | **Admin** | 멤버 관리, 설정 변경 |
 | **Member** | 이슈/PRD 생성 및 편집 |
+| **Guest** | 읽기 전용 |
 
-### 팀 초대
+### 팀 초대 (Edge Functions)
 
-```typescript
-// Edge Function 호출 (자동 인증 처리)
-const { data, error } = await supabase.functions.invoke('send-team-invite', {
-  body: { inviteId, email, teamName, inviterName, role, token, isExistingUser, targetUserId },
-});
-
-// 초대 링크 (신규 유저용)
-const inviteLink = `${siteUrl}/invite/accept?token=${inviteToken}`;
-
-// 초대 수락 처리
-acceptInvite(token: string): Promise<void>
-```
-
-**참고:** 기존 유저의 경우 이메일 대신 인앱 알림으로 초대가 전송됩니다.
+| 함수명 | 용도 |
+|--------|------|
+| `get-invite-preview` | 비인증 유저의 초대 미리보기 (--no-verify-jwt) |
+| `send-team-invite` | 팀 초대 이메일 발송 |
 
 ## 보안 고려사항
 
@@ -135,9 +173,11 @@ acceptInvite(token: string): Promise<void>
 - ✅ 이메일 인증 필수
 - ✅ API 키는 서버 사이드 암호화 저장
 - ✅ Row Level Security (RLS) 적용
+- ✅ Service Role로만 초대 미리보기 접근
 
 ---
 
 **관련 문서**
+- [팀 멤버 관리](./team-members.md)
 - [프론트엔드 아키텍처](../architecture/frontend.md)
 - [데이터베이스 스키마](../architecture/database.md)
