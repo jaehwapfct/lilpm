@@ -56,6 +56,7 @@ import {
   Link2 as BookmarkIcon,
   Paperclip,
 } from 'lucide-react';
+import { Paintbrush } from 'lucide-react';
 import { CalloutNode, ToggleNode, VideoNode, EquationNode, TableOfContentsNode, BookmarkNode, FileNode } from './extensions';
 import { cn } from '@/lib/utils';
 import {
@@ -200,6 +201,40 @@ const ResizableImage = Image.extend({
 
   addNodeView() {
     return ReactNodeViewRenderer(ResizableImageComponent);
+  },
+});
+
+// Custom TableCell Extension with background color support
+const CustomTableCell = TableCell.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      backgroundColor: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-background-color') || element.style.backgroundColor || null,
+        renderHTML: attributes => {
+          if (!attributes.backgroundColor) return {};
+          return {
+            'data-background-color': attributes.backgroundColor,
+            style: `background-color: ${attributes.backgroundColor}`,
+          };
+        },
+      },
+      colwidth: {
+        default: null,
+        parseHTML: element => {
+          const colwidth = element.getAttribute('colwidth');
+          return colwidth ? colwidth.split(',').map(w => parseInt(w, 10)) : null;
+        },
+        renderHTML: attributes => {
+          if (!attributes.colwidth) return {};
+          return {
+            colwidth: attributes.colwidth.join(','),
+            style: `width: ${attributes.colwidth[0]}px`,
+          };
+        },
+      },
+    };
   },
 });
 
@@ -593,7 +628,7 @@ export function BlockEditor({
       }),
       TableRow,
       TableHeader,
-      TableCell,
+      CustomTableCell,
       ResizableImage.configure({
         HTMLAttributes: {
           class: 'rounded-lg max-w-full',
@@ -1012,6 +1047,42 @@ export function BlockEditor({
               >
                 Toggle Header Column
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {/* Cell Background Color */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                    <Paintbrush className="h-4 w-4 mr-2" />
+                    Cell Background
+                  </DropdownMenuItem>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="right" align="start">
+                  <DropdownMenuItem
+                    onClick={() => editor.chain().focus().setCellAttribute('backgroundColor', null).run()}
+                  >
+                    <div className="w-4 h-4 mr-2 border border-border rounded" />
+                    None
+                  </DropdownMenuItem>
+                  {[
+                    { name: 'Red', color: '#FEE2E2' },
+                    { name: 'Orange', color: '#FFEDD5' },
+                    { name: 'Yellow', color: '#FEF3C7' },
+                    { name: 'Green', color: '#DCFCE7' },
+                    { name: 'Blue', color: '#DBEAFE' },
+                    { name: 'Purple', color: '#F3E8FF' },
+                    { name: 'Pink', color: '#FCE7F3' },
+                    { name: 'Gray', color: '#F3F4F6' },
+                  ].map(({ name, color }) => (
+                    <DropdownMenuItem
+                      key={color}
+                      onClick={() => editor.chain().focus().setCellAttribute('backgroundColor', color).run()}
+                    >
+                      <div className="w-4 h-4 mr-2 rounded" style={{ backgroundColor: color }} />
+                      {name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().deleteTable().run()}

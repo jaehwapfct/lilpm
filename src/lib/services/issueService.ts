@@ -226,6 +226,52 @@ export const issueService = {
     if (error) throw error;
     return (data || []) as Issue[];
   },
+
+  // Batch create multiple issues in parallel (optimized for Lily suggestions)
+  async batchCreateIssues(
+    teamId: string,
+    issues: Array<{
+      title: string;
+      description?: string;
+      status?: IssueStatus;
+      priority?: IssuePriority;
+      type?: string;
+      estimate?: number;
+    }>
+  ): Promise<Issue[]> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    // Generate identifiers for all issues
+    const identifiers = await Promise.all(
+      issues.map(() =>
+        supabase.rpc('generate_issue_identifier', { _team_id: teamId } as any)
+          .then(({ data }) => data as string)
+      )
+    );
+
+    // Prepare all issue records
+    const issueRecords = issues.map((issue, index) => ({
+      team_id: teamId,
+      identifier: identifiers[index],
+      title: issue.title,
+      description: issue.description,
+      status: issue.status || 'backlog',
+      priority: issue.priority || 'none',
+      type: issue.type || 'task',
+      estimate: issue.estimate,
+      creator_id: user.id,
+    }));
+
+    // Batch insert
+    const { data, error } = await supabase
+      .from('issues')
+      .insert(issueRecords as any)
+      .select();
+
+    if (error) throw error;
+    return (data || []) as Issue[];
+  },
 };
 
 // ============================================

@@ -43,6 +43,7 @@ import {
   ArrowUp,
   ArrowDown,
   ChevronsUp,
+  Share2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -73,6 +74,24 @@ import { Plug, ExternalLink, Eye, Save } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useAISettings } from '@/hooks/useAISettings';
 import { prdService } from '@/lib/services/prdService';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { ShareConversationModal } from './ShareConversationModal';
 
 const MIN_HISTORY_WIDTH = 200;
 const MAX_HISTORY_WIDTH = 400;
@@ -146,10 +165,12 @@ interface ConversationItemProps {
   onSelect: () => void;
   onDelete: () => void;
   onPin: () => void;
+  onShare?: () => void;
   onStartEdit: () => void;
   onSaveEdit: () => void;
   onCancelEdit: () => void;
   onEditingTitleChange: (value: string) => void;
+  isDraggable?: boolean;
 }
 
 function ConversationItem({
@@ -163,12 +184,29 @@ function ConversationItem({
   onSelect,
   onDelete,
   onPin,
+  onShare,
   onStartEdit,
   onSaveEdit,
   onCancelEdit,
   onEditingTitleChange,
+  isDraggable = true,
 }: ConversationItemProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: conv.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -179,14 +217,27 @@ function ConversationItem({
 
   return (
     <div
+      ref={setNodeRef}
+      style={style}
       className={cn(
         "group flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-accent",
-        isSelected && "bg-accent"
+        isSelected && "bg-accent",
+        isDragging && "z-50"
       )}
       onClick={onSelect}
     >
+      {isDraggable && (
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab opacity-0 group-hover:opacity-100 hover:bg-muted rounded p-0.5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="h-3 w-3 text-muted-foreground" />
+        </div>
+      )}
       {isPinned && <Pin className="h-3 w-3 flex-shrink-0 text-primary" />}
-      {!isPinned && <MessageSquare className="h-4 w-4 flex-shrink-0 text-muted-foreground" />}
+      {!isPinned && !isDraggable && <MessageSquare className="h-4 w-4 flex-shrink-0 text-muted-foreground" />}
 
       <div className="flex-1 min-w-0">
         {isEditing ? (
@@ -238,6 +289,20 @@ function ConversationItem({
         >
           {isPinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
         </Button>
+        {onShare && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={(e) => {
+              e.stopPropagation();
+              onShare();
+            }}
+            title={t('lily.share', 'Share')}
+          >
+            <Share2 className="h-3 w-3" />
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"
@@ -414,6 +479,7 @@ export function LilyChat() {
     deleteConversation,
     updateConversationTitle,
     pinConversation,
+    reorderConversation,
     analyzeProject,
     toggleArtifactPanel,
   } = useLilyStore();
@@ -451,6 +517,45 @@ export function LilyChat() {
   const [canvasCode, setCanvasCode] = useState('');
   const [canvasError, setCanvasError] = useState<string | null>(null);
   const [showCanvasPanel, setShowCanvasPanel] = useState(false); // Only show panel when code detected
+
+  // PRD saving state - per message
+  const [savedPRDMap, setSavedPRDMap] = useState<Record<string, string>>({}); // messageId -> prdId
+  const [savingPRDForMessage, setSavingPRDForMessage] = useState<string | null>(null); // messageId being saved
+
+  // Share conversation modal state
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareConversationData, setShareConversationData] = useState<{ id: string; title: string | null } | null>(null);
+
+  // Drag-and-drop sensors for conversation reordering
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Handle drag end for conversation reordering
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const convIds = conversations.map(c => c.id);
+      const oldIndex = convIds.indexOf(active.id as string);
+      const newIndex = convIds.indexOf(over.id as string);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        reorderConversation(active.id as string, newIndex);
+      }
+    }
+  }, [conversations, reorderConversation]);
+
+  // Handle share conversation
+  const handleShareConversation = useCallback((conv: { id: string; title: string | null }) => {
+    setShareConversationData(conv);
+    setShareModalOpen(true);
+  }, []);
 
   // Initialize MCP connectors
   useEffect(() => {
@@ -631,12 +736,14 @@ export function LilyChat() {
     await generatePRD();
   };
 
-  // Save message content as a new PRD
-  const saveAsPRD = useCallback(async (content: string, title: string) => {
+  // Save message content as a new PRD (background save)
+  const saveAsPRD = useCallback(async (content: string, title: string, messageId: string) => {
     if (!currentTeam) {
       toast.error(t('lily.noTeamSelected', '팀을 선택해주세요'));
       return;
     }
+
+    setSavingPRDForMessage(messageId);
 
     try {
       // Extract first paragraph as overview
@@ -653,13 +760,16 @@ export function LilyChat() {
       if (prd) {
         await prdService.updatePRD(prd.id, { content });
         toast.success(t('lily.prdCreated', 'PRD가 생성되었습니다'));
-        navigate(`/prd/${prd.id}`);
+        // Store the PRD id for this message (enables "View PRD" button)
+        setSavedPRDMap(prev => ({ ...prev, [messageId]: prd.id }));
       }
     } catch (error) {
       console.error('Failed to save as PRD:', error);
       toast.error(t('lily.prdCreateFailed', 'PRD 생성에 실패했습니다'));
+    } finally {
+      setSavingPRDForMessage(null);
     }
-  }, [currentTeam, t, navigate]);
+  }, [currentTeam, t]);
 
   const handleGenerateTickets = async () => {
     if (currentTeam) {
@@ -784,6 +894,19 @@ export function LilyChat() {
         saveApiKey={saveApiKey}
       />
 
+      {/* Share Conversation Modal */}
+      {shareConversationData && (
+        <ShareConversationModal
+          open={shareModalOpen}
+          onClose={() => {
+            setShareModalOpen(false);
+            setShareConversationData(null);
+          }}
+          conversationId={shareConversationData.id}
+          conversationTitle={shareConversationData.title || undefined}
+        />
+      )}
+
       <div className="flex h-full bg-background">
         {/* Sidebar - Hidden on desktop (moved to main Sidebar), shown on mobile when toggled */}
         <div
@@ -812,88 +935,101 @@ export function LilyChat() {
                   {t('lily.noHistory')}
                 </p>
               ) : (
-                <>
-                  {/* Pinned Conversations */}
-                  {conversations.filter(c => pinnedConversations.includes(c.id)).length > 0 && (
-                    <div className="mb-2">
-                      <p className="text-xs font-medium text-muted-foreground px-2 mb-1 flex items-center gap-1">
-                        <Pin className="h-3 w-3" />
-                        {t('lily.pinned', 'Pinned')}
-                      </p>
-                      {conversations.filter(c => pinnedConversations.includes(c.id)).map((conv) => (
-                        <ConversationItem
-                          key={conv.id}
-                          conv={conv}
-                          isPinned={true}
-                          isSelected={currentConversationId === conv.id}
-                          isEditing={editingConvId === conv.id}
-                          editingTitle={editingTitle}
-                          dateLocale={dateLocale}
-                          t={t}
-                          onSelect={() => handleSelectConversation(conv.id)}
-                          onDelete={() => deleteConversation(conv.id)}
-                          onPin={() => {
-                            pinConversation(conv.id, false);
-                            setPinnedConversations(prev => prev.filter(id => id !== conv.id));
-                          }}
-                          onStartEdit={() => {
-                            setEditingConvId(conv.id);
-                            setEditingTitle(conv.title || '');
-                          }}
-                          onSaveEdit={() => {
-                            if (editingTitle.trim()) {
-                              updateConversationTitle(conv.id, editingTitle.trim());
-                            }
-                            setEditingConvId(null);
-                          }}
-                          onCancelEdit={() => setEditingConvId(null)}
-                          onEditingTitleChange={setEditingTitle}
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Recent Conversations */}
-                  {conversations.filter(c => !pinnedConversations.includes(c.id)).length > 0 && (
-                    <div>
-                      {pinnedConversations.length > 0 && (
-                        <p className="text-xs font-medium text-muted-foreground px-2 mb-1">
-                          {t('lily.recent', 'Recent')}
-                        </p>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={conversations.map(c => c.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <>
+                      {/* Pinned Conversations */}
+                      {conversations.filter(c => pinnedConversations.includes(c.id)).length > 0 && (
+                        <div className="mb-2">
+                          <p className="text-xs font-medium text-muted-foreground px-2 mb-1 flex items-center gap-1">
+                            <Pin className="h-3 w-3" />
+                            {t('lily.pinned', 'Pinned')}
+                          </p>
+                          {conversations.filter(c => pinnedConversations.includes(c.id)).map((conv) => (
+                            <ConversationItem
+                              key={conv.id}
+                              conv={conv}
+                              isPinned={true}
+                              isSelected={currentConversationId === conv.id}
+                              isEditing={editingConvId === conv.id}
+                              editingTitle={editingTitle}
+                              dateLocale={dateLocale}
+                              t={t}
+                              onSelect={() => handleSelectConversation(conv.id)}
+                              onDelete={() => deleteConversation(conv.id)}
+                              onPin={() => {
+                                pinConversation(conv.id, false);
+                                setPinnedConversations(prev => prev.filter(id => id !== conv.id));
+                              }}
+                              onShare={() => handleShareConversation(conv)}
+                              onStartEdit={() => {
+                                setEditingConvId(conv.id);
+                                setEditingTitle(conv.title || '');
+                              }}
+                              onSaveEdit={() => {
+                                if (editingTitle.trim()) {
+                                  updateConversationTitle(conv.id, editingTitle.trim());
+                                }
+                                setEditingConvId(null);
+                              }}
+                              onCancelEdit={() => setEditingConvId(null)}
+                              onEditingTitleChange={setEditingTitle}
+                            />
+                          ))}
+                        </div>
                       )}
-                      {conversations.filter(c => !pinnedConversations.includes(c.id)).map((conv) => (
-                        <ConversationItem
-                          key={conv.id}
-                          conv={conv}
-                          isPinned={false}
-                          isSelected={currentConversationId === conv.id}
-                          isEditing={editingConvId === conv.id}
-                          editingTitle={editingTitle}
-                          dateLocale={dateLocale}
-                          t={t}
-                          onSelect={() => handleSelectConversation(conv.id)}
-                          onDelete={() => deleteConversation(conv.id)}
-                          onPin={() => {
-                            pinConversation(conv.id, true);
-                            setPinnedConversations(prev => [...prev, conv.id]);
-                          }}
-                          onStartEdit={() => {
-                            setEditingConvId(conv.id);
-                            setEditingTitle(conv.title || '');
-                          }}
-                          onSaveEdit={() => {
-                            if (editingTitle.trim()) {
-                              updateConversationTitle(conv.id, editingTitle.trim());
-                            }
-                            setEditingConvId(null);
-                          }}
-                          onCancelEdit={() => setEditingConvId(null)}
-                          onEditingTitleChange={setEditingTitle}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </>
+
+                      {/* Recent Conversations */}
+                      {conversations.filter(c => !pinnedConversations.includes(c.id)).length > 0 && (
+                        <div>
+                          {pinnedConversations.length > 0 && (
+                            <p className="text-xs font-medium text-muted-foreground px-2 mb-1">
+                              {t('lily.recent', 'Recent')}
+                            </p>
+                          )}
+                          {conversations.filter(c => !pinnedConversations.includes(c.id)).map((conv) => (
+                            <ConversationItem
+                              key={conv.id}
+                              conv={conv}
+                              isPinned={false}
+                              isSelected={currentConversationId === conv.id}
+                              isEditing={editingConvId === conv.id}
+                              editingTitle={editingTitle}
+                              dateLocale={dateLocale}
+                              t={t}
+                              onSelect={() => handleSelectConversation(conv.id)}
+                              onDelete={() => deleteConversation(conv.id)}
+                              onPin={() => {
+                                pinConversation(conv.id, true);
+                                setPinnedConversations(prev => [...prev, conv.id]);
+                              }}
+                              onShare={() => handleShareConversation(conv)}
+                              onStartEdit={() => {
+                                setEditingConvId(conv.id);
+                                setEditingTitle(conv.title || '');
+                              }}
+                              onSaveEdit={() => {
+                                if (editingTitle.trim()) {
+                                  updateConversationTitle(conv.id, editingTitle.trim());
+                                }
+                                setEditingConvId(null);
+                              }}
+                              onCancelEdit={() => setEditingConvId(null)}
+                              onEditingTitleChange={setEditingTitle}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  </SortableContext>
+                </DndContext>
               )}
             </div>
           </ScrollArea>
@@ -1079,6 +1215,7 @@ export function LilyChat() {
                 </div>
               )}
 
+
               {messages.map((message) => {
                 // Extract thinking content from message
                 let thinkingContent = message.thinking || '';
@@ -1097,14 +1234,26 @@ export function LilyChat() {
                   .replace(/\/\/ Write a [^\n]*\n?/g, '')
                   .trim();
 
+                // Filter out internal tags like [/ISSUE_SUGGESTION], [ISSUE_SUGGESTION], [/PRD_CONTENT] etc.
+                cleanContent = cleanContent
+                  .replace(/\[\/?(?:ISSUE_SUGGESTION|PRD_CONTENT|CANVAS|THINKING)\]/gi, '')
+                  .trim();
+
                 // Only remove code blocks from chat when canvas mode is ON
                 // This allows code blocks to display normally when not in canvas mode
                 if (canvasMode && showCanvasPanel) {
                   cleanContent = cleanContent.replace(/```[\s\S]*?```/g, '').trim();
                 }
 
+                // Determine if this is a PRD-like content and if PRD button should show
+                const isPRD = isPRDLikeContent(cleanContent || '');
+                const hasIssues = suggestedIssues.length > 0;
+                const shouldShowPRDButton = message.role === 'assistant' && isPRD && !hasIssues && !isLoading;
+                const savedPRDId = savedPRDMap[message.id];
+                const isSavingThisMessage = savingPRDForMessage === message.id;
+
                 return (
-                  <div key={message.id} data-message-id={message.id}>
+                  <div key={message.id} data-message-id={message.id} className="group/message">
                     {/* Timeline Thinking Block - OUTSIDE the speech bubble */}
                     {message.role === 'assistant' && thinkingContent && (
                       <TimelineThinkingBlock content={thinkingContent} t={t} />
@@ -1127,103 +1276,129 @@ export function LilyChat() {
                           )}
                         </AvatarFallback>
                       </Avatar>
-                      <div
-                        className={cn(
-                          "group rounded-lg px-3 py-1.5 max-w-[85%]",
-                          message.role === 'user'
-                            ? "bg-primary text-primary-foreground text-[13px]"
-                            : "bg-muted"
-                        )}
-                      >
-                        {message.role === 'assistant' ? (
-                          <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed overflow-hidden
-                          [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
-                          [&_p]:my-3 [&_p]:leading-7
-                          [&_ul]:my-3 [&_ul]:pl-6 [&_ul]:list-disc [&_ul]:space-y-1
-                          [&_ol]:my-3 [&_ol]:pl-6 [&_ol]:list-decimal [&_ol]:space-y-1
-                          [&_li]:leading-7 [&_li]:pl-1
-                          [&_li_p]:my-1
-                          [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mt-6 [&_h1]:mb-3 [&_h1]:border-b [&_h1]:border-border [&_h1]:pb-2
-                          [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-foreground
-                          [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-foreground
-                          [&_h4]:text-sm [&_h4]:font-medium [&_h4]:mt-3 [&_h4]:mb-1
-                          [&_code]:text-xs [&_code]:bg-muted/70 [&_code]:text-primary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:font-mono
-                          [&_pre]:my-4 [&_pre]:bg-zinc-900 [&_pre]:dark:bg-zinc-950 [&_pre]:text-zinc-100 [&_pre]:p-4 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:border [&_pre]:border-border
-                          [&_pre_code]:bg-transparent [&_pre_code]:text-inherit [&_pre_code]:p-0 [&_pre_code]:text-xs
-                          [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:pl-4 [&_blockquote]:my-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground [&_blockquote]:bg-muted/30 [&_blockquote]:py-2 [&_blockquote]:pr-4 [&_blockquote]:rounded-r-lg
-                          [&_strong]:font-semibold [&_strong]:text-foreground
-                          [&_em]:italic [&_em]:text-foreground/90
-                          [&_hr]:my-6 [&_hr]:border-border
-                          [&_table]:my-4 [&_table]:w-full [&_table]:text-xs [&_table]:border-collapse [&_table]:border [&_table]:border-border [&_table]:rounded-lg [&_table]:overflow-hidden
-                          [&_thead]:bg-muted/70
-                          [&_th]:border [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_th]:text-left [&_th]:text-foreground [&_th]:bg-muted/50
-                          [&_tbody]:divide-y [&_tbody]:divide-border
-                          [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_td]:text-muted-foreground
-                          [&_tr]:transition-colors
-                          [&_tbody_tr:hover]:bg-muted/30
-                          [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_a]:font-medium hover:[&_a]:text-primary/80
-                          [&_img]:rounded-lg [&_img]:my-4
-                          [&_del]:line-through [&_del]:text-muted-foreground
-                        ">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanContent || t('lily.generating', 'Generating...')}</ReactMarkdown>
-                          </div>
-                        ) : (
-                          <p className="text-sm whitespace-pre-wrap leading-relaxed">{cleanContent}</p>
-                        )}
-                        <span className="text-[9px] opacity-60 mt-0.5 block">
-                          {new Date(message.timestamp).toLocaleTimeString()}
-                        </span>
+                      <div className="flex flex-col max-w-[85%]">
+                        {/* Speech Bubble */}
+                        <div
+                          className={cn(
+                            "rounded-lg px-3 py-1.5",
+                            message.role === 'user'
+                              ? "bg-primary text-primary-foreground text-[13px]"
+                              : "bg-muted"
+                          )}
+                        >
+                          {message.role === 'assistant' ? (
+                            <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed overflow-hidden
+                            [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
+                            [&_p]:my-3 [&_p]:leading-7
+                            [&_ul]:my-3 [&_ul]:pl-6 [&_ul]:list-disc [&_ul]:space-y-1
+                            [&_ol]:my-3 [&_ol]:pl-6 [&_ol]:list-decimal [&_ol]:space-y-1
+                            [&_li]:leading-7 [&_li]:pl-1
+                            [&_li_p]:my-1
+                            [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mt-6 [&_h1]:mb-3 [&_h1]:border-b [&_h1]:border-border [&_h1]:pb-2
+                            [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-foreground
+                            [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-foreground
+                            [&_h4]:text-sm [&_h4]:font-medium [&_h4]:mt-3 [&_h4]:mb-1
+                            [&_code]:text-xs [&_code]:bg-muted/70 [&_code]:text-primary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:font-mono
+                            [&_pre]:my-4 [&_pre]:bg-zinc-900 [&_pre]:dark:bg-zinc-950 [&_pre]:text-zinc-100 [&_pre]:p-4 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:border [&_pre]:border-border
+                            [&_pre_code]:bg-transparent [&_pre_code]:text-inherit [&_pre_code]:p-0 [&_pre_code]:text-xs
+                            [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:pl-4 [&_blockquote]:my-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground [&_blockquote]:bg-muted/30 [&_blockquote]:py-2 [&_blockquote]:pr-4 [&_blockquote]:rounded-r-lg
+                            [&_strong]:font-semibold [&_strong]:text-foreground
+                            [&_em]:italic [&_em]:text-foreground/90
+                            [&_hr]:my-6 [&_hr]:border-border
+                            [&_table]:my-4 [&_table]:w-full [&_table]:text-xs [&_table]:border-collapse [&_table]:border [&_table]:border-border [&_table]:rounded-lg [&_table]:overflow-hidden
+                            [&_thead]:bg-muted/70
+                            [&_th]:border [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_th]:text-left [&_th]:text-foreground [&_th]:bg-muted/50
+                            [&_tbody]:divide-y [&_tbody]:divide-border
+                            [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_td]:text-muted-foreground
+                            [&_tr]:transition-colors
+                            [&_tbody_tr:hover]:bg-muted/30
+                            [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_a]:font-medium hover:[&_a]:text-primary/80
+                            [&_img]:rounded-lg [&_img]:my-4
+                            [&_del]:line-through [&_del]:text-muted-foreground
+                          ">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanContent || t('lily.generating', 'Generating...')}</ReactMarkdown>
+                            </div>
+                          ) : (
+                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{cleanContent}</p>
+                          )}
+                          <span className="text-[9px] opacity-60 mt-0.5 block">
+                            {new Date(message.timestamp).toLocaleTimeString()}
+                          </span>
+                        </div>
 
-                        {/* User Message Actions - Edit, Copy, Retry */}
+                        {/* User Message Actions - OUTSIDE the speech bubble */}
                         {message.role === 'user' && (
-                          <div className="flex items-center gap-0.5 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-1 mt-1 ml-1 opacity-0 group-hover/message:opacity-100 transition-opacity">
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 w-6 p-0 text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
+                              className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
                               onClick={() => handleEditMessage(cleanContent, message.id)}
                               title={t('lily.edit', '수정')}
                             >
-                              <Pencil className="h-3 w-3" />
+                              <Pencil className="h-3 w-3 mr-1" />
+                              {t('lily.edit', '수정')}
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 w-6 p-0 text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
+                              className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
                               onClick={() => handleCopyMessage(cleanContent)}
                               title={t('lily.copy', '복사')}
                             >
-                              <Copy className="h-3 w-3" />
+                              <Copy className="h-3 w-3 mr-1" />
+                              {t('lily.copy', '복사')}
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 w-6 p-0 text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
+                              className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
                               onClick={() => handleRetryMessage(cleanContent, messages.indexOf(message))}
                               title={t('lily.retry', '다시 시도')}
                             >
-                              <RotateCcw className="h-3 w-3" />
+                              <RotateCcw className="h-3 w-3 mr-1" />
+                              {t('lily.retry', '다시 시도')}
                             </Button>
                           </div>
                         )}
 
-                        {/* PRD Save Button - appears for PRD-like content */}
-                        {message.role === 'assistant' && isPRDLikeContent(cleanContent || '') && (
-                          <div className="mt-2 pt-2 border-t border-border/50">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="gap-1.5 h-7 text-xs"
-                              onClick={() => {
-                                // Extract a title from the first heading or use default
-                                const titleMatch = (cleanContent || '').match(/^#+\s+(.+)$/m);
-                                const title = titleMatch?.[1] || t('lily.untitledPRD', 'Untitled PRD');
-                                saveAsPRD(cleanContent || '', title);
-                              }}
-                            >
-                              <FileText className="h-3 w-3" />
-                              {t('lily.saveAsPRD', 'PRD로 저장')}
-                            </Button>
+                        {/* PRD Save Button - appears for PRD-like content, hidden during streaming or when issues exist */}
+                        {shouldShowPRDButton && (
+                          <div className="mt-2">
+                            {savedPRDId ? (
+                              // Already saved - show "View PRD" button
+                              <Button
+                                variant="default"
+                                size="sm"
+                                className="gap-1.5 h-7 text-xs bg-green-600 hover:bg-green-700"
+                                onClick={() => navigate(`/prd/${savedPRDId}`)}
+                              >
+                                <CheckCircle className="h-3 w-3" />
+                                {t('lily.viewSavedPRD', '저장된 PRD 보러 가기')}
+                              </Button>
+                            ) : (
+                              // Not saved yet - show "Save as PRD" button
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5 h-7 text-xs"
+                                disabled={isSavingThisMessage}
+                                onClick={() => {
+                                  const titleMatch = (cleanContent || '').match(/^#+\s+(.+)$/m);
+                                  const title = titleMatch?.[1] || t('lily.untitledPRD', 'Untitled PRD');
+                                  saveAsPRD(cleanContent || '', title, message.id);
+                                }}
+                              >
+                                {isSavingThisMessage ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <FileText className="h-3 w-3" />
+                                )}
+                                {isSavingThisMessage
+                                  ? t('lily.savingPRD', '저장 중...')
+                                  : t('lily.saveAsPRD', 'PRD로 저장')}
+                              </Button>
+                            )}
                           </div>
                         )}
                       </div>

@@ -31,6 +31,7 @@ import { PRDDetailPage } from "./pages/PRDDetailPage";
 import { InboxPage } from "./pages/InboxPage";
 import { MyIssuesPage } from "./pages/MyIssuesPage";
 import NotFound from "./pages/NotFound";
+import { SharedConversationPage } from "./pages/SharedConversationPage";
 
 const queryClient = new QueryClient();
 
@@ -176,6 +177,7 @@ function AppRoutes() {
         <Route path="/invite/accept" element={<AcceptInvitePage />} />
         <Route path="/invite/cancelled" element={<CancelledInvitePage />} />
         <Route path="/auth/verify-email" element={<ProtectedRoute><EmailVerificationPage /></ProtectedRoute>} />
+        <Route path="/lily/shared/:token" element={<SharedConversationPage />} />
 
         {/* Onboarding Routes */}
         <Route path="/onboarding/create-team" element={<ProtectedRoute><CreateTeamPage /></ProtectedRoute>} />

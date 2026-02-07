@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { 
-  Check, 
-  X, 
+import {
+  Check,
+  X,
   Pencil,
   ChevronDown,
   ChevronUp,
   CheckCircle2,
   Ticket,
   Loader2,
+  Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +30,7 @@ import {
 } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { IssueTypeIcon, allIssueTypes } from '@/components/issues/IssueTypeIcon';
+import { TicketDetailModal } from './TicketDetailModal';
 import type { Issue, IssuePriority, IssueStatus, IssueType } from '@/types';
 
 interface SuggestedIssue {
@@ -48,17 +50,18 @@ interface SuggestedIssueCardProps {
   isCreating?: boolean;
 }
 
-export function SuggestedIssueCard({ 
-  issue, 
-  index, 
-  onAccept, 
+export function SuggestedIssueCard({
+  issue,
+  index,
+  onAccept,
   onReject,
-  isCreating 
+  isCreating
 }: SuggestedIssueCardProps) {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedIssue, setEditedIssue] = useState<SuggestedIssue>(issue);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   useEffect(() => {
     setEditedIssue(issue);
@@ -78,192 +81,202 @@ export function SuggestedIssueCard({
   };
 
   return (
-    <Card className={cn(
-      "transition-all",
-      isExpanded && "ring-2 ring-primary/20"
-    )}>
-      <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-        <CardHeader className="p-3 pb-2">
-          <div className="flex items-start gap-3">
-            <IssueTypeIcon type={issue.type || 'task'} size="sm" />
-            <div className="flex-1 min-w-0">
-              {isEditing ? (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Select 
-                      value={editedIssue.type || 'task'} 
-                      onValueChange={(v) => setEditedIssue({ ...editedIssue, type: v as IssueType })}
+    <>
+      <TicketDetailModal
+        issue={editedIssue}
+        open={showDetailModal}
+        onClose={() => setShowDetailModal(false)}
+        onSave={async (updated) => {
+          setEditedIssue(updated as SuggestedIssue);
+        }}
+      />
+      <Card className={cn(
+        "transition-all",
+        isExpanded && "ring-2 ring-primary/20"
+      )}>
+        <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+          <CardHeader className="p-3 pb-2">
+            <div className="flex items-start gap-3">
+              <IssueTypeIcon type={issue.type || 'task'} size="sm" />
+              <div className="flex-1 min-w-0">
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={editedIssue.type || 'task'}
+                        onValueChange={(v) => setEditedIssue({ ...editedIssue, type: v as IssueType })}
+                      >
+                        <SelectTrigger className="h-7 w-32 text-xs">
+                          <SelectValue>
+                            <IssueTypeIcon type={editedIssue.type || 'task'} size="sm" showLabel />
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {allIssueTypes.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              <IssueTypeIcon type={type} size="sm" showLabel />
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Input
+                      value={editedIssue.title || ''}
+                      onChange={(e) => setEditedIssue({ ...editedIssue, title: e.target.value })}
+                      className="h-8 text-sm font-medium"
+                      placeholder={t('issues.issueTitle')}
+                    />
+                  </div>
+                ) : (
+                  <CardTitle className="text-sm font-medium leading-tight">
+                    {issue.title || t('issues.untitled', 'Untitled Issue')}
+                  </CardTitle>
+                )}
+
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  {!isEditing && issue.type && (
+                    <Badge variant="outline" className="text-xs py-0 h-5">
+                      {t(`issueType.${issue.type}`, issue.type)}
+                    </Badge>
+                  )}
+                  {isEditing ? (
+                    <Select
+                      value={editedIssue.priority || 'medium'}
+                      onValueChange={(v) => setEditedIssue({ ...editedIssue, priority: v as IssuePriority })}
                     >
-                      <SelectTrigger className="h-7 w-32 text-xs">
-                        <SelectValue>
-                          <IssueTypeIcon type={editedIssue.type || 'task'} size="sm" showLabel />
-                        </SelectValue>
+                      <SelectTrigger className="h-6 w-24 text-xs">
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {allIssueTypes.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            <IssueTypeIcon type={type} size="sm" showLabel />
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="urgent">{t('priority.urgent')}</SelectItem>
+                        <SelectItem value="high">{t('priority.high')}</SelectItem>
+                        <SelectItem value="medium">{t('priority.medium')}</SelectItem>
+                        <SelectItem value="low">{t('priority.low')}</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                  <Input
-                    value={editedIssue.title || ''}
-                    onChange={(e) => setEditedIssue({ ...editedIssue, title: e.target.value })}
-                    className="h-8 text-sm font-medium"
-                    placeholder={t('issues.issueTitle')}
-                  />
+                  ) : issue.priority && (
+                    <Badge
+                      variant="outline"
+                      className={cn("text-xs py-0 h-5", priorityColors[issue.priority])}
+                    >
+                      {t(`priority.${issue.priority}`)}
+                    </Badge>
+                  )}
+
+                  {issue.estimate && (
+                    <Badge variant="secondary" className="text-xs py-0 h-5">
+                      {issue.estimate} {t('issues.points', 'pts')}
+                    </Badge>
+                  )}
                 </div>
-              ) : (
-                <CardTitle className="text-sm font-medium leading-tight">
-                  {issue.title || t('issues.untitled', 'Untitled Issue')}
-                </CardTitle>
-              )}
-              
-              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                {!isEditing && issue.type && (
-                  <Badge variant="outline" className="text-xs py-0 h-5">
-                    {t(`issueType.${issue.type}`, issue.type)}
-                  </Badge>
-                )}
-                {isEditing ? (
-                  <Select 
-                    value={editedIssue.priority || 'medium'} 
-                    onValueChange={(v) => setEditedIssue({ ...editedIssue, priority: v as IssuePriority })}
-                  >
-                    <SelectTrigger className="h-6 w-24 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="urgent">{t('priority.urgent')}</SelectItem>
-                      <SelectItem value="high">{t('priority.high')}</SelectItem>
-                      <SelectItem value="medium">{t('priority.medium')}</SelectItem>
-                      <SelectItem value="low">{t('priority.low')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : issue.priority && (
-                  <Badge
-                    variant="outline"
-                    className={cn("text-xs py-0 h-5", priorityColors[issue.priority])}
-                  >
-                    {t(`priority.${issue.priority}`)}
-                  </Badge>
-                )}
-                
-                {issue.estimate && (
-                  <Badge variant="secondary" className="text-xs py-0 h-5">
-                    {issue.estimate} {t('issues.points', 'pts')}
-                  </Badge>
-                )}
+              </div>
+
+              <div className="flex items-center gap-1">
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                    {isExpanded ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
               </div>
             </div>
+          </CardHeader>
 
-            <div className="flex items-center gap-1">
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  {isExpanded ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </Button>
-              </CollapsibleTrigger>
-            </div>
-          </div>
-        </CardHeader>
+          <CollapsibleContent>
+            <CardContent className="p-3 pt-0">
+              {isEditing ? (
+                <Textarea
+                  value={editedIssue.description || ''}
+                  onChange={(e) => setEditedIssue({ ...editedIssue, description: e.target.value })}
+                  placeholder={t('issues.addDescription')}
+                  className="text-sm min-h-[80px]"
+                  rows={4}
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {issue.description || t('issues.noDescription', 'No description provided')}
+                </p>
+              )}
 
-        <CollapsibleContent>
-          <CardContent className="p-3 pt-0">
-            {isEditing ? (
-              <Textarea
-                value={editedIssue.description || ''}
-                onChange={(e) => setEditedIssue({ ...editedIssue, description: e.target.value })}
-                placeholder={t('issues.addDescription')}
-                className="text-sm min-h-[80px]"
-                rows={4}
-              />
-            ) : (
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                {issue.description || t('issues.noDescription', 'No description provided')}
-              </p>
-            )}
-
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsEditing(!isEditing)}
-                className="gap-1.5 h-8"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                {isEditing ? t('common.cancel') : t('common.edit')}
-              </Button>
-              
-              <div className="flex gap-1.5">
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={onReject}
-                  className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="gap-1.5 h-8"
                 >
-                  <X className="h-4 w-4 mr-1" />
-                  {t('lily.reject', 'Reject')}
+                  <Pencil className="h-3.5 w-3.5" />
+                  {isEditing ? t('common.cancel') : t('common.edit')}
+                </Button>
+
+                <div className="flex gap-1.5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onReject}
+                    className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    {t('lily.reject', 'Reject')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleAccept}
+                    disabled={isCreating || !editedIssue.title?.trim()}
+                    className="h-8 gap-1.5"
+                  >
+                    {isCreating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
+                    {t('lily.createIssue', 'Create Issue')}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+
+          {/* Collapsed state action buttons */}
+          {!isExpanded && (
+            <CardContent className="p-3 pt-0">
+              <div className="flex items-center justify-end gap-1.5">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReject();
+                  }}
+                  className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <X className="h-4 w-4" />
                 </Button>
                 <Button
-                  size="sm"
-                  onClick={handleAccept}
-                  disabled={isCreating || !editedIssue.title?.trim()}
-                  className="h-8 gap-1.5"
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAccept();
+                  }}
+                  disabled={isCreating}
+                  className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-500/10"
                 >
                   {isCreating ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Check className="h-4 w-4" />
                   )}
-                  {t('lily.createIssue', 'Create Issue')}
                 </Button>
               </div>
-            </div>
-          </CardContent>
-        </CollapsibleContent>
-
-        {/* Collapsed state action buttons */}
-        {!isExpanded && (
-          <CardContent className="p-3 pt-0">
-            <div className="flex items-center justify-end gap-1.5">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onReject();
-                }}
-                className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleAccept();
-                }}
-                disabled={isCreating}
-                className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-500/10"
-              >
-                {isCreating ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Check className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        )}
-      </Collapsible>
-    </Card>
+            </CardContent>
+          )}
+        </Collapsible>
+      </Card>
+    </>
   );
 }
 
@@ -311,7 +324,7 @@ export function SuggestedIssuesList({
           <Ticket className="h-4 w-4 text-primary" />
           {t('lily.suggestedIssues', 'Suggested Issues')} ({issues.length})
         </h4>
-        
+
         {issues.length > 1 && (
           <Button
             variant="outline"
