@@ -10,6 +10,8 @@ import { useTeamStore } from '@/stores/teamStore';
 import { useAuthStore } from '@/stores/authStore';
 import { issueService, commentService, activityService } from '@/lib/services/issueService';
 import { teamMemberService } from '@/lib/services/teamService';
+import { cycleService } from '@/lib/services/cycleService';
+import { prdService } from '@/lib/services/prdService';
 import { BlockEditor } from '@/components/editor';
 import { IssueFocusIndicator, EditingIndicator, TypingIndicator } from '@/components/collaboration';
 import { useIssueFocus, useRealtimeIssueUpdates } from '@/hooks/useRealtimeCollaboration';
@@ -73,7 +75,7 @@ import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ko, enUS } from 'date-fns/locale';
 import { userAISettingsService } from '@/lib/services/conversationService';
-import type { Issue, IssueStatus, IssuePriority, CommentWithUser, ActivityWithUser, Profile, IssueType } from '@/types/database';
+import type { Issue, IssueStatus, IssuePriority, CommentWithUser, ActivityWithUser, Profile, IssueType, Cycle } from '@/types/database';
 import type { AIProvider } from '@/types';
 import { StatusIcon, PriorityIcon } from '@/components/issues/IssueIcons';
 import { IssueTypeIcon, issueTypeConfig, allIssueTypes } from '@/components/issues/IssueTypeIcon';
@@ -157,6 +159,8 @@ export function IssueDetailPage() {
   const [isSendingComment, setIsSendingComment] = useState(false);
   const [members, setMembers] = useState<Profile[]>([]);
   const [showMobileProperties, setShowMobileProperties] = useState(false);
+  const [cycles, setCycles] = useState<Cycle[]>([]);
+  const [prds, setPrds] = useState<{ id: string; title: string; project_id?: string }[]>([]);
 
   // AI Assistant Panel state
   const [showAIPanel, setShowAIPanel] = useState(false);
@@ -281,11 +285,37 @@ export function IssueDetailPage() {
     }
   }, [currentTeam?.id]);
 
+  // Load team cycles for sprint selection
+  const loadCycles = useCallback(async () => {
+    if (!currentTeam?.id) return;
+
+    try {
+      const cyclesData = await cycleService.getCycles(currentTeam.id);
+      setCycles(cyclesData);
+    } catch (error) {
+      console.error('Failed to load cycles:', error);
+    }
+  }, [currentTeam?.id]);
+
+  // Load PRDs for linking
+  const loadPrds = useCallback(async () => {
+    if (!currentTeam?.id) return;
+
+    try {
+      const prdsData = await prdService.getPRDs(currentTeam.id);
+      setPrds(prdsData.map(p => ({ id: p.id, title: p.title, project_id: p.project_id })));
+    } catch (error) {
+      console.error('Failed to load PRDs:', error);
+    }
+  }, [currentTeam?.id]);
+
   useEffect(() => {
     loadIssue();
     loadCommentsAndActivities();
     loadMembers();
-  }, [loadIssue, loadCommentsAndActivities, loadMembers]);
+    loadCycles();
+    loadPrds();
+  }, [loadIssue, loadCommentsAndActivities, loadMembers, loadCycles, loadPrds]);
 
   // Listen for real-time updates
   useRealtimeIssueUpdates((updatedIssueId, changes) => {
@@ -1199,6 +1229,98 @@ Respond in the same language as the user's message.`
                 {[1, 2, 3, 5, 8, 13, 21].map((points) => (
                   <SelectItem key={points} value={points.toString()}>
                     {points} {t('issues.points')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Cycle/Sprint */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground uppercase">{t('issues.cycle', 'Sprint')}</label>
+            <Select
+              value={issue.cycle_id || 'none'}
+              onValueChange={async (v) => {
+                try {
+                  if (v === 'none') {
+                    await cycleService.removeIssueFromCycle(issue.id);
+                    setIssue(prev => prev ? { ...prev, cycle_id: null } : null);
+                  } else {
+                    await cycleService.addIssueToCycle(issue.id, v);
+                    setIssue(prev => prev ? { ...prev, cycle_id: v } : null);
+                  }
+                  toast.success(t('issues.cycleUpdated', 'Sprint updated'));
+                } catch (error) {
+                  console.error('Failed to update cycle:', error);
+                  toast.error(t('issues.cycleUpdateFailed', 'Failed to update sprint'));
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t('issues.noCycle', 'No sprint')}>
+                  {issue.cycle_id ? (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      {cycles.find(c => c.id === issue.cycle_id)?.name || 'Sprint'}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">{t('issues.noCycle', 'No sprint')}</span>
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{t('issues.noCycle', 'No sprint')}</SelectItem>
+                {cycles.map((cycle) => (
+                  <SelectItem key={cycle.id} value={cycle.id}>
+                    <div className="flex flex-col">
+                      <span>{cycle.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(cycle.start_date), 'MMM d')} - {format(new Date(cycle.end_date), 'MMM d')}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Linked PRD/Document */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground uppercase">{t('issues.linkedPrd', 'Linked PRD')}</label>
+            <Select
+              value={issue.prd_id || 'none'}
+              onValueChange={async (v) => {
+                try {
+                  const newPrdId = v === 'none' ? null : v;
+                  await issueService.updateIssue(issue.id, { prd_id: newPrdId });
+                  setIssue(prev => prev ? { ...prev, prd_id: newPrdId } : null);
+                  toast.success(t('issues.prdUpdated', 'Linked PRD updated'));
+                } catch (error) {
+                  console.error('Failed to update linked PRD:', error);
+                  toast.error(t('issues.prdUpdateFailed', 'Failed to update linked PRD'));
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t('issues.noPrd', 'No linked PRD')}>
+                  {issue.prd_id ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">📄</span>
+                      <span className="truncate">{prds.find(p => p.id === issue.prd_id)?.title || 'PRD'}</span>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">{t('issues.noPrd', 'No linked PRD')}</span>
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{t('issues.noPrd', 'No linked PRD')}</SelectItem>
+                {prds.map((prd) => (
+                  <SelectItem key={prd.id} value={prd.id}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">📄</span>
+                      <span className="truncate">{prd.title}</span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>

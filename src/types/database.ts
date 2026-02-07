@@ -125,6 +125,7 @@ export interface Issue {
   team_id: string;
   project_id: string | null;
   cycle_id: string | null;
+  prd_id: string | null;
   parent_id: string | null;
   identifier: string;
   title: string;
@@ -416,6 +417,7 @@ export interface Database {
           team_id: string;
           project_id?: string | null;
           cycle_id?: string | null;
+          prd_id?: string | null;
           parent_id?: string | null;
           identifier: string;
           title: string;
@@ -433,6 +435,7 @@ export interface Database {
         Update: {
           project_id?: string | null;
           cycle_id?: string | null;
+          prd_id?: string | null;
           parent_id?: string | null;
           title?: string;
           description?: string | null;

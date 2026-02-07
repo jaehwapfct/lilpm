@@ -112,8 +112,9 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: NodeViewP
     <NodeViewWrapper className="relative inline-block my-2 group">
       <div className={cn(
         "relative inline-block",
-        selected && "ring-2 ring-primary rounded-lg",
-        isResizing && "select-none"
+        selected && "ring-2 ring-cyan-500 rounded-lg",
+        isResizing && "select-none",
+        !selected && "hover:ring-2 hover:ring-cyan-400/60 rounded-lg transition-all"
       )}>
         <img
           ref={imageRef}
@@ -124,36 +125,43 @@ const ResizableImageComponent = ({ node, updateAttributes, selected }: NodeViewP
           draggable={false}
         />
 
-        {/* Resize handles */}
-        {selected && (
-          <>
-            {/* Left handle */}
-            <div
-              className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity rounded-l-lg"
-              onMouseDown={(e) => handleMouseDown(e, 'left')}
-            />
-            {/* Right handle */}
-            <div
-              className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity rounded-r-lg"
-              onMouseDown={(e) => handleMouseDown(e, 'right')}
-            />
+        {/* Resize handles - visible on hover (not just selected) */}
+        <>
+          {/* Left handle */}
+          <div
+            className={cn(
+              "absolute left-0 top-0 bottom-0 w-3 cursor-ew-resize bg-cyan-500/50 rounded-l-lg transition-opacity",
+              selected ? "opacity-100" : "opacity-0 group-hover:opacity-70"
+            )}
+            onMouseDown={(e) => handleMouseDown(e, 'left')}
+          />
+          {/* Right handle */}
+          <div
+            className={cn(
+              "absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize bg-cyan-500/50 rounded-r-lg transition-opacity",
+              selected ? "opacity-100" : "opacity-0 group-hover:opacity-70"
+            )}
+            onMouseDown={(e) => handleMouseDown(e, 'right')}
+          />
 
-            {/* Width input at bottom center */}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full pt-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-              <div className="flex items-center gap-1 bg-background border border-border rounded px-1.5 py-0.5 shadow-sm">
-                <input
-                  type="number"
-                  value={widthInput}
-                  onChange={handleWidthChange}
-                  className="w-14 text-xs text-center bg-transparent border-none focus:outline-none"
-                  placeholder="Width"
-                  min="50"
-                />
-                <span className="text-xs text-muted-foreground">px</span>
-              </div>
+          {/* Width input at bottom center */}
+          <div className={cn(
+            "absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full pt-1 z-10 transition-opacity",
+            selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          )}>
+            <div className="flex items-center gap-1 bg-background border border-border rounded px-1.5 py-0.5 shadow-sm">
+              <input
+                type="number"
+                value={widthInput}
+                onChange={handleWidthChange}
+                className="w-14 text-xs text-center bg-transparent border-none focus:outline-none"
+                placeholder="Width"
+                min="50"
+              />
+              <span className="text-xs text-muted-foreground">px</span>
             </div>
-          </>
-        )}
+          </div>
+        </>
       </div>
     </NodeViewWrapper>
   );
@@ -851,13 +859,100 @@ export function BlockEditor({
 
           <div className="w-px h-6 bg-border mx-1" />
 
-          {/* Table */}
-          <ToolbarButton
-            onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-            title="Insert Table"
-          >
-            <TableIcon className="h-4 w-4" />
-          </ToolbarButton>
+          {/* Table - Enhanced with editing controls */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "h-8 w-8 p-0",
+                  editor.isActive('table') && "bg-muted"
+                )}
+                title="Table"
+              >
+                <TableIcon className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuItem onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
+                <TableIcon className="h-4 w-4 mr-2" />
+                Insert Table
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().addRowBefore().run()}
+                disabled={!editor.can().addRowBefore()}
+              >
+                Add Row Above
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().addRowAfter().run()}
+                disabled={!editor.can().addRowAfter()}
+              >
+                Add Row Below
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().deleteRow().run()}
+                disabled={!editor.can().deleteRow()}
+              >
+                Delete Row
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().addColumnBefore().run()}
+                disabled={!editor.can().addColumnBefore()}
+              >
+                Add Column Left
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().addColumnAfter().run()}
+                disabled={!editor.can().addColumnAfter()}
+              >
+                Add Column Right
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().deleteColumn().run()}
+                disabled={!editor.can().deleteColumn()}
+              >
+                Delete Column
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().mergeCells().run()}
+                disabled={!editor.can().mergeCells()}
+              >
+                Merge Cells
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().splitCell().run()}
+                disabled={!editor.can().splitCell()}
+              >
+                Split Cell
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().toggleHeaderRow().run()}
+                disabled={!editor.can().toggleHeaderRow()}
+              >
+                Toggle Header Row
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().toggleHeaderColumn().run()}
+                disabled={!editor.can().toggleHeaderColumn()}
+              >
+                Toggle Header Column
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().deleteTable().run()}
+                disabled={!editor.can().deleteTable()}
+                className="text-red-500"
+              >
+                Delete Table
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Image */}
           <DropdownMenu>

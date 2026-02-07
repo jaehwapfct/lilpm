@@ -594,6 +594,35 @@ export const teamInviteService = {
     status: 'pending' | 'expired' | 'cancelled' | 'accepted' | 'rejected' | 'not_found';
     teamName?: string;
     inviterName?: string;
+    inviterAvatar?: string;
+    email?: string;
+    role?: string;
+  }> {
+    try {
+      // Use Edge Function to bypass RLS for unauthenticated users
+      const { data, error } = await supabase.functions.invoke('get-invite-preview', {
+        body: { token },
+      });
+
+      // If Edge Function fails, fall back to direct query (for authenticated users)
+      if (error) {
+        console.warn('Edge Function failed, trying direct query:', error);
+        return this.getInvitePreviewDirect(token);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Failed to get invite preview:', error);
+      return { valid: false, status: 'not_found' };
+    }
+  },
+
+  // Direct query fallback for authenticated users
+  async getInvitePreviewDirect(token: string): Promise<{
+    valid: boolean;
+    status: 'pending' | 'expired' | 'cancelled' | 'accepted' | 'rejected' | 'not_found';
+    teamName?: string;
+    inviterName?: string;
     email?: string;
   }> {
     try {
@@ -648,7 +677,7 @@ export const teamInviteService = {
         email: invite.email,
       };
     } catch (error) {
-      console.error('Failed to get invite preview:', error);
+      console.error('Failed to get invite preview (direct):', error);
       return { valid: false, status: 'not_found' };
     }
   },

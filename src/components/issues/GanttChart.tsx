@@ -35,6 +35,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { StatusIcon, PriorityIcon } from './IssueIcons';
 import { IssueTypeIcon } from './IssueTypeIcon';
@@ -100,6 +101,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [groupBy, setGroupBy] = useState<GroupBy>('none');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [selectedAssignees, setSelectedAssignees] = useState<Set<string>>(new Set()); // Jira-style filter
 
   // Drag state
   const [dragState, setDragState] = useState<DragState>({
@@ -249,7 +251,14 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
   // Group issues based on groupBy setting
   const groupedIssues = useMemo((): GroupedIssues[] => {
     // Filter issues that have at least a due date
-    const issuesWithDates = issues.filter(issue => issue.dueDate || issue.createdAt);
+    let issuesWithDates = issues.filter(issue => issue.dueDate || issue.createdAt);
+
+    // Apply assignee filter if any are selected (Jira-style toggle)
+    if (selectedAssignees.size > 0) {
+      issuesWithDates = issuesWithDates.filter(issue =>
+        issue.assigneeId && selectedAssignees.has(issue.assigneeId)
+      );
+    }
 
     // Sort with robust handling for mixed defined/undefined sortOrders
     // 1. Establish a "Natural Order" based on Date -> Created -> ID
@@ -340,7 +349,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
       issues: sortIssues(groupIssues),
       isCollapsed: collapsedGroups.has(key),
     }));
-  }, [issues, groupBy, collapsedGroups, t]);
+  }, [issues, groupBy, collapsedGroups, selectedAssignees, t]);
 
   const toggleGroup = (key: string) => {
     setCollapsedGroups(prev => {
@@ -899,6 +908,79 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Jira-style Assignee Filter - Avatar Toggles */}
+          {(() => {
+            // Extract unique assignees from all issues
+            const assigneeMap = new Map<string, { id: string; name: string; email?: string; avatar?: string }>();
+            issues.forEach(issue => {
+              if (issue.assigneeId && issue.assignee) {
+                assigneeMap.set(issue.assigneeId, {
+                  id: issue.assigneeId,
+                  name: issue.assignee.name || issue.assignee.email || 'Unknown',
+                  email: issue.assignee.email,
+                  avatar: issue.assignee.avatarUrl,
+                });
+              }
+            });
+            const uniqueAssignees = Array.from(assigneeMap.values());
+
+            if (uniqueAssignees.length === 0) return null;
+
+            const toggleAssignee = (assigneeId: string) => {
+              setSelectedAssignees(prev => {
+                const next = new Set(prev);
+                if (next.has(assigneeId)) {
+                  next.delete(assigneeId);
+                } else {
+                  next.add(assigneeId);
+                }
+                return next;
+              });
+            };
+
+            return (
+              <div className="flex items-center gap-1 border border-border rounded-lg p-1">
+                {uniqueAssignees.slice(0, 8).map(assignee => (
+                  <Tooltip key={assignee.id}>
+                    <TooltipTrigger asChild>
+                      <button
+                        className={cn(
+                          "rounded-full transition-all ring-offset-background",
+                          selectedAssignees.has(assignee.id)
+                            ? "ring-2 ring-primary ring-offset-1 opacity-100"
+                            : "opacity-60 hover:opacity-100"
+                        )}
+                        onClick={() => toggleAssignee(assignee.id)}
+                      >
+                        <Avatar className="h-7 w-7">
+                          {assignee.avatar && <AvatarImage src={assignee.avatar} alt={assignee.name} />}
+                          <AvatarFallback className="text-[10px]">
+                            {assignee.name.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{assignee.name}</p>
+                      {selectedAssignees.has(assignee.id) && (
+                        <p className="text-xs text-muted-foreground">Click to remove filter</p>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+                {selectedAssignees.size > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs text-muted-foreground"
+                    onClick={() => setSelectedAssignees(new Set())}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+            );
+          })()}
           {/* Group By */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -1105,10 +1187,10 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
           className="flex-1 overflow-auto"
         >
           <div style={{ width: `${totalWidth}px`, minWidth: '100%' }} className="relative">
-            {/* Dependency Lines - SVG Overlay */}
+            {/* Dependency Lines - SVG Overlay with clipping */}
             <svg
-              className="absolute top-0 left-0 w-full h-full pointer-events-none z-40" // Increased Z-index to be above bars
-              style={{ overflow: 'visible' }}
+              className="absolute top-0 left-0 w-full h-full pointer-events-none z-40"
+              style={{ overflow: 'hidden' }}
             >
               <defs>
                 <marker
@@ -1701,17 +1783,17 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                                     </div>
 
                                     {/* Link points - show when hovering or when actively linking */}
-                                    {/* Left Link Point */}
+                                    {/* Left Link Point - Enlarged for easier detection */}
                                     <div
                                       data-link-point="left"
                                       data-issue-id={issue.id}
                                       className={cn(
-                                        "absolute -left-1 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-white/90 cursor-crosshair z-30 transition-all",
+                                        "absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white/90 cursor-crosshair z-30 transition-all",
                                         linkingFrom
                                           ? (isLinkTarget && hoverTarget?.side === 'left'
-                                            ? "opacity-100 bg-green-500 scale-[2] border-green-300 shadow-lg shadow-green-500/50"
-                                            : "opacity-100 bg-amber-500")
-                                          : "opacity-0 group-hover/bar:opacity-100 bg-amber-500 hover:scale-150 hover:bg-amber-400"
+                                            ? "opacity-100 bg-green-500 scale-150 border-green-300 shadow-lg shadow-green-500/50"
+                                            : "opacity-100 bg-amber-500 scale-110")
+                                          : "opacity-0 group-hover/bar:opacity-100 bg-amber-500 hover:scale-125 hover:bg-amber-400"
                                       )}
                                       onMouseDown={(e) => {
                                         e.stopPropagation();
@@ -1721,17 +1803,17 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                                       onMouseEnter={() => handleLinkPointEnter(issue.id, 'left')}
                                       onMouseLeave={handleLinkPointLeave}
                                     />
-                                    {/* Right Link Point */}
+                                    {/* Right Link Point - Enlarged for easier detection */}
                                     <div
                                       data-link-point="right"
                                       data-issue-id={issue.id}
                                       className={cn(
-                                        "absolute -right-1 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-white/90 cursor-crosshair z-30 transition-all",
+                                        "absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white/90 cursor-crosshair z-30 transition-all",
                                         linkingFrom
                                           ? (isLinkTarget && hoverTarget?.side === 'right'
-                                            ? "opacity-100 bg-green-500 scale-[2] border-green-300 shadow-lg shadow-green-500/50"
-                                            : "opacity-100 bg-amber-500")
-                                          : "opacity-0 group-hover/bar:opacity-100 bg-amber-500 hover:scale-150 hover:bg-amber-400"
+                                            ? "opacity-100 bg-green-500 scale-150 border-green-300 shadow-lg shadow-green-500/50"
+                                            : "opacity-100 bg-amber-500 scale-110")
+                                          : "opacity-0 group-hover/bar:opacity-100 bg-amber-500 hover:scale-125 hover:bg-amber-400"
                                       )}
                                       onMouseDown={(e) => {
                                         e.stopPropagation();

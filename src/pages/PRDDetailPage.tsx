@@ -324,18 +324,45 @@ export function PRDDetailPage() {
     fetchTeamMembers();
   }, [currentTeam?.id]);
 
-  // Handle @mention callback
-  const handleMention = useCallback((userId: string, userName: string) => {
+  // Handle @mention callback - saves to DB notifications for inbox and sends email
+  const handleMention = useCallback(async (userId: string, userName: string) => {
     if (!user || !prd || userId === user.id) return; // Don't notify self
 
-    notificationService.createNotification(
-      userId,
-      'issue_mentioned',
-      `${user.name || user.email} mentioned you in a PRD`,
-      `In: ${prd.title}`,
-      { prdId: prd.id, mentionedBy: user.id }
-    );
-  }, [user, prd]);
+    try {
+      // Save to DB notifications table for proper inbox integration
+      const { supabase } = await import('@/lib/supabase');
+      await supabase.from('notifications').insert({
+        user_id: userId,
+        actor_id: user.id,
+        type: 'prd_mentioned',
+        title: `${user.name || user.email} mentioned you`,
+        message: `In PRD: ${prd.title}`,
+        entity_type: 'prd',
+        entity_id: prd.id,
+        data: { prdId: prd.id, mentionedBy: user.id, prdTitle: prd.title },
+        read: false,
+      });
+
+      // Find mentioned user's email for email notification
+      const mentionedUser = teamMembers.find(m => m.id === userId);
+      if (mentionedUser?.email) {
+        // Call Edge Function to send email (fire and forget, don't block UI)
+        supabase.functions.invoke('send-mention-email', {
+          body: {
+            recipientId: userId,
+            recipientEmail: mentionedUser.email,
+            recipientName: mentionedUser.name || mentionedUser.email,
+            mentionerName: user.name || user.email,
+            mentionerEmail: user.email,
+            prdId: prd.id,
+            prdTitle: prd.title,
+          },
+        }).catch(err => console.error('Failed to send mention email:', err));
+      }
+    } catch (error) {
+      console.error('Failed to create mention notification:', error);
+    }
+  }, [user, prd, teamMembers]);
 
   // Version history for undo
   const [versionHistory, setVersionHistory] = useState<VersionEntry[]>([]);
@@ -966,7 +993,8 @@ Respond in the same language as the user's message.`
                     }}
                     autoFocus
                     placeholder={t('prd.titlePlaceholder', 'Untitled PRD')}
-                    className="text-3xl sm:text-4xl font-bold border-none px-2 -mx-2 focus-visible:ring-0 h-auto py-2 bg-transparent w-full"
+                    className="font-bold border-none px-2 -mx-2 focus-visible:ring-0 h-auto py-2 bg-transparent w-full"
+                    style={{ fontSize: 'clamp(1.875rem, 5vw, 2.25rem)', lineHeight: 1.2 }}
                   />
                 ) : (
                   <h1

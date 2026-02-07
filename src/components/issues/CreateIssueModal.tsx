@@ -64,7 +64,7 @@ import { cn } from '@/lib/utils';
 const issueSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
-  status: z.enum(['backlog', 'todo', 'in_progress', 'in_review', 'done', 'cancelled']),
+  status: z.enum(['backlog', 'todo', 'in_progress', 'in_review', 'blocked', 'done', 'cancelled']),
   priority: z.enum(['urgent', 'high', 'medium', 'low', 'none']),
   project_id: z.string().optional(),
   cycle_id: z.string().optional(),
