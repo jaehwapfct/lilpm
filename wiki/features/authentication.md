@@ -123,15 +123,36 @@ interface AuthState {
 초대 링크 클릭 → 초대 미리보기 표시 → [수락] / [거절]
                       ↓
             ┌────────┴────────┐
-            │  기존 유저?      │
+            │  인증 상태?      │
             └────────┬────────┘
-      YES ↙          ↓          ↘ NO
- 자동 로그인    로그인/가입 안내   회원가입 폼
-      ↓               ↓              ↓
-   팀 합류          팀 합류       팀 합류
-      ↓               ↓              ↓
-   홈 이동          홈 이동       홈 이동
+    인증됨 ↙         ↓           ↘ 미인증
+  수락 처리    로그인으로 리디렉트   로그인/가입 UI
+      ↓         (returnUrl 포함)        ↓
+   팀 합류           ↓             회원가입
+      ↓          로그인 후              ↓
+   홈 이동       초대 페이지 복귀     이메일 인증
+                    ↓                  ↓
+                 수락 처리         /auth/verify-email
 ```
+
+### 인증 체크 (중요!)
+
+`acceptInvite` 호출 시 인증되지 않은 경우 로그인으로 리디렉트:
+
+```tsx
+// AcceptInvitePage.tsx (lines 98-109)
+if (!isAuthenticated) {
+  const returnUrl = `/invite/accept?token=${token}`;
+  navigate(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
+  return;
+}
+```
+
+### 이메일 인증 경로
+
+신규 가입 시 이메일 인증 페이지 경로:
+- ✅ 올바른 경로: `/auth/verify-email`
+- ❌ 잘못된 경로: `/verify-email` (404 발생)
 
 **중요:** 초대 수락 후에는 온보딩 단계(팀 생성, LLM 설정 등)를 **건너뛰고** 바로 홈으로 이동합니다.
 

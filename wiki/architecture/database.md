@@ -315,13 +315,77 @@ CREATE TABLE conversations (
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   
   title TEXT,
-  messages JSONB DEFAULT '[]',
   is_pinned BOOLEAN DEFAULT false,
+  sort_order FLOAT,  -- 드래그 재정렬용
   
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+CREATE INDEX idx_conversations_user ON conversations(user_id);
+CREATE INDEX idx_conversations_team ON conversations(team_id);
 ```
+
+### messages
+
+대화 메시지 (conversations에서 분리)
+
+```sql
+CREATE TABLE messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
+  
+  role TEXT CHECK (role IN ('user', 'assistant', 'system')) NOT NULL,
+  content TEXT NOT NULL,
+  thinking_content TEXT,  -- Claude thinking 블록
+  suggested_issues JSONB,  -- AI 제안 이슈 목록
+  
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_messages_conversation ON messages(conversation_id);
+```
+
+### conversation_shares
+
+대화 공유
+
+```sql
+CREATE TABLE conversation_shares (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
+  shared_by UUID REFERENCES auth.users(id),
+  
+  share_token TEXT UNIQUE NOT NULL,  -- 공유 링크 토큰
+  is_public BOOLEAN DEFAULT false,
+  allow_comments BOOLEAN DEFAULT false,
+  expires_at TIMESTAMPTZ,
+  
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_conversation_shares_token ON conversation_shares(share_token);
+```
+
+### conversation_access_requests
+
+대화 접근 요청
+
+```sql
+CREATE TABLE conversation_access_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
+  requested_by UUID REFERENCES auth.users(id),
+  
+  status TEXT CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+  message TEXT,
+  reviewed_by UUID REFERENCES auth.users(id),
+  reviewed_at TIMESTAMPTZ,
+  
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
 
 ## RPC 함수
 
@@ -393,7 +457,43 @@ CREATE POLICY "Users can access own notifications" ON notifications
 | `get-invite-preview` | 초대 미리보기 (RLS 우회) | ❌ |
 | `send-team-invite` | 팀 초대 이메일 발송 | ✅ |
 | `send-mention-email` | @멘션 이메일 발송 | ✅ |
-| `lily-chat` | Lily AI 채팅 | ✅ |
+| `send-member-removed` | 멤버 제거 이메일 발송 | ✅ |
+| `lily-chat` | Lily AI 채팅 (스트리밍) | ✅ |
+| `delete-users` | 유저 완전 삭제 (Admin용) | ❌ |
+
+### delete-users Edge Function
+
+유저와 관련된 모든 데이터를 올바른 순서로 삭제합니다:
+
+```typescript
+// supabase/functions/delete-users/index.ts
+// 처리되는 테이블 순서:
+1. user_ai_settings
+2. prd_documents
+3. prd_projects
+4. team_members
+5. team_invites (invited_by → null, email 삭제)
+6. issues (assignee_id, creator_id → null)
+7. activity_logs
+8. notifications
+9. conversation_access_requests
+10. conversation_shares
+11. conversations (cascade → messages)
+12. profiles
+13. auth.users (Supabase Admin API)
+```
+
+**호출 방법:**
+```bash
+curl -X POST "https://[PROJECT_ID].supabase.co/functions/v1/delete-users" \
+  -H "Content-Type: application/json" \
+  -d '{"user_ids": ["uuid-1", "uuid-2"]}'
+```
+
+**배포:**
+```bash
+supabase functions deploy delete-users --no-verify-jwt
+```
 
 ## 마이그레이션
 

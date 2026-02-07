@@ -137,9 +137,30 @@ supabase functions deploy get-invite-preview --no-verify-jwt
 
 `/invite/accept?token=xxx` 페이지에서 **명시적인 수락/거절 버튼**을 표시합니다:
 
-```tsx
-// src/pages/auth/AcceptInvitePage.tsx (lines 335-391)
+### 인증 체크 (중요!)
 
+`acceptInvite` 함수 호출 전에 인증 상태를 확인하여 "Not authenticated" 에러를 방지합니다:
+
+```tsx
+// src/pages/auth/AcceptInvitePage.tsx (lines 98-109)
+const acceptInvite = async () => {
+  if (!token || isAccepting) return;
+  
+  // 인증 상태 확인 - 미인증 시 로그인으로 리디렉트
+  if (!isAuthenticated) {
+    const returnUrl = `/invite/accept?token=${token}`;
+    navigate(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
+    return;
+  }
+  
+  setIsAccepting(true);
+  // ... 실제 초대 수락 로직
+};
+```
+
+### 인증된 유저용 UI
+
+```tsx
 // 인증된 유저용 수락/거절 UI
 if (status === 'pending' && isAuthenticated) {
   return (
