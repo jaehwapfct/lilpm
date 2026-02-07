@@ -710,7 +710,17 @@ Provide a summary in 2-3 paragraphs.`
     }));
 
     // Save user message to database if we have a conversation
-    const conversationId = get().currentConversationId;
+    // CRITICAL FIX: Auto-create conversation if none exists
+    let conversationId = get().currentConversationId;
+    if (!conversationId && context?.teamId) {
+      try {
+        // Create new conversation before saving messages
+        conversationId = await get().createConversation(context.teamId, context.projectId);
+      } catch (err) {
+        console.error('Failed to auto-create conversation:', err);
+      }
+    }
+
     if (conversationId) {
       try {
         await messageService.createMessage(conversationId, 'user', message);

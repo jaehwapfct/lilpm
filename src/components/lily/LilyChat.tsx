@@ -1035,7 +1035,11 @@ export function LilyChat() {
                   <div key={message.id} data-message-id={message.id} className="group/message">
                     {/* Timeline Thinking Block - OUTSIDE the speech bubble */}
                     {message.role === 'assistant' && thinkingContent && (
-                      <TimelineThinkingBlock content={thinkingContent} t={t} />
+                      <TimelineThinkingBlock
+                        content={thinkingContent}
+                        t={t}
+                        isStreaming={isLoading && messages.indexOf(message) === messages.length - 1}
+                      />
                     )}
 
                     {/* Message bubble - Gemini-style compact design */}
@@ -1107,36 +1111,33 @@ export function LilyChat() {
 
                         {/* User Message Actions - OUTSIDE the speech bubble */}
                         {message.role === 'user' && (
-                          <div className="flex items-center gap-1 mt-1 ml-1 opacity-0 group-hover/message:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-0.5 mt-1 ml-1">
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                               onClick={() => handleEditMessage(cleanContent, message.id)}
                               title={t('lily.edit', '수정')}
                             >
-                              <Pencil className="h-3 w-3 mr-1" />
-                              {t('lily.edit', '수정')}
+                              <Pencil className="h-3 w-3" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                               onClick={() => handleCopyMessage(cleanContent)}
                               title={t('lily.copy', '복사')}
                             >
-                              <Copy className="h-3 w-3 mr-1" />
-                              {t('lily.copy', '복사')}
+                              <Copy className="h-3 w-3" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                               onClick={() => handleRetryMessage(cleanContent, messages.indexOf(message))}
                               title={t('lily.retry', '다시 시도')}
                             >
-                              <RotateCcw className="h-3 w-3 mr-1" />
-                              {t('lily.retry', '다시 시도')}
+                              <RotateCcw className="h-3 w-3" />
                             </Button>
                           </div>
                         )}
