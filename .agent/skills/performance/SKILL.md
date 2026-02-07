@@ -82,3 +82,39 @@ function getCached<T>(key: string, ttlMs: number, fetcher: () => Promise<T>) {
 - [ ] vendor 라이브러리 별도 chunk로 분리
 - [ ] 자주 접근하는 데이터 캐싱
 - [ ] 빌드 후 번들 크기 확인
+
+## 번들 분석 자동화
+
+### 즉시 분석
+```bash
+# 빌드 후 크기 확인
+npm run build && du -sh dist/assets/*.js | sort -h | tail -10
+```
+
+### 시각화 도구
+```bash
+# 번들 시각화 (rollup-plugin-visualizer)
+npm install -D rollup-plugin-visualizer
+```
+
+```typescript
+// vite.config.ts에 추가
+import { visualizer } from 'rollup-plugin-visualizer';
+
+plugins: [
+  visualizer({
+    open: true,
+    filename: 'stats.html',
+    gzipSize: true,
+  })
+]
+```
+
+### 목표 기준
+| 청크 | 목표 (gzip) | 경고 기준 |
+|------|------------|----------|
+| react-vendor | 50KB | 70KB |
+| supabase | 45KB | 60KB |
+| editor | 130KB | 150KB |
+| 페이지 청크 | 50KB | 80KB |
+

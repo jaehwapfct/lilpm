@@ -90,3 +90,55 @@ it('handles click event', () => {
 - [ ] 관련 컴포넌트 렌더링 테스트
 - [ ] 빌드 성공 확인 (`npm run build`)
 - [ ] TypeScript 검증 (`npx tsc --noEmit`)
+
+## Vitest 설정
+
+### 기본 설정
+```typescript
+// vitest.config.ts
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/test/setup.ts'],
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+});
+```
+
+### 테스트 셋업 파일
+```typescript
+// src/test/setup.ts
+import '@testing-library/jest-dom';
+import { vi } from 'vitest';
+
+// Supabase 모킹
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    auth: { getUser: vi.fn() },
+    from: vi.fn(),
+  },
+}));
+```
+
+### 실행 명령어
+```bash
+# 모든 테스트 실행
+npm run test
+
+# 특정 파일 테스트
+npx vitest run src/lib/services/team
+
+# 커버리지 확인
+npx vitest run --coverage
+```
+
