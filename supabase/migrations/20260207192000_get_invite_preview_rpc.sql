@@ -1,0 +1,83 @@
+-- Create RPC function for getting invite preview without authentication
+-- Uses SECURITY DEFINER to bypass RLS for public invite link access
+
+CREATE OR REPLACE FUNCTION public.get_invite_preview(invite_token UUID)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  result jsonb;
+  invite_record RECORD;
+BEGIN
+  -- Query invite with team and inviter info
+  SELECT 
+    ti.id,
+    ti.status,
+    ti.expires_at,
+    ti.email,
+    ti.role,
+    t.name as team_name,
+    p.name as inviter_name,
+    p.avatar_url as inviter_avatar
+  INTO invite_record
+  FROM team_invites ti
+  LEFT JOIN teams t ON ti.team_id = t.id
+  LEFT JOIN profiles p ON ti.invited_by = p.id
+  WHERE ti.token = invite_token;
+  
+  -- Check if invite exists
+  IF invite_record IS NULL THEN
+    RETURN jsonb_build_object(
+      'valid', false,
+      'status', 'not_found'
+    );
+  END IF;
+  
+  -- Check if expired
+  IF invite_record.expires_at IS NOT NULL AND invite_record.expires_at < NOW() THEN
+    RETURN jsonb_build_object(
+      'valid', false,
+      'status', 'expired',
+      'teamName', invite_record.team_name,
+      'inviterName', invite_record.inviter_name,
+      'inviterAvatar', invite_record.inviter_avatar,
+      'email', invite_record.email,
+      'role', invite_record.role
+    );
+  END IF;
+  
+  -- Check status
+  IF invite_record.status != 'pending' THEN
+    RETURN jsonb_build_object(
+      'valid', false,
+      'status', invite_record.status,
+      'teamName', invite_record.team_name,
+      'inviterName', invite_record.inviter_name,
+      'inviterAvatar', invite_record.inviter_avatar,
+      'email', invite_record.email,
+      'role', invite_record.role
+    );
+  END IF;
+  
+  -- Return valid invite preview
+  RETURN jsonb_build_object(
+    'valid', true,
+    'status', 'pending',
+    'teamName', invite_record.team_name,
+    'inviterName', invite_record.inviter_name,
+    'inviterAvatar', invite_record.inviter_avatar,
+    'email', invite_record.email,
+    'role', invite_record.role
+  );
+END;
+$$;
+
+-- Grant execute permission to anonymous users (for invite preview)
+GRANT EXECUTE ON FUNCTION public.get_invite_preview(UUID) TO anon;
+GRANT EXECUTE ON FUNCTION public.get_invite_preview(UUID) TO authenticated;
+
+-- Add comment for documentation
+COMMENT ON FUNCTION public.get_invite_preview(UUID) IS 
+  'Retrieves team invite preview information by token. Uses SECURITY DEFINER to bypass RLS for public access. Returns team name, inviter info, and invite status.';

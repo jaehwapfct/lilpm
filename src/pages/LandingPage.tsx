@@ -186,20 +186,20 @@ export function LandingPage() {
           {/* Feature Highlights */}
           <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-4">
-              <div className="text-3xl font-bold text-primary">2분</div>
-              <p className="text-sm text-muted-foreground">PRD 생성 시간</p>
+              <div className="text-3xl font-bold text-primary">2 min</div>
+              <p className="text-sm text-muted-foreground">PRD Generation</p>
             </div>
             <div className="text-center p-4">
               <div className="text-3xl font-bold text-primary">100%</div>
-              <p className="text-sm text-muted-foreground">자동 티켓 생성</p>
+              <p className="text-sm text-muted-foreground">Auto Ticket Creation</p>
             </div>
             <div className="text-center p-4">
-              <div className="text-3xl font-bold text-primary">GPT-4</div>
-              <p className="text-sm text-muted-foreground">+ Claude 3.5</p>
+              <div className="text-3xl font-bold text-primary">AI</div>
+              <p className="text-sm text-muted-foreground">ChatGPT, Claude, Gemini</p>
             </div>
             <div className="text-center p-4">
-              <div className="text-3xl font-bold text-primary">무료</div>
-              <p className="text-sm text-muted-foreground">시작하기</p>
+              <div className="text-3xl font-bold text-primary">Free</div>
+              <p className="text-sm text-muted-foreground">Start Now</p>
             </div>
           </div>
         </div>

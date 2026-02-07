@@ -599,18 +599,33 @@ export const teamInviteService = {
     role?: string;
   }> {
     try {
-      // Use Edge Function to bypass RLS for unauthenticated users
+      // Method 1: Use RPC function with SECURITY DEFINER (bypasses RLS)
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_invite_preview', {
+        invite_token: token,
+      });
+
+      if (!rpcError && rpcData) {
+        console.log('RPC invite preview success:', rpcData);
+        return rpcData;
+      }
+
+      console.warn('RPC failed, trying Edge Function:', rpcError);
+
+      // Method 2: Use Edge Function to bypass RLS for unauthenticated users
       const { data, error } = await supabase.functions.invoke('get-invite-preview', {
         body: { token },
       });
 
-      // If Edge Function fails, fall back to direct query (for authenticated users)
-      if (error) {
-        console.warn('Edge Function failed, trying direct query:', error);
-        return this.getInvitePreviewDirect(token);
+      // If Edge Function works, return data
+      if (!error && data) {
+        console.log('Edge Function invite preview success:', data);
+        return data;
       }
 
-      return data;
+      console.warn('Edge Function failed, trying direct query:', error);
+
+      // Method 3: Fall back to direct query (for authenticated users only)
+      return this.getInvitePreviewDirect(token);
     } catch (error) {
       console.error('Failed to get invite preview:', error);
       return { valid: false, status: 'not_found' };
