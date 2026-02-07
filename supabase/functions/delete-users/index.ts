@@ -7,7 +7,6 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-    // Handle CORS preflight
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders })
     }
@@ -19,137 +18,110 @@ serve(async (req) => {
             throw new Error('user_ids array is required')
         }
 
-        // Create admin client
         const supabaseAdmin = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-            {
-                auth: {
-                    autoRefreshToken: false,
-                    persistSession: false
-                }
-            }
+            { auth: { autoRefreshToken: false, persistSession: false } }
         )
 
-        const results: { userId: string; success: boolean; error?: string }[] = []
+        const results: { userId: string; success: boolean; error?: string; details?: string[] }[] = []
 
         for (const userId of user_ids) {
+            const details: string[] = []
+
             try {
-                console.log(`Deleting user: ${userId}`)
+                console.log(`Starting deletion for user: ${userId}`)
 
-                // Step 1: Delete from team_members (this cascades due to FK)
-                const { error: teamMembersError } = await supabaseAdmin
-                    .from('team_members')
-                    .delete()
-                    .eq('user_id', userId)
-
-                if (teamMembersError) {
-                    console.log(`team_members delete warning: ${teamMembersError.message}`)
+                // Get user email
+                let userEmail = ''
+                try {
+                    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId)
+                    userEmail = userData?.user?.email || ''
+                    details.push(`User: ${userEmail || userId}`)
+                } catch (e: any) {
+                    details.push(`Could not get user: ${e.message}`)
                 }
 
-                // Step 2: Delete from team_invites where user is invitee
-                const { error: invitesError } = await supabaseAdmin
-                    .from('team_invites')
-                    .delete()
-                    .eq('email', await getEmailForUser(supabaseAdmin, userId))
+                // 1. DELETE user_ai_settings
+                const { error: e1 } = await supabaseAdmin.from('user_ai_settings').delete().eq('user_id', userId)
+                details.push(`user_ai_settings: ${e1 ? e1.message : 'ok'}`)
 
-                if (invitesError) {
-                    console.log(`team_invites delete warning: ${invitesError.message}`)
+                // 2. DELETE prd_documents (not update to null - has NOT NULL constraint)
+                const { error: e2 } = await supabaseAdmin.from('prd_documents').delete().eq('created_by', userId)
+                details.push(`prd_documents: ${e2 ? e2.message : 'ok'}`)
+
+                // 3. DELETE prd_projects created by user
+                const { error: e3 } = await supabaseAdmin.from('prd_projects').delete().eq('created_by', userId)
+                details.push(`prd_projects: ${e3 ? e3.message : 'ok'}`)
+
+                // 4. DELETE team_members
+                const { error: e4 } = await supabaseAdmin.from('team_members').delete().eq('user_id', userId)
+                details.push(`team_members: ${e4 ? e4.message : 'ok'}`)
+
+                // 5. UPDATE team_invites (invited_by)
+                const { error: e5 } = await supabaseAdmin.from('team_invites').update({ invited_by: null }).eq('invited_by', userId)
+                details.push(`team_invites: ${e5 ? e5.message : 'ok'}`)
+
+                // 6. DELETE team_invites by email
+                if (userEmail) {
+                    const { error: e6 } = await supabaseAdmin.from('team_invites').delete().eq('email', userEmail)
+                    details.push(`team_invites (email): ${e6 ? e6.message : 'ok'}`)
                 }
 
-                // Step 3: Update issues to remove assignee
-                const { error: issuesError } = await supabaseAdmin
-                    .from('issues')
-                    .update({ assignee_id: null })
-                    .eq('assignee_id', userId)
+                // 7. UPDATE issues (assignee_id)
+                const { error: e7 } = await supabaseAdmin.from('issues').update({ assignee_id: null }).eq('assignee_id', userId)
+                details.push(`issues: ${e7 ? e7.message : 'ok'}`)
 
-                if (issuesError) {
-                    console.log(`issues update warning: ${issuesError.message}`)
-                }
+                // 8. DELETE activity_logs
+                const { error: e8 } = await supabaseAdmin.from('activity_logs').delete().eq('user_id', userId)
+                details.push(`activity_logs: ${e8 ? e8.message : 'ok'}`)
 
-                // Step 4: Delete activity logs
-                const { error: logsError } = await supabaseAdmin
-                    .from('activity_logs')
-                    .delete()
-                    .eq('user_id', userId)
+                // 9. DELETE notifications
+                const { error: e9 } = await supabaseAdmin.from('notifications').delete().eq('user_id', userId)
+                details.push(`notifications: ${e9 ? e9.message : 'ok'}`)
 
-                if (logsError) {
-                    console.log(`activity_logs delete warning: ${logsError.message}`)
-                }
+                // 10. DELETE projects created by user
+                const { error: e10 } = await supabaseAdmin.from('projects').delete().eq('created_by', userId)
+                details.push(`projects: ${e10 ? e10.message : 'ok'}`)
 
-                // Step 5: Delete notifications
-                const { error: notifError } = await supabaseAdmin
-                    .from('notifications')
-                    .delete()
-                    .eq('user_id', userId)
+                // 11. DELETE profiles
+                const { error: e11 } = await supabaseAdmin.from('profiles').delete().eq('id', userId)
+                details.push(`profiles: ${e11 ? e11.message : 'ok'}`)
 
-                if (notifError) {
-                    console.log(`notifications delete warning: ${notifError.message}`)
-                }
-
-                // Step 6: Delete profile (this should cascade from auth.users but we do it explicitly)
-                const { error: profileError } = await supabaseAdmin
-                    .from('profiles')
-                    .delete()
-                    .eq('id', userId)
-
-                if (profileError) {
-                    console.log(`profiles delete warning: ${profileError.message}`)
-                }
-
-                // Step 7: Finally, delete the auth user
+                // 12. Finally delete auth user
+                console.log('Deleting auth user...')
                 const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
 
                 if (authError) {
-                    throw authError
+                    details.push(`auth.users: ${authError.message}`)
+                    throw new Error(`Auth: ${authError.message}`)
                 }
 
-                results.push({ userId, success: true })
-                console.log(`Successfully deleted user: ${userId}`)
+                details.push('auth.users: ok')
+                results.push({ userId, success: true, details })
+                console.log(`Deleted user: ${userId}`)
 
             } catch (userError: any) {
-                console.error(`Error deleting user ${userId}:`, userError)
-                results.push({
-                    userId,
-                    success: false,
-                    error: userError.message || 'Unknown error'
-                })
+                console.error(`Error deleting ${userId}:`, userError)
+                results.push({ userId, success: false, error: userError.message, details })
             }
         }
 
-        const allSuccess = results.every(r => r.success)
         const successCount = results.filter(r => r.success).length
 
         return new Response(
             JSON.stringify({
-                success: allSuccess,
+                success: successCount === user_ids.length,
                 message: `Deleted ${successCount}/${user_ids.length} users`,
                 results
             }),
-            {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: allSuccess ? 200 : 207 // 207 Multi-Status if partial success
-            }
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         )
 
     } catch (error: any) {
-        console.error('Delete users error:', error)
         return new Response(
             JSON.stringify({ error: error.message }),
-            {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: 400
-            }
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         )
     }
 })
-
-// Helper function to get user email
-async function getEmailForUser(supabase: any, userId: string): Promise<string> {
-    try {
-        const { data } = await supabase.auth.admin.getUserById(userId)
-        return data?.user?.email || ''
-    } catch {
-        return ''
-    }
-}
