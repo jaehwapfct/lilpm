@@ -88,15 +88,9 @@ serve(async (req) => {
                 const { error: e7 } = await supabaseAdmin.from('issues').update({ assignee_id: null }).eq('assignee_id', userId)
                 details.push(`issues (assignee): ${e7 ? e7.message : 'ok'}`)
 
-                // 8. UPDATE issues (creator_id) - NOT NULL, must reassign to another user
-                if (replacementUserId) {
-                    const { error: e8 } = await supabaseAdmin.from('issues').update({ creator_id: replacementUserId }).eq('creator_id', userId)
-                    details.push(`issues (creator): ${e8 ? e8.message : 'ok'}`)
-                } else {
-                    // If no replacement user, delete the issues
-                    const { error: e8 } = await supabaseAdmin.from('issues').delete().eq('creator_id', userId)
-                    details.push(`issues (creator-delete): ${e8 ? e8.message : 'ok'}`)
-                }
+                // 8. UPDATE issues (creator_id) - NOW NULLABLE, can set to null
+                const { error: e8 } = await supabaseAdmin.from('issues').update({ creator_id: null }).eq('creator_id', userId)
+                details.push(`issues (creator): ${e8 ? e8.message : 'ok'}`)
 
                 // 9. DELETE activity_logs
                 const { error: e9 } = await supabaseAdmin.from('activity_logs').delete().eq('user_id', userId)

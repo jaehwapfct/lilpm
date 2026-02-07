@@ -42,13 +42,13 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { StatusIcon, PriorityIcon, statusLabels, priorityLabels, allStatuses, allPriorities } from './IssueIcons';
-import { 
-  Loader2, 
-  CalendarIcon, 
-  X, 
-  FolderKanban, 
-  User, 
-  Tag, 
+import {
+  Loader2,
+  CalendarIcon,
+  X,
+  FolderKanban,
+  User,
+  Tag,
   Target,
   Check,
   Plus,
@@ -58,6 +58,7 @@ import { projectService } from '@/lib/services/projectService';
 import { teamMemberService } from '@/lib/services/teamService';
 import { labelService } from '@/lib/services/issueService';
 import { cycleService } from '@/lib/services/cycleService';
+import { issueTemplateService, type IssueTemplate } from '@/lib/services/issueTemplateService';
 import { cn } from '@/lib/utils';
 
 const issueSchema = z.object({
@@ -101,6 +102,8 @@ export function CreateIssueModal({
   const [labels, setLabels] = useState<Label[]>([]);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [labelPopoverOpen, setLabelPopoverOpen] = useState(false);
+  const [templates, setTemplates] = useState<(IssueTemplate | ReturnType<typeof issueTemplateService.getBuiltInTemplates>[0])[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
 
   const form = useForm<IssueFormData>({
     resolver: zodResolver(issueSchema),
@@ -120,7 +123,7 @@ export function CreateIssueModal({
 
   const loadData = useCallback(async () => {
     if (!currentTeam?.id) return;
-    
+
     try {
       const [projectsData, membersData, labelsData, cyclesData] = await Promise.all([
         projectService.getProjects(currentTeam.id),
@@ -128,11 +131,23 @@ export function CreateIssueModal({
         labelService.getLabels(currentTeam.id),
         cycleService.getCycles(currentTeam.id),
       ]);
-      
+
       setProjects(projectsData);
       setMembers(membersData.map(m => m.profile));
       setLabels(labelsData);
       setCycles(cyclesData.filter(c => c.status !== 'completed'));
+
+      // Load templates (use built-in as fallback)
+      try {
+        const teamTemplates = await issueTemplateService.getTemplates(currentTeam.id);
+        if (teamTemplates.length > 0) {
+          setTemplates(teamTemplates);
+        } else {
+          setTemplates(issueTemplateService.getBuiltInTemplates());
+        }
+      } catch {
+        setTemplates(issueTemplateService.getBuiltInTemplates());
+      }
     } catch (error) {
       console.error('Failed to load data:', error);
     }
@@ -154,6 +169,7 @@ export function CreateIssueModal({
         estimate: undefined,
         label_ids: [],
       });
+      setSelectedTemplateId(null);
     }
   }, [open, loadData, form, initialStatus, initialProjectId, initialCycleId]);
 
@@ -191,6 +207,27 @@ export function CreateIssueModal({
     return labels.filter(l => selectedLabels.includes(l.id));
   };
 
+  const handleTemplateSelect = (templateIdOrName: string) => {
+    const template = templates.find(t => ('id' in t ? t.id : t.name) === templateIdOrName);
+    if (template) {
+      setSelectedTemplateId(templateIdOrName);
+      form.setValue('title', template.default_title || '');
+      form.setValue('description', template.default_description || '');
+      form.setValue('status', (template.default_status || 'backlog') as IssueStatus);
+      form.setValue('priority', (template.default_priority || 'none') as IssuePriority);
+      if (template.default_estimate) {
+        form.setValue('estimate', template.default_estimate);
+      }
+      if (template.default_labels && template.default_labels.length > 0) {
+        // Find matching labels by name
+        const matchingLabels = labels.filter(l =>
+          template.default_labels.some(tl => tl.toLowerCase() === l.name.toLowerCase())
+        );
+        setSelectedLabels(matchingLabels.map(l => l.id));
+      }
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -200,6 +237,29 @@ export function CreateIssueModal({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            {/* Template Selector */}
+            {templates.length > 0 && (
+              <div className="flex flex-wrap gap-2 pb-3 border-b">
+                {templates.map((template) => {
+                  const id = 'id' in template ? template.id : template.name;
+                  const isSelected = selectedTemplateId === id;
+                  return (
+                    <Button
+                      key={id}
+                      type="button"
+                      variant={isSelected ? 'default' : 'outline'}
+                      size="sm"
+                      className="h-7 text-xs gap-1.5"
+                      onClick={() => handleTemplateSelect(id)}
+                    >
+                      <span>{template.icon}</span>
+                      <span>{template.name}</span>
+                    </Button>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Title */}
             <FormField
               control={form.control}
@@ -208,10 +268,10 @@ export function CreateIssueModal({
                 <FormItem>
                   <FormLabel>{t('issues.issueTitle')}</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder={t('issues.issueTitle')} 
+                    <Input
+                      placeholder={t('issues.issueTitle')}
                       autoFocus
-                      {...field} 
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -227,10 +287,10 @@ export function CreateIssueModal({
                 <FormItem>
                   <FormLabel>{t('issues.description')}</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder={t('issues.addDescription')} 
+                    <Textarea
+                      placeholder={t('issues.addDescription')}
                       className="min-h-[80px]"
-                      {...field} 
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -308,8 +368,8 @@ export function CreateIssueModal({
                       <FolderKanban className="h-3.5 w-3.5" />
                       {t('issues.project')}
                     </FormLabel>
-                    <Select 
-                      onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} 
+                    <Select
+                      onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)}
                       value={field.value || "__none__"}
                     >
                       <FormControl>
@@ -324,8 +384,8 @@ export function CreateIssueModal({
                         {projects.map((project) => (
                           <SelectItem key={project.id} value={project.id}>
                             <div className="flex items-center gap-2">
-                              <div 
-                                className="h-3 w-3 rounded-sm" 
+                              <div
+                                className="h-3 w-3 rounded-sm"
                                 style={{ backgroundColor: project.color }}
                               />
                               <span>{project.name}</span>
@@ -348,8 +408,8 @@ export function CreateIssueModal({
                       <Target className="h-3.5 w-3.5" />
                       {t('issues.cycle')}
                     </FormLabel>
-                    <Select 
-                      onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} 
+                    <Select
+                      onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)}
                       value={field.value || "__none__"}
                     >
                       <FormControl>
@@ -390,8 +450,8 @@ export function CreateIssueModal({
                       <User className="h-3.5 w-3.5" />
                       {t('issues.assignee')}
                     </FormLabel>
-                    <Select 
-                      onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} 
+                    <Select
+                      onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)}
                       value={field.value || "__none__"}
                     >
                       <FormControl>
@@ -448,8 +508,8 @@ export function CreateIssueModal({
                               <span>{t('issues.dueDate')}</span>
                             )}
                             {field.value && (
-                              <X 
-                                className="ml-auto h-4 w-4 hover:text-destructive" 
+                              <X
+                                className="ml-auto h-4 w-4 hover:text-destructive"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   field.onChange(undefined);
@@ -481,8 +541,8 @@ export function CreateIssueModal({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('issues.estimate')}</FormLabel>
-                  <Select 
-                    onValueChange={(v) => field.onChange(v === "__none__" ? undefined : parseInt(v))} 
+                  <Select
+                    onValueChange={(v) => field.onChange(v === "__none__" ? undefined : parseInt(v))}
                     value={field.value?.toString() || "__none__"}
                   >
                     <FormControl>
@@ -512,7 +572,7 @@ export function CreateIssueModal({
                 <Tag className="h-3.5 w-3.5" />
                 {t('issues.labels')}
               </FormLabel>
-              
+
               {/* Selected Labels */}
               {selectedLabels.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-2">
@@ -521,26 +581,26 @@ export function CreateIssueModal({
                       key={label.id}
                       variant="secondary"
                       className="gap-1"
-                      style={{ 
+                      style={{
                         backgroundColor: `${label.color}20`,
                         borderColor: label.color,
                         color: label.color,
                       }}
                     >
-                      <div 
+                      <div
                         className="h-2 w-2 rounded-full"
                         style={{ backgroundColor: label.color }}
                       />
                       {label.name}
-                      <X 
-                        className="h-3 w-3 cursor-pointer hover:opacity-70" 
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:opacity-70"
                         onClick={() => removeLabel(label.id)}
                       />
                     </Badge>
                   ))}
                 </div>
               )}
-              
+
               {/* Label Selector */}
               <Popover open={labelPopoverOpen} onOpenChange={setLabelPopoverOpen}>
                 <PopoverTrigger asChild>
@@ -567,7 +627,7 @@ export function CreateIssueModal({
                               onSelect={() => toggleLabel(label.id)}
                               className="flex items-center gap-2"
                             >
-                              <div 
+                              <div
                                 className="h-3 w-3 rounded-full"
                                 style={{ backgroundColor: label.color }}
                               />
