@@ -73,77 +73,13 @@ import { userAISettingsService } from '@/lib/services/conversationService';
 import { useAuthStore } from '@/stores/authStore';
 import { useTeamStore } from '@/stores/teamStore';
 import type { AIProvider } from '@/types';
+import { TimelineThinkingBlock } from '@/components/issues/TimelineThinkingBlock';
+import { extractOverview, type VersionEntry, type AISuggestion, type AIMessage, type PRDStatus } from './prd/PRDTypes';
 
-// Extract plain text preview from HTML content for overview field
-const extractOverview = (htmlContent: string): string => {
-  // Create a temporary element to strip HTML
-  const temp = document.createElement('div');
-  temp.innerHTML = htmlContent;
-  const text = temp.textContent || temp.innerText || '';
-  // Get first 200 characters, trim whitespace, and add ellipsis if truncated
-  const preview = text.trim().replace(/\s+/g, ' ').slice(0, 200);
-  return preview.length >= 200 ? preview + '...' : preview;
-};
 
-// Timeline Thinking Block Component (like Gemini/Claude)
-const TimelineThinkingBlock = ({ content, isExpanded = false }: { content: string; isExpanded?: boolean }) => {
-  const [expanded, setExpanded] = useState(isExpanded);
+// Types and utilities are now imported from ./prd/PRDTypes
+// TimelineThinkingBlock is now imported from @/components/issues/TimelineThinkingBlock
 
-  if (!content) return null;
-
-  return (
-    <div className="flex gap-2 mb-3">
-      <div className="flex flex-col items-center">
-        <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center">
-          <Sparkles className="h-3 w-3 text-amber-500" />
-        </div>
-        <div className="w-px flex-1 bg-border" />
-      </div>
-      <div className="flex-1 pb-2">
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-2 text-xs text-amber-600 hover:text-amber-500 font-medium mb-1"
-        >
-          {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-          Thinking...
-        </button>
-        {expanded && (
-          <div className="text-xs text-muted-foreground bg-amber-500/5 border border-amber-500/20 rounded-lg p-2 mt-1">
-            {content}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// Version history entry
-interface VersionEntry {
-  id: string;
-  content: string;
-  timestamp: Date;
-  description: string;
-}
-
-// AI suggestion
-interface AISuggestion {
-  id: string;
-  originalContent: string;
-  suggestedContent: string;
-  description: string;
-  status: 'pending' | 'accepted' | 'rejected';
-}
-
-// AI Message in panel
-interface AIMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-  suggestion?: AISuggestion;
-}
-
-type PRDStatus = 'draft' | 'review' | 'approved' | 'archived';
 
 const statusConfig: Record<PRDStatus, { label: string; color: string; icon: React.ReactNode }> = {
   draft: { label: 'Draft', color: 'bg-muted text-muted-foreground', icon: <Pencil className="h-3 w-3" /> },
