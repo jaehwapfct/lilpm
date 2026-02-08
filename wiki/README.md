@@ -113,14 +113,26 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_SITE_URL=http://localhost:5173
 ```
 
-## 🆕 최근 업데이트 (2026-02-07)
+## 🆕 최근 업데이트 (2026-02-08)
 
+### UI/UX 개선
+- ✅ **랜딩 페이지 히어로 애니메이션** - 8개 기능 3초 순환 쇼케이스
+- ✅ **PRD 리스트 뷰** - 그리드/리스트 토글, 필터, 정렬 기능
+- ✅ **사이드바 접기/펼치기** - localStorage 저장, 부드러운 전환
+
+### 새로운 컴포넌트
+- ✅ **ImageUploadModal** - 드래그앤드롭, 라이트박스, 10개 이미지 제한
+- ✅ **InboxToast** - 실시간 알림 토스트 시스템
+
+### 팀 기능
+- ✅ **팀 탈퇴 기능** - 비 Owner 멤버 탈퇴, 확인 다이얼로그
 - ✅ **초대 수락/거절 UI** - 자동 수락 대신 명시적 버튼 표시
 - ✅ **get-invite-preview Edge Function** - 비인증 유저 초대 미리보기
+
+### AI & 알림
+- ✅ **CoT UI 조건부 표시** - 이미지 첨부 메시지에만 표시
 - ✅ **PRD @멘션 알림** - 인박스 + 이메일 발송
 - ✅ **이슈-PRD 연결** - IssueDetailPage에 PRD 선택기 추가
-- ✅ **팀 Owner 자동 할당** - create_team_with_owner RPC 수정
-- ✅ **/welcome 리디렉션** - 신규 유저 기본 랜딩 페이지
 
 ## 📜 라이선스
 

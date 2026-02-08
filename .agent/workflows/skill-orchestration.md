@@ -59,6 +59,8 @@ npx tsc --noEmit 2>&1 | head -10
 | 테스트 추가 | testing | 없음 (스킬만) |
 | 배포 | 없음 | /deploy |
 | 최적화 | performance | 없음 (스킬만) |
+| **AI 기능** | **ai-integration**, supabase | /comprehensive-dev |
+| **다중 요청** | **parallel-tasks** | 자동 활성화 |
 
 ---
 
