@@ -43,6 +43,8 @@ import {
   Minus,
   Link as LinkIcon,
   Highlighter,
+  Zap,
+  Layout,
   Table as TableIcon,
   Image as ImageIcon,
   Undo,
@@ -68,7 +70,8 @@ import { Paintbrush } from 'lucide-react';
 import {
   CalloutNode, ToggleNode, VideoNode, EquationNode, TableOfContentsNode,
   BookmarkNode, FileNode, UniqueId, getBlockIdAtPos,
-  AudioNode, ColumnBlock, Column, PageEmbed, BreadcrumbsNode
+  AudioNode, ColumnBlock, Column, PageEmbed, BreadcrumbsNode,
+  ButtonBlock, TemplateButton
 } from './extensions';
 import { cn } from '@/lib/utils';
 import {
@@ -499,6 +502,19 @@ const SlashCommandsMenu = ({
       description: 'Show page path',
       action: () => editor.chain().focus().insertContent({ type: 'breadcrumbs' }).run()
     },
+    // Sprint 3: Automation
+    {
+      icon: <Zap className="h-4 w-4" />,
+      label: 'Button',
+      description: 'Interactive button with actions',
+      action: () => editor.chain().focus().insertContent({ type: 'buttonBlock' }).run()
+    },
+    {
+      icon: <Layout className="h-4 w-4" />,
+      label: 'Template',
+      description: 'Insert content template',
+      action: () => editor.chain().focus().insertContent({ type: 'templateButton' }).run()
+    },
   ];
 
   if (!isOpen) return null;
@@ -854,6 +870,9 @@ export function BlockEditor({
       Column,
       PageEmbed,
       BreadcrumbsNode,
+      // Sprint 3: Automation
+      ButtonBlock,
+      TemplateButton,
     ],
     content: yjsDoc ? undefined : content, // Don't set content when using Yjs (doc is the source of truth)
     editable,

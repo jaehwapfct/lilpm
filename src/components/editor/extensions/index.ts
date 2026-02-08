@@ -17,6 +17,12 @@ export { BreadcrumbsNode } from './BreadcrumbsNode';
 export { BlockCommentExtension } from './BlockComment';
 export type { BlockComment, BlockCommentReply, BlockCommentOptions } from './BlockComment';
 
+// Sprint 3: Automation
+export { ButtonBlock } from './ButtonBlock';
+export type { ButtonAction, ButtonBlockOptions } from './ButtonBlock';
+export { TemplateButton, builtInTemplates } from './TemplateButton';
+export type { ContentTemplate, TemplateButtonOptions } from './TemplateButton';
+
 // Core Extensions
 export { UniqueId, getBlockIdAtPos, findBlockById } from './UniqueId';
 export { SyncedBlock, SyncedBlockService } from './SyncedBlock';
