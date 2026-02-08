@@ -49,8 +49,18 @@ export function LoginPage() {
       await login(data.email, data.password);
       toast.success(t('auth.loginSuccess'));
       navigate(returnUrl);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth.loginError'));
+    } catch (err: any) {
+      // Parse Supabase error messages for better UX
+      const message = err.message || '';
+      if (message.includes('Invalid login credentials')) {
+        setError(t('auth.invalidCredentials', 'Invalid email or password. Please check your credentials and try again.'));
+      } else if (message.includes('Email not confirmed')) {
+        setError(t('auth.emailNotConfirmed', 'Please verify your email address before logging in.'));
+      } else if (message.includes('Too many requests')) {
+        setError(t('auth.tooManyAttempts', 'Too many login attempts. Please try again later.'));
+      } else {
+        setError(err instanceof Error ? err.message : t('auth.loginError'));
+      }
     }
   };
 
@@ -114,6 +124,15 @@ export function LoginPage() {
                 </FormItem>
               )}
             />
+
+            <div className="flex justify-end">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-primary hover:underline"
+              >
+                {t('auth.forgotPassword', 'Forgot password?')}
+              </Link>
+            </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (

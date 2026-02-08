@@ -12,7 +12,7 @@ import { useUserTeamsRealtime, useTeamMemberRealtime } from "@/hooks/useTeamReal
 import { useCollaborationStore } from "@/stores/collaborationStore";
 
 // Auth pages - loaded immediately
-import { LoginPage, SignupPage, AcceptInvitePage, CancelledInvitePage, EmailVerificationPage } from "./pages/auth";
+import { LoginPage, SignupPage, AcceptInvitePage, CancelledInvitePage, EmailVerificationPage, ForgotPasswordPage, ResetPasswordPage, ExpiredLinkPage } from "./pages/auth";
 import { LandingPage } from "./pages/LandingPage";
 
 // Onboarding pages - loaded immediately
@@ -224,6 +224,9 @@ function AppRoutes() {
           <Route path="/invite/accept" element={<AcceptInvitePage />} />
           <Route path="/invite/cancelled" element={<CancelledInvitePage />} />
           <Route path="/auth/verify-email" element={<ProtectedRoute><EmailVerificationPage /></ProtectedRoute>} />
+          <Route path="/forgot-password" element={<AuthRoute><ForgotPasswordPage /></AuthRoute>} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/reset-password/expired" element={<ExpiredLinkPage />} />
           <Route path="/lily/shared/:token" element={<SharedConversationPage />} />
 
           {/* Onboarding Routes */}

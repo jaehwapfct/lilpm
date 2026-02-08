@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { ProductDemoShowcase } from '@/components/landing';
 import {
   ArrowRight,
   Zap,
@@ -71,18 +72,6 @@ const HERO_FEATURES = [
 
 export function LandingPage() {
   const { t } = useTranslation();
-  const [currentFeatureIndex, setCurrentFeatureIndex] = useState(0);
-
-  // Rotate features every 3 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentFeatureIndex((prev) => (prev + 1) % HERO_FEATURES.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const currentFeature = HERO_FEATURES[currentFeatureIndex];
-  const CurrentIcon = currentFeature.icon;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -172,51 +161,10 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Animated Feature Showcase */}
+      {/* Product Demo Showcase */}
       <section className="px-6 pb-20" id="demo">
-        <div className="max-w-6xl mx-auto">
-          <div className="relative rounded-xl border border-border bg-card overflow-hidden shadow-2xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5" />
-
-            {/* Animated Feature Display */}
-            <div className="relative min-h-[400px] flex flex-col items-center justify-center p-8">
-              {/* Feature Icon with Animation */}
-              <div
-                key={currentFeatureIndex}
-                className={`h-24 w-24 rounded-2xl bg-gradient-to-br ${currentFeature.color} flex items-center justify-center mb-6 shadow-lg animate-in fade-in zoom-in-50 duration-500`}
-              >
-                <CurrentIcon className="h-12 w-12 text-white" />
-              </div>
-
-              {/* Feature Text */}
-              <h3
-                key={`title-${currentFeatureIndex}`}
-                className="text-2xl md:text-3xl font-bold mb-3 animate-in fade-in slide-in-from-bottom-2 duration-500"
-              >
-                {currentFeature.title}
-              </h3>
-              <p
-                key={`desc-${currentFeatureIndex}`}
-                className="text-muted-foreground text-lg max-w-md text-center animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100"
-              >
-                {currentFeature.description}
-              </p>
-
-              {/* Feature Progress Dots */}
-              <div className="flex gap-2 mt-8">
-                {HERO_FEATURES.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentFeatureIndex(index)}
-                    className={`h-2 rounded-full transition-all duration-300 ${index === currentFeatureIndex
-                        ? 'w-8 bg-primary'
-                        : 'w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50'
-                      }`}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
+        <div className="max-w-5xl mx-auto">
+          <ProductDemoShowcase />
 
           {/* Feature Highlights */}
           <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
