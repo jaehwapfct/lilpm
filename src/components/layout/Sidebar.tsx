@@ -10,7 +10,7 @@ import {
   Plus,
   ChevronDown,
   ChevronRight,
-  BarChart3,
+  Database,
   Users,
   HelpCircle,
   Folder,
@@ -220,16 +220,8 @@ function ConversationListItem({
   );
 }
 
-const PROJECT_ICONS: Record<string, string> = {
-  folder: '📁',
-  rocket: '🚀',
-  star: '⭐',
-  lightning: '⚡',
-  target: '🎯',
-  gem: '💎',
-  fire: '🔥',
-  heart: '❤️',
-};
+// Project icons are intentionally removed - use Lucide icons instead
+const PROJECT_ICONS: Record<string, string> = {};
 
 interface SidebarProps {
   onNavigate?: () => void;
@@ -403,7 +395,7 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
     { icon: Target, label: t('nav.cycles'), href: '/cycles' },
     { icon: FileText, label: t('nav.prd', 'PRD'), href: '/prd' },
     { icon: Folder, label: t('nav.projects'), href: '/projects' },
-    { icon: BarChart3, label: t('nav.insights'), href: '/insights' },
+    { icon: Database, label: t('nav.database'), href: '/database' },
   ];
 
   // Helper function to get presence users for a given path

@@ -1,10 +1,11 @@
 /* Drag Handle Styles for TipTap Block Editor */
+/* 6-dot handler only visible when hovering left margin, not content */
 
-/* Drag handle container */
+/* Drag handle container - hidden by default */
 .drag-handle {
   position: fixed;
-  opacity: 1;
-  transition: opacity 0.2s ease, background-color 0.2s ease;
+  opacity: 0;
+  transition: opacity 0.15s ease;
   border-radius: 4px;
   background: transparent;
   display: flex;
@@ -14,9 +15,13 @@
   height: 24px;
   cursor: grab;
   z-index: 50;
+  pointer-events: auto;
 }
 
-.drag-handle:hover {
+/* Show drag handle when hovering near left margin */
+.drag-handle:hover,
+.drag-handle.visible {
+  opacity: 1;
   background-color: hsl(var(--accent));
 }
 
@@ -24,16 +29,7 @@
   cursor: grabbing;
 }
 
-/* 6-dot grid pattern for drag handle */
-.drag-handle::before {
-  content: '';
-  display: grid;
-  grid-template-columns: repeat(2, 4px);
-  grid-template-rows: repeat(3, 4px);
-  gap: 2px;
-  background: none;
-}
-
+/* 6-dot pattern icon */
 .drag-handle::after {
   content: '⠿';
   font-size: 14px;
@@ -45,8 +41,35 @@
   color: hsl(var(--foreground));
 }
 
-/* Hide handle when not hovering the block */
-.ProseMirror-hideselection .drag-handle {
+/* ProseMirror block hover zone - left margin only */
+.ProseMirror {
+  position: relative;
+}
+
+/* Create invisible left-margin hover zone for each block */
+.ProseMirror>*:not(.ProseMirror-gapcursor) {
+  position: relative;
+}
+
+.ProseMirror>*:not(.ProseMirror-gapcursor)::before {
+  content: '';
+  position: absolute;
+  left: -40px;
+  top: 0;
+  width: 40px;
+  height: 100%;
+  /* Invisible hover zone for drag handle */
+  pointer-events: auto;
+}
+
+/* Show drag handle only when mouse enters left margin zone */
+.ProseMirror>*:not(.ProseMirror-gapcursor):hover>.drag-handle,
+.ProseMirror-focused .drag-handle[data-visible="true"] {
+  opacity: 1;
+}
+
+/* Hide handle when hovering content (right of margin) */
+.ProseMirror>*[data-content-hover="true"] .drag-handle {
   opacity: 0;
 }
 
@@ -81,4 +104,14 @@
   border-radius: 4px;
   min-height: 40px;
   margin: 4px 0;
+}
+
+/* Only show drag handle when hovering LEFT side of block (first 40px) */
+.ProseMirror [data-node-view-wrapper] {
+  position: relative;
+}
+
+/* Left margin indicator for debugging (remove in production) */
+.ProseMirror.debug-margins>*::before {
+  background: rgba(255, 0, 0, 0.1);
 }

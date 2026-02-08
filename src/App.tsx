@@ -45,6 +45,9 @@ const PRDDetailPage = React.lazy(() => import("./pages/PRDDetailPage").then(m =>
 const InboxPage = React.lazy(() => import("./pages/InboxPage").then(m => ({ default: m.InboxPage })));
 const MyIssuesPage = React.lazy(() => import("./pages/MyIssuesPage").then(m => ({ default: m.MyIssuesPage })));
 const SharedConversationPage = React.lazy(() => import("./pages/SharedConversationPage").then(m => ({ default: m.SharedConversationPage })));
+const DatabasePage = React.lazy(() => import("./pages/DatabasePage").then(m => ({ default: m.DatabasePage })));
+const HelpPage = React.lazy(() => import("./pages/HelpPage").then(m => ({ default: m.HelpPage })));
+const SettingsMainPage = React.lazy(() => import("./pages/SettingsPage").then(m => ({ default: m.SettingsPage })));
 import NotFound from "./pages/NotFound";
 
 // Loading component for Suspense fallback
@@ -250,6 +253,9 @@ function AppRoutes() {
           <Route path="/cycle/active" element={<OnboardingCheck><CyclesPage /></OnboardingCheck>} />
           <Route path="/cycle/:cycleId" element={<OnboardingCheck><IssuesPage /></OnboardingCheck>} />
           <Route path="/insights" element={<OnboardingCheck><DashboardPage /></OnboardingCheck>} />
+          <Route path="/database" element={<OnboardingCheck><DatabasePage /></OnboardingCheck>} />
+          <Route path="/help" element={<OnboardingCheck><HelpPage /></OnboardingCheck>} />
+          <Route path="/settings/main" element={<OnboardingCheck><SettingsMainPage /></OnboardingCheck>} />
           <Route path="/project/:projectId" element={<OnboardingCheck><ProjectDetailPage /></OnboardingCheck>} />
           <Route path="/issue/:issueId" element={<OnboardingCheck><IssueDetailPage /></OnboardingCheck>} />
           <Route path="/settings" element={<OnboardingCheck><GeneralSettingsPage /></OnboardingCheck>} />

@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sparkles, FileText, BarChart3, MessageSquare } from 'lucide-react';
+import { Sparkles, FileText, Database, MessageSquare, Plus } from 'lucide-react';
 
 export function QuickActionsCard() {
   const { t } = useTranslation();
@@ -18,18 +18,18 @@ export function QuickActionsCard() {
       iconColor: 'text-violet-500',
     },
     {
-      icon: FileText,
+      icon: Plus,
       label: t('dashboard.newIssue'),
       description: t('dashboard.newIssueDesc'),
-      onClick: () => {}, // Will trigger modal
+      onClick: () => navigate('/issues?new=true'),
       gradient: 'from-blue-500/20 to-cyan-500/20',
       iconColor: 'text-blue-500',
     },
     {
-      icon: BarChart3,
-      label: t('dashboard.viewInsights'),
-      description: t('dashboard.viewInsightsDesc'),
-      onClick: () => navigate('/insights'),
+      icon: Database,
+      label: t('dashboard.viewDatabase'),
+      description: t('dashboard.viewDatabaseDesc'),
+      onClick: () => navigate('/database'),
       gradient: 'from-green-500/20 to-emerald-500/20',
       iconColor: 'text-green-500',
     },

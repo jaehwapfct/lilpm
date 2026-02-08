@@ -40,6 +40,8 @@ interface CollaborationStore {
   setCursorVisibleTo: (userIds: string[]) => void;
   // Text cursor for editor collaboration
   updateTextCursor: (position: { line: number; column: number; selection?: string }) => void;
+  // Set users directly (for sidebar presence)
+  setUsers: (users: Presence[]) => void;
 }
 
 const PRESENCE_COLORS = [
@@ -244,5 +246,9 @@ export const useCollaborationStore = create<CollaborationStore>((set, get) => ({
 
     // Update local presence
     get().updatePresence({ textCursor: position });
+  },
+
+  setUsers: (users: Presence[]) => {
+    set({ users });
   },
 }));

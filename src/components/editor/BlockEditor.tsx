@@ -1359,106 +1359,196 @@ export function BlockEditor({
       )}
 
 
-      {/* Editor Content with Cursor Overlay and Table Context Menu */}
+      {/* Editor Content with Cursor Overlay and Block-Type Context Menu */}
       <div style={{ position: 'relative' }}>
         <ContextMenu>
           <ContextMenuTrigger asChild>
             <div
               onContextMenu={(e) => {
-                // Only show context menu if inside a table
+                // Store info about what was right-clicked for context menu
                 const target = e.target as HTMLElement;
-                const isInTable = target.closest('table') !== null;
-                if (!isInTable || !editor?.can().deleteRow()) {
-                  // Allow default context menu for non-table elements
-                  e.stopPropagation();
-                }
+                // Let the context menu handle all cases now
               }}
             >
               <EditorContent editor={editor} />
             </div>
           </ContextMenuTrigger>
-          <ContextMenuContent className="w-56">
-            {/* Row Operations */}
+          <ContextMenuContent className="w-64">
+            {/* Text Formatting */}
             <ContextMenuItem
-              onClick={() => editor?.chain().focus().addRowBefore().run()}
-              disabled={!editor?.can().addRowBefore()}
+              onClick={() => editor?.chain().focus().toggleBold().run()}
+              disabled={!editor?.can().toggleBold()}
             >
-              Add Row Above
+              <Bold className="h-4 w-4 mr-2" />
+              Bold
+              <span className="ml-auto text-xs text-muted-foreground">⌘B</span>
             </ContextMenuItem>
             <ContextMenuItem
-              onClick={() => editor?.chain().focus().addRowAfter().run()}
-              disabled={!editor?.can().addRowAfter()}
+              onClick={() => editor?.chain().focus().toggleItalic().run()}
+              disabled={!editor?.can().toggleItalic()}
             >
-              Add Row Below
+              <Italic className="h-4 w-4 mr-2" />
+              Italic
+              <span className="ml-auto text-xs text-muted-foreground">⌘I</span>
             </ContextMenuItem>
             <ContextMenuItem
-              onClick={() => editor?.chain().focus().deleteRow().run()}
-              disabled={!editor?.can().deleteRow()}
+              onClick={() => editor?.chain().focus().toggleStrike().run()}
+              disabled={!editor?.can().toggleStrike()}
+            >
+              <Strikethrough className="h-4 w-4 mr-2" />
+              Strikethrough
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => editor?.chain().focus().toggleCode().run()}
+              disabled={!editor?.can().toggleCode()}
+            >
+              <Code className="h-4 w-4 mr-2" />
+              Inline Code
+              <span className="ml-auto text-xs text-muted-foreground">⌘E</span>
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+
+            {/* Turn Into */}
+            <ContextMenuItem
+              onClick={() => editor?.chain().focus().setParagraph().run()}
+            >
+              <AlignLeft className="h-4 w-4 mr-2" />
+              Text
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
+            >
+              <Heading1 className="h-4 w-4 mr-2" />
+              Heading 1
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+            >
+              <Heading2 className="h-4 w-4 mr-2" />
+              Heading 2
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
+            >
+              <Heading3 className="h-4 w-4 mr-2" />
+              Heading 3
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+
+            {/* List Actions */}
+            <ContextMenuItem
+              onClick={() => editor?.chain().focus().toggleBulletList().run()}
+            >
+              <List className="h-4 w-4 mr-2" />
+              Bullet List
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+            >
+              <ListOrdered className="h-4 w-4 mr-2" />
+              Numbered List
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => editor?.chain().focus().toggleTaskList().run()}
+            >
+              <ListTodo className="h-4 w-4 mr-2" />
+              To-do List
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+
+            {/* Block Actions */}
+            <ContextMenuItem
+              onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+            >
+              <Quote className="h-4 w-4 mr-2" />
+              Quote
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
+            >
+              <CodeSquare className="h-4 w-4 mr-2" />
+              Code Block
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+
+            {/* Table Operations (if in table) */}
+            {editor?.can().deleteRow() && (
+              <>
+                <ContextMenuItem
+                  onClick={() => editor?.chain().focus().addRowBefore().run()}
+                >
+                  Add Row Above
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={() => editor?.chain().focus().addRowAfter().run()}
+                >
+                  Add Row Below
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={() => editor?.chain().focus().addColumnBefore().run()}
+                >
+                  Add Column Left
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={() => editor?.chain().focus().addColumnAfter().run()}
+                >
+                  Add Column Right
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={() => editor?.chain().focus().deleteRow().run()}
+                  className="text-red-500"
+                >
+                  Delete Row
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={() => editor?.chain().focus().deleteColumn().run()}
+                  className="text-red-500"
+                >
+                  Delete Column
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+              </>
+            )}
+
+            {/* Clipboard & Delete */}
+            <ContextMenuItem
+              onClick={() => {
+                // Copy block content
+                const { from, to } = editor?.state.selection || {};
+                if (from !== undefined && to !== undefined) {
+                  const text = editor?.state.doc.textBetween(from, to, '\n');
+                  navigator.clipboard.writeText(text || '');
+                }
+              }}
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              Copy
+              <span className="ml-auto text-xs text-muted-foreground">⌘C</span>
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => {
+                // Duplicate current block
+                const { $from, $to } = editor?.state.selection || {};
+                if ($from && $to) {
+                  const nodeAfter = $to.nodeAfter;
+                  const nodeBefore = $from.nodeBefore;
+                  const content = editor?.state.doc.slice($from.pos, $to.pos);
+                  if (content) {
+                    editor?.chain().focus().insertContentAt($to.pos, content.content.toJSON()).run();
+                  }
+                }
+              }}
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              Duplicate
+              <span className="ml-auto text-xs text-muted-foreground">⌘D</span>
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => editor?.chain().focus().deleteSelection().run()}
               className="text-red-500"
             >
-              Delete Row
-            </ContextMenuItem>
-            <ContextMenuSeparator />
-
-            {/* Column Operations */}
-            <ContextMenuItem
-              onClick={() => editor?.chain().focus().addColumnBefore().run()}
-              disabled={!editor?.can().addColumnBefore()}
-            >
-              Add Column Left
-            </ContextMenuItem>
-            <ContextMenuItem
-              onClick={() => editor?.chain().focus().addColumnAfter().run()}
-              disabled={!editor?.can().addColumnAfter()}
-            >
-              Add Column Right
-            </ContextMenuItem>
-            <ContextMenuItem
-              onClick={() => editor?.chain().focus().deleteColumn().run()}
-              disabled={!editor?.can().deleteColumn()}
-              className="text-red-500"
-            >
-              Delete Column
-            </ContextMenuItem>
-            <ContextMenuSeparator />
-
-            {/* Cell Operations */}
-            <ContextMenuItem
-              onClick={() => editor?.chain().focus().mergeCells().run()}
-              disabled={!editor?.can().mergeCells()}
-            >
-              Merge Cells
-            </ContextMenuItem>
-            <ContextMenuItem
-              onClick={() => editor?.chain().focus().splitCell().run()}
-              disabled={!editor?.can().splitCell()}
-            >
-              Split Cell
-            </ContextMenuItem>
-            <ContextMenuSeparator />
-
-            {/* Header Operations */}
-            <ContextMenuItem
-              onClick={() => editor?.chain().focus().toggleHeaderRow().run()}
-              disabled={!editor?.can().toggleHeaderRow()}
-            >
-              Toggle Header Row
-            </ContextMenuItem>
-            <ContextMenuItem
-              onClick={() => editor?.chain().focus().toggleHeaderColumn().run()}
-              disabled={!editor?.can().toggleHeaderColumn()}
-            >
-              Toggle Header Column
-            </ContextMenuItem>
-            <ContextMenuSeparator />
-
-            {/* Delete Table */}
-            <ContextMenuItem
-              onClick={() => editor?.chain().focus().deleteTable().run()}
-              disabled={!editor?.can().deleteTable()}
-              className="text-red-500"
-            >
-              Delete Table
+              Delete
+              <span className="ml-auto text-xs text-muted-foreground">⌫</span>
             </ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>
