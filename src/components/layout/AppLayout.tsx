@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { TeamSwitchingOverlay } from './TeamSwitchingOverlay';
@@ -8,7 +8,9 @@ import { useRealtimeCollaboration } from '@/hooks/useRealtimeCollaboration';
 import { useTeamStore } from '@/stores/teamStore';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { PanelLeftClose, PanelLeft } from 'lucide-react';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -19,6 +21,7 @@ interface AppLayoutProps {
 const MIN_SIDEBAR_WIDTH = 200;
 const MAX_SIDEBAR_WIDTH = 400;
 const DEFAULT_SIDEBAR_WIDTH = 224; // 14rem = 224px
+const COLLAPSED_SIDEBAR_WIDTH = 0;
 
 export function AppLayout({
   children,
@@ -30,14 +33,37 @@ export function AppLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isSwitchingTeam, switchingToTeamName } = useTeamStore();
 
+  // Sidebar collapse state with localStorage persistence
+  const [isCollapsed, setIsCollapsed] = useState(() =>
+    localStorage.getItem('sidebarCollapsed') === 'true'
+  );
+
   // Sidebar resize state
-  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem('sidebarWidth');
+    return saved ? parseInt(saved, 10) : DEFAULT_SIDEBAR_WIDTH;
+  });
   const [isResizing, setIsResizing] = useState(false);
+
+  // Persist collapse state
+  useEffect(() => {
+    localStorage.setItem('sidebarCollapsed', String(isCollapsed));
+  }, [isCollapsed]);
+
+  // Persist sidebar width
+  useEffect(() => {
+    localStorage.setItem('sidebarWidth', String(sidebarWidth));
+  }, [sidebarWidth]);
 
   // Initialize real-time collaboration
   const { isConnected, onlineCount } = useRealtimeCollaboration({
     enabled: enableCollaboration,
   });
+
+  // Toggle sidebar collapse
+  const toggleSidebar = useCallback(() => {
+    setIsCollapsed(prev => !prev);
+  }, []);
 
   // Handle sidebar resize
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -63,6 +89,8 @@ export function AppLayout({
     document.addEventListener('mouseup', handleMouseUp);
   }, [sidebarWidth]);
 
+  const actualSidebarWidth = isCollapsed ? COLLAPSED_SIDEBAR_WIDTH : sidebarWidth;
+
   return (
     <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
       {/* Team Switching Overlay */}
@@ -74,21 +102,47 @@ export function AppLayout({
       {/* Desktop Sidebar with Resize Handle */}
       {showSidebar && !isMobile && (
         <div
-          className="relative flex-shrink-0 bg-sidebar flex"
-          style={{ width: sidebarWidth }}
+          className={cn(
+            "relative flex-shrink-0 bg-sidebar flex transition-all duration-300 ease-in-out overflow-hidden",
+            isCollapsed && "w-0"
+          )}
+          style={{ width: isCollapsed ? 0 : sidebarWidth }}
         >
-          <Sidebar style={{ width: '100%' }} />
+          <Sidebar style={{ width: sidebarWidth, minWidth: sidebarWidth }} />
 
           {/* Resize Handle */}
-          <div
-            className={cn(
-              "absolute right-0 top-0 bottom-0 w-1 cursor-col-resize z-20",
-              "hover:bg-primary/50 transition-colors",
-              isResizing && "bg-primary/50"
-            )}
-            onMouseDown={handleMouseDown}
-          />
+          {!isCollapsed && (
+            <div
+              className={cn(
+                "absolute right-0 top-0 bottom-0 w-1 cursor-col-resize z-20",
+                "hover:bg-primary/50 transition-colors",
+                isResizing && "bg-primary/50"
+              )}
+              onMouseDown={handleMouseDown}
+            />
+          )}
         </div>
+      )}
+
+      {/* Sidebar Toggle Button - Always visible on desktop */}
+      {showSidebar && !isMobile && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "absolute top-3 z-30 h-8 w-8 transition-all duration-300",
+            isCollapsed ? "left-3" : "left-3"
+          )}
+          style={{ left: isCollapsed ? 12 : sidebarWidth - 36 }}
+          onClick={toggleSidebar}
+          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {isCollapsed ? (
+            <PanelLeft className="h-4 w-4" />
+          ) : (
+            <PanelLeftClose className="h-4 w-4" />
+          )}
+        </Button>
       )}
 
       {/* Mobile Sidebar Sheet */}
