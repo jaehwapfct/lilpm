@@ -53,6 +53,7 @@ import {
   CodeSquare,
   Upload,
   Link2,
+  FileText,
   // Notion-style block icons
   Info,
   ChevronRight,
@@ -64,7 +65,11 @@ import {
   Copy,
 } from 'lucide-react';
 import { Paintbrush } from 'lucide-react';
-import { CalloutNode, ToggleNode, VideoNode, EquationNode, TableOfContentsNode, BookmarkNode, FileNode, UniqueId, getBlockIdAtPos } from './extensions';
+import {
+  CalloutNode, ToggleNode, VideoNode, EquationNode, TableOfContentsNode,
+  BookmarkNode, FileNode, UniqueId, getBlockIdAtPos,
+  AudioNode, ColumnBlock, Column, PageEmbed, BreadcrumbsNode
+} from './extensions';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -462,6 +467,38 @@ const SlashCommandsMenu = ({
         editor.chain().focus().insertContentAt(to, '\n' + text).run();
       }
     },
+    // Sprint 1: New blocks
+    {
+      icon: <Play className="h-4 w-4" />,
+      label: 'Audio',
+      description: 'Embed audio file',
+      action: () => editor.chain().focus().insertContent({ type: 'audio' }).run()
+    },
+    {
+      icon: <ListIcon className="h-4 w-4" />,
+      label: '2 Columns',
+      description: 'Create two columns',
+      action: () => editor.chain().focus().insertContent({
+        type: 'columnBlock',
+        attrs: { columnCount: 2 },
+        content: [
+          { type: 'column', content: [{ type: 'paragraph' }] },
+          { type: 'column', content: [{ type: 'paragraph' }] },
+        ]
+      }).run()
+    },
+    {
+      icon: <FileText className="h-4 w-4" />,
+      label: 'Page',
+      description: 'Embed a page',
+      action: () => editor.chain().focus().insertContent({ type: 'pageEmbed' }).run()
+    },
+    {
+      icon: <ChevronRight className="h-4 w-4" />,
+      label: 'Breadcrumbs',
+      description: 'Show page path',
+      action: () => editor.chain().focus().insertContent({ type: 'breadcrumbs' }).run()
+    },
   ];
 
   if (!isOpen) return null;
@@ -811,6 +848,12 @@ export function BlockEditor({
       TableOfContentsNode,
       BookmarkNode,
       FileNode,
+      // Sprint 1: Core Blocks
+      AudioNode,
+      ColumnBlock,
+      Column,
+      PageEmbed,
+      BreadcrumbsNode,
     ],
     content: yjsDoc ? undefined : content, // Don't set content when using Yjs (doc is the source of truth)
     editable,
