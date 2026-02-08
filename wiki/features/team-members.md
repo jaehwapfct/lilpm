@@ -263,6 +263,32 @@ const channel = supabase
 | `send-team-invite` | 팀 초대 이메일 발송 | ✅ |
 | `send-member-removed` | 멤버 제거 알림 이메일 | ✅ |
 
+## 프로젝트별 멤버 할당
+
+팀 멤버의 드롭다운 메뉴에서 **프로젝트 할당** 옵션을 통해 멤버별로 접근 가능한 프로젝트를 관리할 수 있습니다.
+
+### ProjectAssignmentModal
+
+**파일**: `src/components/team/ProjectAssignmentModal.tsx`
+
+```tsx
+// 체크박스 기반 프로젝트 할당 UI
+<ProjectAssignmentModal
+  open={isOpen}
+  onOpenChange={setIsOpen}
+  member={selectedMember}
+  teamId={currentTeam.id}
+/>
+```
+
+**주요 기능**:
+- 팀 내 모든 프로젝트 목록 표시
+- 체크박스로 할당/해제
+- 변경사항 일괄 저장
+- 프로젝트 상태 배지 표시
+
+자세한 내용은 [프로젝트 멤버 관리](./project-members.md) 문서를 참조하세요.
+
 ## 보안
 
 - ✅ Row Level Security (RLS) 적용
@@ -270,9 +296,12 @@ const channel = supabase
 - ✅ 초대 토큰 1회성 사용
 - ✅ 초대 만료 시간 24시간
 - ✅ Service Role로만 미리보기 접근 가능
+- ✅ 프로젝트별 멤버 RLS로 비할당 유저 접근 차단
 
 ---
 
 **관련 문서**
 - [인증](./authentication.md)
+- [프로젝트 멤버 관리](./project-members.md)
 - [데이터베이스 스키마](../architecture/database.md)
+

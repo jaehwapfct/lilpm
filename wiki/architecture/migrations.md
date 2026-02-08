@@ -39,6 +39,10 @@ Ensures proper cascading when users are deleted from auth.users.
 | 20260206233300_create_prd_yjs_state.sql | Collaborative editing state |
 | 20260207020500_issue_templates.sql | Issue templates |
 | 20260207200300_conversation_shares.sql | Shareable Lily conversations |
+| 20260208170700_archive_system.sql | Archive/Database 기능 |
+| 20260208171500_create_databases.sql | 데이터베이스 컬렉션 |
+| 20260208171600_page_versions_and_comments.sql | 페이지 버전 및 댓글 |
+| 20260208190000_project_members.sql | 프로젝트별 멤버 할당 및 RLS |
 
 ---
 

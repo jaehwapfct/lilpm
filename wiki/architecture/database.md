@@ -137,6 +137,32 @@ CREATE TABLE projects (
 );
 ```
 
+### project_members
+
+프로젝트별 멤버 할당 (접근 제어용)
+
+```sql
+CREATE TABLE project_members (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  role TEXT DEFAULT 'member' CHECK (role IN ('lead', 'member', 'viewer')),
+  assigned_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  assigned_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(project_id, user_id)
+);
+
+CREATE INDEX idx_project_members_project ON project_members(project_id);
+CREATE INDEX idx_project_members_user ON project_members(user_id);
+```
+
+**RLS 정책**: 
+- 할당된 멤버 또는 팀 admin/owner만 프로젝트 조회 가능
+- 프로젝트에 속한 이슈도 동일한 접근 제어 적용
+
+**자동 할당 트리거**:
+- 새 팀 멤버 가입 시 기존 모든 프로젝트에 자동 할당
+
 ### issues
 
 이슈/티켓

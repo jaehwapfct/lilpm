@@ -14,6 +14,8 @@
 - [간트 차트](./features/gantt-chart.md) - 타임라인 뷰, 어사이니 필터, 의존성 연결
 - [Lily AI](./features/lily-ai.md) - AI 어시스턴트, PRD/티켓 생성
 - [PRD](./features/prd.md) - 블록 에디터, @멘션, 프로젝트 연결
+- [프로젝트](./features/projects.md) - 프로젝트 관리, 탭 저장, AI 연동 **NEW**
+- [프로젝트 멤버](./features/project-members.md) - 프로젝트별 접근 권한 제어 **NEW**
 - [사이클](./features/cycles.md) - 스프린트 관리
 - [인증](./features/authentication.md) - 이메일 인증, /welcome 리디렉션
 - [팀 멤버 관리](./features/team-members.md) - 초대 수락/거절 UI, Edge Functions
@@ -57,6 +59,7 @@ npm run dev
 | 📝 **PRD** | 블록 에디터, @멘션 알림, 프로젝트 다중 연결 |
 | 🔄 **사이클** | 스프린트 기반 프로젝트 관리 |
 | 👥 **팀 협업** | 초대 수락/거절 UI, 권한 관리, 실시간 동기화 |
+| 🔐 **프로젝트 멤버** | 프로젝트별 접근 권한 제어, RLS 기반 보안 |
 | 📧 **알림** | 인박스 + 이메일 알림 (@멘션, 초대) |
 
 ## 🛠️ 기술 스택
@@ -115,24 +118,21 @@ VITE_SITE_URL=http://localhost:5173
 
 ## 🆕 최근 업데이트 (2026-02-08)
 
-### UI/UX 개선
-- ✅ **랜딩 페이지 히어로 애니메이션** - 8개 기능 3초 순환 쇼케이스
-- ✅ **PRD 리스트 뷰** - 그리드/리스트 토글, 필터, 정렬 기능
-- ✅ **사이드바 접기/펼치기** - localStorage 저장, 부드러운 전환
+### 프로젝트 멤버 시스템
+- ✅ **프로젝트별 멤버 할당** - RLS 기반 접근 제어
+- ✅ **ProjectAssignmentModal** - 체크박스 기반 할당 UI
+- ✅ **자동 할당 트리거** - 새 팀 멤버 가입 시 기존 프로젝트 자동 할당
 
-### 새로운 컴포넌트
-- ✅ **ImageUploadModal** - 드래그앤드롭, 라이트박스, 10개 이미지 제한
-- ✅ **InboxToast** - 실시간 알림 토스트 시스템
+### UI/UX 개선
+- ✅ **프로젝트 상세 페이지 반응형** - 전체 너비 레이아웃
+- ✅ **탭 상태 기억** - localStorage로 마지막 탭 저장
+- ✅ **이슈/PRD 생성 버튼** - AI로 작성 버튼 추가
+- ✅ **Lily AI 프로젝트 인사말** - 컨텍스트 기반 인사
 
 ### 팀 기능
 - ✅ **팀 탈퇴 기능** - 비 Owner 멤버 탈퇴, 확인 다이얼로그
 - ✅ **초대 수락/거절 UI** - 자동 수락 대신 명시적 버튼 표시
 - ✅ **get-invite-preview Edge Function** - 비인증 유저 초대 미리보기
-
-### AI & 알림
-- ✅ **CoT UI 조건부 표시** - 이미지 첨부 메시지에만 표시
-- ✅ **PRD @멘션 알림** - 인박스 + 이메일 발송
-- ✅ **이슈-PRD 연결** - IssueDetailPage에 PRD 선택기 추가
 
 ## 📜 라이선스
 
