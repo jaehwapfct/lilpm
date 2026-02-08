@@ -328,6 +328,19 @@ export function PRDDetailPage() {
     supabaseUpdateCursorPosition(position, blockId);
   }, [yjsUpdateCursorPosition, supabaseUpdateCursorPosition]);
 
+  // Register remote content change handler for real-time sync
+  useEffect(() => {
+    if (isSupabaseCollabConnected) {
+      onRemoteContentChange((remoteContent: string, remoteUserId: string) => {
+        console.log('[PRDDetailPage] Received remote content change from:', remoteUserId);
+        // Update content state - this will re-render the editor with new content
+        setContent(remoteContent);
+        // Also update the saved reference to prevent marking as unsaved
+        setSavedContent(remoteContent);
+      });
+    }
+  }, [isSupabaseCollabConnected, onRemoteContentChange]);
+
   // Provider display names
   const PROVIDER_LABELS: Record<AIProvider, string> = {
     auto: '✨ Auto',
