@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { 
+import {
   Plus,
   User,
   Settings,
@@ -9,6 +9,7 @@ import {
   Wifi,
   WifiOff,
   Menu,
+  MousePointer2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -25,9 +26,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useAuthStore } from '@/stores/authStore';
+import { useCollaborationStore } from '@/stores/collaborationStore';
 import { PresenceAvatars } from '@/components/collaboration';
 import { NotificationDropdown } from '@/components/notifications';
 import { GlobalSearch } from '@/components/search';
+import { cn } from '@/lib/utils';
 
 interface HeaderProps {
   isCollaborating?: boolean;
@@ -36,8 +39,8 @@ interface HeaderProps {
   showMenuButton?: boolean;
 }
 
-export function Header({ 
-  isCollaborating = false, 
+export function Header({
+  isCollaborating = false,
   onlineCount = 0,
   onMenuClick,
   showMenuButton = false,
@@ -45,6 +48,7 @@ export function Header({
   const location = useLocation();
   const { t } = useTranslation();
   const { user, logout } = useAuthStore();
+  const { showCursors, toggleShowCursors } = useCollaborationStore();
 
   const getPageTitle = () => {
     const path = location.pathname;
@@ -82,9 +86,9 @@ export function Header({
       {/* Center: Search & Quick Actions */}
       <div className="flex items-center gap-3">
         <GlobalSearch />
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           className="h-7 px-2 gap-1"
         >
           <Plus className="h-3.5 w-3.5" />
@@ -122,6 +126,28 @@ export function Header({
             </TooltipTrigger>
             <TooltipContent>
               <p>Offline</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+
+        {/* Cursor Visibility Toggle */}
+        {isCollaborating && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={showCursors ? "default" : "ghost"}
+                size="icon"
+                className={cn(
+                  "h-7 w-7",
+                  showCursors && "bg-violet-500 hover:bg-violet-600 text-white"
+                )}
+                onClick={toggleShowCursors}
+              >
+                <MousePointer2 className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{showCursors ? t('collaboration.hideCursors', 'Hide cursors') : t('collaboration.showCursors', 'Show cursors')}</p>
             </TooltipContent>
           </Tooltip>
         )}

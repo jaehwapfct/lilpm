@@ -21,6 +21,7 @@ interface CollaborationStore {
   channel: RealtimeChannel | null;
   users: Presence[];
   myPresence: Partial<Presence>;
+  showCursors: boolean;
 
   // Actions
   joinRoom: (roomId: string, userInfo: { id: string; name: string; avatarUrl?: string }) => Promise<void>;
@@ -32,6 +33,7 @@ interface CollaborationStore {
   setCurrentPath: (path: string) => void;
   updateCursor: (position: { x: number; y: number }) => void;
   broadcastIssueUpdate: (issueId: string, changes: Record<string, unknown>) => void;
+  toggleShowCursors: () => void;
 }
 
 const PRESENCE_COLORS = [
@@ -51,6 +53,7 @@ export const useCollaborationStore = create<CollaborationStore>((set, get) => ({
   myPresence: {
     color: getRandomColor(),
   },
+  showCursors: localStorage.getItem('showCursors') !== 'false', // default true
 
   joinRoom: async (roomId: string, userInfo: { id: string; name: string; avatarUrl?: string }) => {
     // Leave existing room first
@@ -205,5 +208,13 @@ export const useCollaborationStore = create<CollaborationStore>((set, get) => ({
         payload: { issueId, changes, updatedBy: myPresence.odId },
       });
     }
+  },
+
+  toggleShowCursors: () => {
+    set((state) => {
+      const newValue = !state.showCursors;
+      localStorage.setItem('showCursors', String(newValue));
+      return { showCursors: newValue };
+    });
   },
 }));

@@ -7,9 +7,9 @@ interface CursorPresenceProps {
 }
 
 export function CursorPresence({ containerRef }: CursorPresenceProps) {
-  const { users, isConnected } = useCollaborationStore();
+  const { users, isConnected, showCursors } = useCollaborationStore();
 
-  if (!isConnected) {
+  if (!isConnected || !showCursors) {
     return null;
   }
 
