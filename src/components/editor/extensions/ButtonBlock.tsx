@@ -47,10 +47,11 @@ const ButtonBlockComponent: React.FC<NodeViewProps> = ({
                 case 'copyToClipboard':
                     await navigator.clipboard.writeText((action as any).text || '');
                     break;
-                default:
+                default: {
                     // Delegate to external handler
                     const options = extension.options as ButtonBlockOptions;
                     await options.onActionExecute?.(action, node.attrs.blockId);
+                }
             }
         } catch (error) {
             console.error('[ButtonBlock] Action failed:', error);
