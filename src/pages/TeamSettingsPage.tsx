@@ -36,9 +36,11 @@ import {
   AlertTriangle,
   Building2,
   LogOut,
+  Crown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { TeamRole } from '@/types/database';
+import type { TeamMemberWithProfile } from '@/lib/services/team/teamMemberService';
 
 export function TeamSettingsPage() {
   const { t } = useTranslation();
@@ -51,9 +53,12 @@ export function TeamSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
   const [userRole, setUserRole] = useState<TeamRole | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [leaveConfirmation, setLeaveConfirmation] = useState('');
+  const [teamMembers, setTeamMembers] = useState<TeamMemberWithProfile[]>([]);
+  const [selectedNewOwner, setSelectedNewOwner] = useState<string>('');
 
   useEffect(() => {
     if (currentTeam) {
@@ -81,6 +86,10 @@ export function TeamSettingsPage() {
       if (currentTeam && user) {
         const role = await teamMemberService.getUserRole(currentTeam.id, user.id);
         setUserRole(role);
+
+        // Load team members for owner transfer
+        const members = await teamMemberService.getMembers(currentTeam.id);
+        setTeamMembers(members);
       }
     };
     loadUserRole();
@@ -143,8 +152,14 @@ export function TeamSettingsPage() {
 
     setIsLeaving(true);
     try {
-      // Remove user from team
-      await teamMemberService.removeMember(user.id);
+      // Get the team member record ID first
+      const member = await teamMemberService.getMemberByUserId(currentTeam.id, user.id);
+      if (!member) {
+        throw new Error('Member not found');
+      }
+
+      // Remove user from team using member record ID
+      await teamMemberService.removeMember(member.id);
 
       // Reload teams and switch to another team
       await loadTeams();
@@ -162,6 +177,30 @@ export function TeamSettingsPage() {
     } finally {
       setIsLeaving(false);
       setLeaveConfirmation('');
+    }
+  };
+
+  const handleTransferOwnership = async () => {
+    if (!currentTeam || !user || !selectedNewOwner) return;
+
+    setIsTransferring(true);
+    try {
+      await teamMemberService.transferOwnership(currentTeam.id, selectedNewOwner, user.id);
+
+      // Reload to update role
+      const role = await teamMemberService.getUserRole(currentTeam.id, user.id);
+      setUserRole(role);
+
+      // Reload members
+      const members = await teamMemberService.getMembers(currentTeam.id);
+      setTeamMembers(members);
+
+      setSelectedNewOwner('');
+      toast.success(t('teamSettings.ownershipTransferred', 'Ownership transferred successfully'));
+    } catch (error: any) {
+      toast.error(error.message || t('common.error'));
+    } finally {
+      setIsTransferring(false);
     }
   };
 
@@ -277,6 +316,54 @@ export function TeamSettingsPage() {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Owner Transfer - Only for owners */}
+        {userRole === 'owner' && teamMembers.filter(m => m.user_id !== user?.id).length > 0 && (
+          <Card className="border-amber-500/50">
+            <CardHeader>
+              <CardTitle className="text-lg text-amber-600 flex items-center gap-2">
+                <Crown className="h-5 w-5" />
+                {t('teamSettings.transferOwnership', 'Transfer Ownership')}
+              </CardTitle>
+              <CardDescription>
+                {t('teamSettings.transferOwnershipDesc', 'Transfer team ownership to another member before leaving')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">{t('teamSettings.selectNewOwner', 'Select New Owner')}</label>
+                <Select value={selectedNewOwner} onValueChange={setSelectedNewOwner}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('teamSettings.selectMember', 'Select a member')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teamMembers
+                      .filter(m => m.user_id !== user?.id)
+                      .map(member => (
+                        <SelectItem key={member.id} value={member.user_id}>
+                          {member.profile?.name || member.profile?.email || 'Unknown'}
+                          {member.role === 'admin' && ' (Admin)'}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button
+                onClick={handleTransferOwnership}
+                disabled={!selectedNewOwner || isTransferring}
+                className="bg-amber-600 hover:bg-amber-700"
+              >
+                {isTransferring ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Crown className="h-4 w-4 mr-2" />
+                )}
+                {t('teamSettings.transferButton', 'Transfer Ownership')}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Leave Team - Only for non-owners */}
         {userRole !== 'owner' && (

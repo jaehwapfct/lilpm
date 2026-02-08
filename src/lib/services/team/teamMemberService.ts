@@ -152,4 +152,39 @@ export const teamMemberService = {
         if (error) return null;
         return data as TeamRole | null;
     },
+
+    async getMemberByUserId(teamId: string, userId: string): Promise<TeamMember | null> {
+        const { data, error } = await supabase
+            .from('team_members')
+            .select('*')
+            .eq('team_id', teamId)
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        if (error) {
+            console.error('Error getting member by user ID:', error);
+            return null;
+        }
+        return data as TeamMember | null;
+    },
+
+    async transferOwnership(teamId: string, newOwnerId: string, currentOwnerId: string): Promise<void> {
+        // Update new owner to 'owner' role
+        const { error: newOwnerError } = await supabase
+            .from('team_members')
+            .update({ role: 'owner' } as any)
+            .eq('team_id', teamId)
+            .eq('user_id', newOwnerId);
+
+        if (newOwnerError) throw newOwnerError;
+
+        // Update current owner to 'admin' role
+        const { error: currentOwnerError } = await supabase
+            .from('team_members')
+            .update({ role: 'admin' } as any)
+            .eq('team_id', teamId)
+            .eq('user_id', currentOwnerId);
+
+        if (currentOwnerError) throw currentOwnerError;
+    },
 };
