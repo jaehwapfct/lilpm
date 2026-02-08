@@ -297,7 +297,7 @@ export function PRDDetailPage() {
     userName: user?.name || user?.email?.split('@')[0] || 'Anonymous',
     userColor: user?.id ? getUserColor(user.id) : undefined,
     avatarUrl: user?.avatarUrl,
-    enabled: false, // TEMPORARILY DISABLED to fix page crash
+    enabled: !!(prdId && user?.id && !isLoading), // Re-enabled for real-time saving
   });
 
   // Combine remote cursors from both sources (Yjs + Supabase Presence)
@@ -600,7 +600,7 @@ export function PRDDetailPage() {
 
     // CRITICAL: Always trigger debounced save to guarantee DB persistence
     // This ensures content is saved even in collaboration mode
-    debouncedSaveContent(value);
+    debouncedSaveContent(value, true); // forceUpdate=true ensures save always happens
 
     // Broadcast to other users via Supabase Realtime
     if (isSupabaseCollabConnected) {
