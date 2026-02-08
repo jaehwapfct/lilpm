@@ -53,7 +53,7 @@ export const useCollaborationStore = create<CollaborationStore>((set, get) => ({
   myPresence: {
     color: getRandomColor(),
   },
-  showCursors: localStorage.getItem('showCursors') !== 'false', // default true
+  showCursors: localStorage.getItem('showCursors') === 'true', // default false
 
   joinRoom: async (roomId: string, userInfo: { id: string; name: string; avatarUrl?: string }) => {
     // Leave existing room first

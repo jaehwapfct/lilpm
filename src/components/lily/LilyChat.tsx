@@ -1065,7 +1065,7 @@ export function LilyChat() {
                           )}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="flex flex-col max-w-[85%]">
+                      <div className="flex flex-col min-w-0 max-w-[85%] sm:max-w-[85%]">
                         {/* Speech Bubble */}
                         <div
                           className={cn(

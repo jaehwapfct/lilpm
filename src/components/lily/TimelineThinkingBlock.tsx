@@ -28,7 +28,7 @@ export function TimelineThinkingBlock({ content, t, isStreaming = false }: Timel
             {/* Thinking Header - Gemini/Claude style */}
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="flex items-center gap-1.5 group hover:opacity-80 transition-opacity"
+                className="flex items-center gap-1 sm:gap-1.5 group hover:opacity-80 transition-opacity"
             >
                 <div className={cn(
                     "w-5 h-5 rounded-full flex items-center justify-center transition-colors",
@@ -42,11 +42,11 @@ export function TimelineThinkingBlock({ content, t, isStreaming = false }: Timel
                         <Brain className="h-2.5 w-2.5 text-violet-500" />
                     )}
                 </div>
-                <span className="text-xs font-medium text-violet-600 dark:text-violet-400">
+                <span className="text-[10px] sm:text-xs font-medium text-violet-600 dark:text-violet-400">
                     {isStreaming ? t('lily.thinking', 'Thinking...') : t('lily.thoughtProcess', 'Thought process')}
                 </span>
                 <ChevronDown className={cn(
-                    "h-3 w-3 text-muted-foreground transition-transform duration-200",
+                    "h-2.5 w-2.5 sm:h-3 sm:w-3 text-muted-foreground transition-transform duration-200",
                     isExpanded ? "rotate-0" : "-rotate-90"
                 )} />
             </button>
@@ -58,8 +58,8 @@ export function TimelineThinkingBlock({ content, t, isStreaming = false }: Timel
             )}>
                 <div className="relative rounded-lg bg-zinc-900 dark:bg-zinc-950 border border-zinc-800 overflow-hidden">
                     {/* Content with scroll */}
-                    <div className="p-3 max-h-[350px] overflow-y-auto">
-                        <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-sans leading-relaxed">
+                    <div className="p-2 sm:p-3 max-h-[250px] sm:max-h-[350px] overflow-y-auto">
+                        <pre className="text-[10px] sm:text-xs text-zinc-300 whitespace-pre-wrap font-sans leading-relaxed break-words">
                             {content}
                             {isStreaming && <span className="animate-pulse text-violet-400">|</span>}
                         </pre>
