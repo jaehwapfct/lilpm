@@ -177,35 +177,39 @@ export function Header({
                       {t('collaboration.noOtherUsers', 'No other users online')}
                     </p>
                   ) : (
-                    users.filter(u => u.odId !== user?.id).map((member) => (
-                      <label
-                        key={member.odId}
-                        className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          className="rounded border-border"
-                          checked={cursorVisibleTo.includes(member.odId)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setCursorVisibleTo([...cursorVisibleTo, member.odId]);
-                            } else {
-                              setCursorVisibleTo(cursorVisibleTo.filter(id => id !== member.odId));
-                            }
-                          }}
-                        />
-                        <Avatar className="h-5 w-5">
-                          <AvatarImage src={member.avatarUrl} />
-                          <AvatarFallback
-                            className="text-[10px] text-white"
-                            style={{ backgroundColor: member.color }}
-                          >
-                            {member.name?.charAt(0) || '?'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm truncate">{member.name}</span>
-                      </label>
-                    ))
+                    /* Sort by lastActivity (most recent first), then by name */
+                    [...users]
+                      .filter(u => u.odId !== user?.id)
+                      .sort((a, b) => (b.lastActivity || 0) - (a.lastActivity || 0))
+                      .map((member) => (
+                        <label
+                          key={member.odId}
+                          className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            className="rounded border-border"
+                            checked={cursorVisibleTo.includes(member.odId)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setCursorVisibleTo([...cursorVisibleTo, member.odId]);
+                              } else {
+                                setCursorVisibleTo(cursorVisibleTo.filter(id => id !== member.odId));
+                              }
+                            }}
+                          />
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage src={member.avatarUrl} />
+                            <AvatarFallback
+                              className="text-[10px] text-white"
+                              style={{ backgroundColor: member.color }}
+                            >
+                              {member.name?.charAt(0) || '?'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm truncate">{member.name}</span>
+                        </label>
+                      ))
                   )}
                 </div>
               </div>
