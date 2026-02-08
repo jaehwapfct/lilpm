@@ -17,6 +17,7 @@ import {
   Sparkles,
   Target,
   FileText,
+  Archive,
   GanttChartSquare,
   ArrowLeft,
   MessageSquare,
@@ -799,6 +800,13 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
           href="/help"
           onClick={onNavigate}
           presenceUsers={getPresenceForPath('/help')}
+        />
+        <NavItem
+          icon={Archive}
+          label={t('archive.title', 'Archive')}
+          href="/archive"
+          onClick={onNavigate}
+          presenceUsers={getPresenceForPath('/archive')}
         />
         <NavItem
           icon={Settings}
