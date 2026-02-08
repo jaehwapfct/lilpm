@@ -1,0 +1,84 @@
+/* Drag Handle Styles for TipTap Block Editor */
+
+/* Drag handle container */
+.drag-handle {
+  position: fixed;
+  opacity: 1;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+  border-radius: 4px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 24px;
+  cursor: grab;
+  z-index: 50;
+}
+
+.drag-handle:hover {
+  background-color: hsl(var(--accent));
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+/* 6-dot grid pattern for drag handle */
+.drag-handle::before {
+  content: '';
+  display: grid;
+  grid-template-columns: repeat(2, 4px);
+  grid-template-rows: repeat(3, 4px);
+  gap: 2px;
+  background: none;
+}
+
+.drag-handle::after {
+  content: '⠿';
+  font-size: 14px;
+  color: hsl(var(--muted-foreground));
+  letter-spacing: -2px;
+}
+
+.drag-handle:hover::after {
+  color: hsl(var(--foreground));
+}
+
+/* Hide handle when not hovering the block */
+.ProseMirror-hideselection .drag-handle {
+  opacity: 0;
+}
+
+/* Drag cursor when dragging */
+.dragging {
+  cursor: grabbing !important;
+}
+
+/* Drop indicator line */
+.drop-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: hsl(var(--primary));
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* Block being dragged */
+.ProseMirror-block-dragging {
+  opacity: 0.5;
+  outline: 2px dashed hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Placeholder for drop position */
+.block-drop-placeholder {
+  background: hsl(var(--primary) / 0.1);
+  border: 2px dashed hsl(var(--primary));
+  border-radius: 4px;
+  min-height: 40px;
+  margin: 4px 0;
+}

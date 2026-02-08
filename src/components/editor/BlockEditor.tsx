@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useState, useRef, DragEvent } from 'react';
+import './DragHandle.css';
+import './CollaborationCursor.css';
 import { useEditor, EditorContent, NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -19,6 +21,7 @@ import Mention from '@tiptap/extension-mention';
 import Color from '@tiptap/extension-color';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { common, createLowlight } from 'lowlight';
+import GlobalDragHandle from 'tiptap-extension-global-drag-handle';
 import * as Y from 'yjs';
 import tippy, { Instance as TippyInstance } from 'tippy.js';
 import { createRoot, Root } from 'react-dom/client';
@@ -771,23 +774,27 @@ export function BlockEditor({
       UniqueId.configure({
         attributeName: 'blockId',
       }),
+      // Global drag handle for block reordering
+      GlobalDragHandle.configure({
+        dragHandleWidth: 20,
+        scrollTreshold: 100,
+      }),
       // Yjs Collaboration extension (real-time document sync)
       ...(yjsDoc ? [
         Collaboration.configure({
           document: yjsDoc,
         }),
       ] : []),
-      // Yjs Collaboration Cursor - DISABLED until awareness integration is stable
-      // TODO: Fix awareness.doc reference issue with y-protocols
-      // ...(yjsDoc && yjsProvider?.awareness ? [
-      //   TiptapCollaborationCursor.configure({
-      //     provider: yjsProvider,
-      //     user: yjsProvider.awareness.getLocalState()?.user || {
-      //       name: collaboration?.userName || 'Anonymous',
-      //       color: collaboration?.userColor || '#F87171',
-      //     },
-      //   }),
-      // ] : []),
+      // Yjs Collaboration Cursor for real-time text cursor with user names
+      ...(yjsDoc && yjsProvider?.awareness ? [
+        TiptapCollaborationCursor.configure({
+          provider: yjsProvider,
+          user: yjsProvider.awareness.getLocalState()?.user || {
+            name: 'Anonymous',
+            color: '#F87171',
+          },
+        }),
+      ] : []),
       // WebSocket-based cursor (via Cloudflare Durable Objects)
       ...(remoteCursors ? [
         WebSocketCursor.configure({
