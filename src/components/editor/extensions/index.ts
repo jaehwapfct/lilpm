@@ -9,3 +9,4 @@ export { FileNode } from './FileNode';
 
 // Core Extensions
 export { UniqueId, getBlockIdAtPos, findBlockById } from './UniqueId';
+export { SyncedBlock, SyncedBlockService } from './SyncedBlock';

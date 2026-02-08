@@ -1,0 +1,68 @@
+/* Block Link Highlight Animation */
+
+/* Temporary highlight when scrolling to a linked block */
+.block-link-highlight {
+    animation: blockHighlight 2s ease-out;
+    border-radius: 4px;
+}
+
+@keyframes blockHighlight {
+    0% {
+        background-color: hsl(var(--primary) / 0.3);
+        box-shadow: 0 0 0 2px hsl(var(--primary) / 0.5);
+    }
+
+    70% {
+        background-color: hsl(var(--primary) / 0.1);
+        box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+    }
+
+    100% {
+        background-color: transparent;
+        box-shadow: none;
+    }
+}
+
+/* Block ID tooltip on hover (optional) */
+[data-block-id]:hover::before {
+    content: attr(data-block-id);
+    position: absolute;
+    left: -8px;
+    top: 0;
+    font-size: 8px;
+    color: hsl(var(--muted-foreground) / 0.5);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+[data-block-id]:hover::before {
+    opacity: 0;
+    /* Keep hidden by default, enable if debug mode */
+}
+
+/* Synced block styling */
+.synced-block {
+    position: relative;
+    border-left: 3px solid hsl(var(--primary) / 0.5);
+    padding-left: 12px;
+    margin-left: -15px;
+}
+
+.synced-block::before {
+    content: '⟳';
+    position: absolute;
+    left: -20px;
+    top: 0;
+    font-size: 12px;
+    color: hsl(var(--primary) / 0.6);
+}
+
+.synced-block--stale {
+    border-left-color: hsl(var(--warning) / 0.5);
+}
+
+.synced-block--stale::before {
+    content: '⚠';
+    color: hsl(var(--warning));
+}

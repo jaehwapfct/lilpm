@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState, useRef, DragEvent } from 'react';
 import './DragHandle.css';
 import './CollaborationCursor.css';
+import './BlockLink.css';
 import { useEditor, EditorContent, NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
