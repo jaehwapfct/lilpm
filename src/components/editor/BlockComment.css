@@ -1,0 +1,236 @@
+/* Block Comment Styles */
+
+/* Comment indicator button (appears on left of commented blocks) */
+.block-comment-indicator {
+    position: absolute;
+    left: -40px;
+    top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 6px;
+    background: hsl(var(--primary) / 0.1);
+    border: 1px solid hsl(var(--primary) / 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    color: hsl(var(--primary));
+    font-size: 12px;
+    z-index: 10;
+}
+
+.block-comment-indicator:hover {
+    background: hsl(var(--primary) / 0.2);
+    border-color: hsl(var(--primary) / 0.5);
+    transform: scale(1.05);
+}
+
+.block-comment-indicator .comment-count {
+    font-weight: 600;
+    font-size: 11px;
+}
+
+.block-comment-indicator svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Block with comments - subtle highlight */
+.has-comment {
+    position: relative;
+    background: hsl(var(--primary) / 0.05);
+    border-radius: 4px;
+    padding-left: 8px;
+    margin-left: -8px;
+}
+
+.has-comment::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: hsl(var(--primary) / 0.4);
+    border-radius: 2px;
+}
+
+/* Comment Panel Sidebar */
+.comment-panel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 360px;
+    background: hsl(var(--background));
+    border-left: 1px solid hsl(var(--border));
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.1);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.2s ease;
+}
+
+.comment-panel.open {
+    transform: translateX(0);
+}
+
+.comment-panel-header {
+    padding: 16px;
+    border-bottom: 1px solid hsl(var(--border));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.comment-panel-title {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.comment-panel-close {
+    padding: 4px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.comment-panel-close:hover {
+    background: hsl(var(--accent));
+}
+
+.comment-panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+/* Individual Comment */
+.comment-item {
+    padding: 12px;
+    background: hsl(var(--muted) / 0.3);
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.comment-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.comment-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.comment-meta {
+    flex: 1;
+}
+
+.comment-author {
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.comment-time {
+    font-size: 11px;
+    color: hsl(var(--muted-foreground));
+}
+
+.comment-content {
+    font-size: 13px;
+    line-height: 1.5;
+    color: hsl(var(--foreground));
+}
+
+.comment-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.comment-action-btn {
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: hsl(var(--muted-foreground));
+}
+
+.comment-action-btn:hover {
+    background: hsl(var(--accent));
+    color: hsl(var(--foreground));
+}
+
+/* Comment Replies */
+.comment-replies {
+    margin-top: 12px;
+    padding-left: 16px;
+    border-left: 2px solid hsl(var(--border));
+}
+
+.reply-item {
+    padding: 8px 0;
+}
+
+/* Add Comment Input */
+.comment-input-container {
+    padding: 16px;
+    border-top: 1px solid hsl(var(--border));
+}
+
+.comment-input {
+    width: 100%;
+    min-height: 80px;
+    padding: 12px;
+    border: 1px solid hsl(var(--border));
+    border-radius: 8px;
+    resize: none;
+    font-size: 13px;
+    background: hsl(var(--background));
+}
+
+.comment-input:focus {
+    outline: none;
+    border-color: hsl(var(--primary));
+}
+
+.comment-submit-btn {
+    margin-top: 8px;
+    padding: 8px 16px;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.comment-submit-btn:hover {
+    opacity: 0.9;
+}
+
+.comment-submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Resolved comment styling */
+.comment-resolved {
+    opacity: 0.6;
+}
+
+.comment-resolved .comment-content {
+    text-decoration: line-through;
+}

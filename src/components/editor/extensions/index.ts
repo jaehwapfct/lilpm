@@ -13,6 +13,10 @@ export { ColumnBlock, Column } from './ColumnLayout';
 export { PageEmbed } from './PageEmbed';
 export { BreadcrumbsNode } from './BreadcrumbsNode';
 
+// Sprint 2: Collaboration
+export { BlockCommentExtension } from './BlockComment';
+export type { BlockComment, BlockCommentReply, BlockCommentOptions } from './BlockComment';
+
 // Core Extensions
 export { UniqueId, getBlockIdAtPos, findBlockById } from './UniqueId';
 export { SyncedBlock, SyncedBlockService } from './SyncedBlock';
