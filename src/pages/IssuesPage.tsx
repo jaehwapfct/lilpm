@@ -7,6 +7,7 @@ import { IssueFilters, type IssueFiltersState } from '@/components/issues/IssueF
 import { useIssueStore } from '@/stores/issueStore';
 import { useTeamStore } from '@/stores/teamStore';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,8 +22,12 @@ import {
   Kanban,
   GanttChartSquare,
   ChevronDown,
+  Zap,
+  Archive,
 } from 'lucide-react';
 import type { Issue, IssueStatus } from '@/types';
+
+type SprintView = 'active' | 'backlog' | 'all';
 
 export function IssuesPage() {
   const { t } = useTranslation();
@@ -43,6 +48,7 @@ export function IssuesPage() {
   const [selectedIssues, setSelectedIssues] = useState<Set<string>>(new Set());
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [initialStatus, setInitialStatus] = useState<IssueStatus>('backlog');
+  const [sprintView, setSprintView] = useState<SprintView>('all');
   const [filters, setFilters] = useState<IssueFiltersState>({
     status: [],
     priority: [],
@@ -74,8 +80,16 @@ export function IssuesPage() {
     }
   }, [currentTeam, loadIssues, filters]);
 
-  // Client-side filtering for unassigned and no-project
+  // Client-side filtering for unassigned, no-project, and sprint view
   const filteredIssues = issues.filter(issue => {
+    // Sprint view filter
+    if (sprintView === 'active' && !issue.cycleId) {
+      return false; // Only show issues with a sprint
+    }
+    if (sprintView === 'backlog' && issue.cycleId) {
+      return false; // Only show issues without a sprint
+    }
+
     if (filters.assigneeId.includes('unassigned') && issue.assigneeId) {
       return false;
     }
@@ -91,6 +105,10 @@ export function IssuesPage() {
     }
     return true;
   });
+
+  // Count for badges
+  const activeSprintCount = issues.filter(i => i.cycleId).length;
+  const backlogCount = issues.filter(i => !i.cycleId).length;
 
   const handleSelectIssue = (issueId: string, selected: boolean) => {
     setSelectedIssues((prev) => {
@@ -150,6 +168,48 @@ export function IssuesPage() {
                 </TabsTrigger>
               </TabsList>
             </Tabs>
+
+            {/* Sprint View Toggle - Jira-style Active Sprint / Backlog */}
+            <div className="flex items-center border border-border rounded-lg p-0.5 bg-muted/30">
+              <button
+                onClick={() => setSprintView('all')}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors ${sprintView === 'all'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                  }`}
+              >
+                {t('issues.allIssues', 'All')}
+                <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                  {issues.length}
+                </Badge>
+              </button>
+              <button
+                onClick={() => setSprintView('active')}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors ${sprintView === 'active'
+                    ? 'bg-green-500/10 text-green-600 shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                  }`}
+              >
+                <Zap className="h-3 w-3" />
+                {t('issues.activeSprint', 'Active Sprint')}
+                <Badge variant="secondary" className="h-4 px-1 text-[10px] bg-green-500/20 text-green-600">
+                  {activeSprintCount}
+                </Badge>
+              </button>
+              <button
+                onClick={() => setSprintView('backlog')}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors ${sprintView === 'backlog'
+                    ? 'bg-slate-500/10 text-slate-600 shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                  }`}
+              >
+                <Archive className="h-3 w-3" />
+                {t('issues.backlog', 'Backlog')}
+                <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                  {backlogCount}
+                </Badge>
+              </button>
+            </div>
 
             {/* Filters */}
             <IssueFilters filters={filters} onFiltersChange={setFilters} />

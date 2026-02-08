@@ -1016,10 +1016,11 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
             </span>
           </div>
 
-          {/* Issue List */}
+          {/* Issue List - Scrollbar hidden, synced with timeline */}
           <div
             ref={sidebarRef}
-            className="flex-1 overflow-y-auto overflow-x-hidden"
+            className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {totalIssuesWithDates === 0 ? (
               <div className="flex items-center justify-center py-16 text-muted-foreground">
