@@ -23,6 +23,12 @@ export type { ButtonAction, ButtonBlockOptions } from './ButtonBlock';
 export { TemplateButton, builtInTemplates } from './TemplateButton';
 export type { ContentTemplate, TemplateButtonOptions } from './TemplateButton';
 
+// Sprint 4: Database
+export { LinkedDatabase } from './LinkedDatabase';
+export type { DatabaseColumn, DatabaseRow, DatabaseView, DatabaseSource, LinkedDatabaseOptions } from './LinkedDatabase';
+export { InlineDatabase } from './InlineDatabase';
+export type { InlineColumn, InlineRow, InlineDatabaseOptions } from './InlineDatabase';
+
 // Core Extensions
 export { UniqueId, getBlockIdAtPos, findBlockById } from './UniqueId';
 export { SyncedBlock, SyncedBlockService } from './SyncedBlock';

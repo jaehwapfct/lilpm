@@ -45,6 +45,7 @@ import {
   Highlighter,
   Zap,
   Layout,
+  Database,
   Table as TableIcon,
   Image as ImageIcon,
   Undo,
@@ -71,7 +72,8 @@ import {
   CalloutNode, ToggleNode, VideoNode, EquationNode, TableOfContentsNode,
   BookmarkNode, FileNode, UniqueId, getBlockIdAtPos,
   AudioNode, ColumnBlock, Column, PageEmbed, BreadcrumbsNode,
-  ButtonBlock, TemplateButton
+  ButtonBlock, TemplateButton,
+  LinkedDatabase, InlineDatabase
 } from './extensions';
 import { cn } from '@/lib/utils';
 import {
@@ -515,6 +517,13 @@ const SlashCommandsMenu = ({
       description: 'Insert content template',
       action: () => editor.chain().focus().insertContent({ type: 'templateButton' }).run()
     },
+    // Sprint 4: Database
+    {
+      icon: <Database className="h-4 w-4" />,
+      label: 'Database',
+      description: 'Create inline database',
+      action: () => editor.chain().focus().insertContent({ type: 'inlineDatabase' }).run()
+    },
   ];
 
   if (!isOpen) return null;
@@ -873,6 +882,9 @@ export function BlockEditor({
       // Sprint 3: Automation
       ButtonBlock,
       TemplateButton,
+      // Sprint 4: Database
+      LinkedDatabase,
+      InlineDatabase,
     ],
     content: yjsDoc ? undefined : content, // Don't set content when using Yjs (doc is the source of truth)
     editable,
