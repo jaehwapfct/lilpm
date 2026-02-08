@@ -264,6 +264,7 @@ export function PRDDetailPage() {
   };
 
   // Yjs CRDT Real-time Collaboration (WebSocket to Cloudflare Worker)
+  // TEMPORARILY DISABLED - Worker not deployed, causing 'doc' undefined crash
   const {
     yjsDoc,
     provider: yjsProvider,
@@ -278,7 +279,7 @@ export function PRDDetailPage() {
     userName: user?.name || user?.email?.split('@')[0] || 'Anonymous',
     userColor: user?.id ? getUserColor(user.id) : undefined,
     avatarUrl: user?.avatarUrl,
-    enabled: !!(prdId && currentTeam?.id && user?.id && !isLoading),
+    enabled: false, // DISABLED until Cloudflare Worker is fully deployed
   });
 
   // Supabase Realtime Collaboration (reliable fallback for presence/cursors)
