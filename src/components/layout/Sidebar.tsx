@@ -736,10 +736,27 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
                     location.pathname === `/project/${project.id}` && "bg-accent"
                   )}
                 >
-                  <span className="text-sm">
-                    {PROJECT_ICONS[project.icon || 'folder'] || '📁'}
-                  </span>
-                  <span className="truncate">{project.name}</span>
+                  <Folder className="h-4 w-4 text-muted-foreground" />
+                  <span className="flex-1 truncate">{project.name}</span>
+                  {/* Show presence avatars for users on this project page */}
+                  {getPresenceForPath(`/project/${project.id}`).length > 0 && (
+                    <div className="flex -space-x-1">
+                      {getPresenceForPath(`/project/${project.id}`).slice(0, 2).map((user) => (
+                        <div
+                          key={user.odId}
+                          className="w-4 h-4 rounded-full border border-background flex items-center justify-center text-[8px] font-medium text-white"
+                          style={{ backgroundColor: user.color }}
+                          title={user.name}
+                        >
+                          {user.avatarUrl ? (
+                            <img src={user.avatarUrl} alt={user.name} className="w-full h-full rounded-full object-cover" />
+                          ) : (
+                            user.name.charAt(0).toUpperCase()
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </Link>
               ))
             )}
@@ -781,6 +798,7 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
           label={t('common.help')}
           href="/help"
           onClick={onNavigate}
+          presenceUsers={getPresenceForPath('/help')}
         />
         <NavItem
           icon={Settings}
@@ -788,6 +806,7 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
           href="/settings"
           shortcut="G S"
           onClick={onNavigate}
+          presenceUsers={getPresenceForPath('/settings')}
         />
       </div>
 

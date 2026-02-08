@@ -95,3 +95,67 @@ npx tsc --noEmit 2>&1 | head -10
 - **단일 변경 원칙**: 한 번에 하나의 변경만
 - **검증 필수**: 각 단계 후 `npx tsc --noEmit`
 - **롤백 준비**: 커밋 전 `git diff` 확인
+
+---
+
+## 추가 패턴
+
+### 패턴 D: 병렬 기능 개발
+```
+[다중 요청 수신]
+    │
+    ├── 1. 의존성 분석 → 병렬 가능 작업 식별
+    │
+    ├── 2. 각 기능별 파일 수정 (순서 무관)
+    │       ├── Feature A (file1, file2)
+    │       └── Feature B (file3, file4)
+    │
+    ├── 3. 전체 빌드 검증
+    │       // turbo
+    │       npm run build && npx tsc --noEmit
+    │
+    └── 4. 단일 커밋으로 통합
+            git add . && git commit -m "feat: multiple features"
+```
+
+### 패턴 E: AI 기능 개발
+```
+[AI 기능 요청]
+    │
+    ├── 1. /ai-integration 스킬 → API 설계
+    │       ├── Claude/GPT API 선택
+    │       ├── 프롬프트 템플릿 작성
+    │       └── 스트리밍 응답 설계
+    │
+    ├── 2. /supabase 스킬 → Edge Function 생성
+    │       ├── API 키 환경변수
+    │       └── CORS 설정
+    │
+    ├── 3. /react-component 스킬 → UI 구현
+    │       ├── 스트리밍 표시
+    │       └── 로딩/에러 상태
+    │
+    └── 4. /testing 스킬 → 모킹 테스트
+            └── API 모킹으로 브라우저 없이 검증
+```
+
+### 패턴 F: E2E 테스트 (브라우저 최소화)
+```
+[테스트 요청]
+    │
+    ├── 1. 빌드 검증
+    │       // turbo
+    │       npm run build
+    │
+    ├── 2. TypeScript 검증
+    │       // turbo
+    │       npx tsc --noEmit
+    │
+    ├── 3. Vitest 단위 테스트
+    │       // turbo
+    │       npm run test
+    │
+    └── 4. (필요시) 브라우저 테스트
+            → 사용자에게 확인 후 진행
+```
+

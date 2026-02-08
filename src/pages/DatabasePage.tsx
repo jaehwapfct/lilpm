@@ -131,87 +131,114 @@ export function DatabasePage() {
         setIsLoading(true);
 
         try {
-            // For now, use mock data - in production, this would load from Supabase
-            const mockDatabases: Database[] = [
-                {
-                    id: '1',
-                    name: t('database.sampleTasks'),
-                    description: t('database.sampleTasksDesc'),
-                    icon: '📋',
-                    teamId: currentTeam.id,
-                    createdAt: new Date().toISOString(),
-                    properties: [
-                        { id: 'title', name: 'Title', type: 'text' },
-                        {
-                            id: 'status', name: 'Status', type: 'select', options: [
-                                { id: '1', name: 'To Do', color: '#ef4444' },
-                                { id: '2', name: 'In Progress', color: '#f97316' },
-                                { id: '3', name: 'Done', color: '#22c55e' },
-                            ]
-                        },
-                        {
-                            id: 'priority', name: 'Priority', type: 'select', options: [
-                                { id: '1', name: 'High', color: '#ef4444' },
-                                { id: '2', name: 'Medium', color: '#f97316' },
-                                { id: '3', name: 'Low', color: '#22c55e' },
-                            ]
-                        },
-                        { id: 'assignee', name: 'Assignee', type: 'person' },
-                        { id: 'dueDate', name: 'Due Date', type: 'date' },
-                        { id: 'url', name: 'Link', type: 'url' },
-                    ],
-                    rows: [
-                        {
-                            id: '1',
-                            properties: {
-                                title: 'Design new dashboard',
-                                status: '2',
-                                priority: '1',
-                                dueDate: '2026-02-15'
-                            },
-                            createdAt: new Date().toISOString(),
-                            createdBy: 'user1',
-                            updatedAt: new Date().toISOString(),
-                            updatedBy: 'user1'
-                        },
-                        {
-                            id: '2',
-                            properties: {
-                                title: 'Implement user authentication',
-                                status: '3',
-                                priority: '1',
-                                dueDate: '2026-02-10'
-                            },
-                            createdAt: new Date().toISOString(),
-                            createdBy: 'user1',
-                            updatedAt: new Date().toISOString(),
-                            updatedBy: 'user1'
-                        },
-                        {
-                            id: '3',
-                            properties: {
-                                title: 'Write documentation',
-                                status: '1',
-                                priority: '2',
-                                dueDate: '2026-02-20'
-                            },
-                            createdAt: new Date().toISOString(),
-                            createdBy: 'user1',
-                            updatedAt: new Date().toISOString(),
-                            updatedBy: 'user1'
-                        },
-                    ],
-                    views: [
-                        { id: '1', name: 'All Tasks', type: 'table' },
-                        { id: '2', name: 'By Status', type: 'board', groupBy: 'status' },
-                        { id: '3', name: 'Calendar', type: 'calendar' },
-                    ]
-                },
-            ];
+            // Load databases from Supabase
+            const { data: dbData, error: dbError } = await supabase
+                .from('databases')
+                .select('*')
+                .eq('team_id', currentTeam.id)
+                .order('created_at', { ascending: false });
 
-            setDatabases(mockDatabases);
-            if (mockDatabases.length > 0) {
-                setSelectedDatabase(mockDatabases[0]);
+            if (dbError) throw dbError;
+
+            // If no databases exist, create a sample one
+            if (!dbData || dbData.length === 0) {
+                // Create sample database
+                const { data: newDb, error: createError } = await supabase
+                    .from('databases')
+                    .insert({
+                        team_id: currentTeam.id,
+                        name: t('database.sampleTasks'),
+                        description: t('database.sampleTasksDesc'),
+                        icon: '📋',
+                    })
+                    .select()
+                    .single();
+
+                if (createError) throw createError;
+
+                // Create default properties for sample database
+                const defaultProperties = [
+                    { database_id: newDb.id, name: 'Title', type: 'text', position: 0 },
+                    {
+                        database_id: newDb.id, name: 'Status', type: 'select', position: 1, options: [
+                            { id: '1', name: 'To Do', color: '#ef4444' },
+                            { id: '2', name: 'In Progress', color: '#f97316' },
+                            { id: '3', name: 'Done', color: '#22c55e' },
+                        ]
+                    },
+                    {
+                        database_id: newDb.id, name: 'Priority', type: 'select', position: 2, options: [
+                            { id: '1', name: 'High', color: '#ef4444' },
+                            { id: '2', name: 'Medium', color: '#f97316' },
+                            { id: '3', name: 'Low', color: '#22c55e' },
+                        ]
+                    },
+                    { database_id: newDb.id, name: 'Due Date', type: 'date', position: 3 },
+                ];
+
+                await supabase.from('database_properties').insert(defaultProperties);
+
+                // Create default view
+                await supabase.from('database_views').insert({
+                    database_id: newDb.id,
+                    name: 'All Tasks',
+                    type: 'table',
+                    position: 0,
+                });
+
+                // Reload after creating sample
+                return loadDatabases();
+            }
+
+            // Load properties, rows, and views for each database
+            const loadedDatabases: Database[] = await Promise.all(
+                dbData.map(async (db) => {
+                    const [propsRes, rowsRes, viewsRes] = await Promise.all([
+                        supabase.from('database_properties').select('*').eq('database_id', db.id).order('position'),
+                        supabase.from('database_rows').select('*').eq('database_id', db.id).order('created_at'),
+                        supabase.from('database_views').select('*').eq('database_id', db.id).order('position'),
+                    ]);
+
+                    return {
+                        id: db.id,
+                        name: db.name,
+                        description: db.description,
+                        icon: db.icon,
+                        teamId: db.team_id,
+                        createdAt: db.created_at,
+                        properties: (propsRes.data || []).map(p => ({
+                            id: p.id,
+                            name: p.name,
+                            type: p.type as PropertyType,
+                            options: p.options,
+                            formula: p.formula,
+                            relationDatabaseId: p.relation_database_id,
+                            rollupProperty: p.rollup_property,
+                        })),
+                        rows: (rowsRes.data || []).map(r => ({
+                            id: r.id,
+                            properties: r.properties,
+                            createdAt: r.created_at,
+                            createdBy: r.created_by,
+                            updatedAt: r.updated_at,
+                            updatedBy: r.updated_by,
+                        })),
+                        views: (viewsRes.data || []).map(v => ({
+                            id: v.id,
+                            name: v.name,
+                            type: v.type as DatabaseView['type'],
+                            filters: v.filters,
+                            sorts: v.sorts,
+                            groupBy: v.group_by,
+                            visibleProperties: v.visible_properties,
+                        })),
+                    };
+                })
+            );
+
+            setDatabases(loadedDatabases);
+            if (loadedDatabases.length > 0 && !selectedDatabase) {
+                setSelectedDatabase(loadedDatabases[0]);
             }
         } catch (error) {
             console.error('Failed to load databases:', error);
@@ -224,49 +251,86 @@ export function DatabasePage() {
     const handleCreateDatabase = async () => {
         if (!newDatabaseName.trim() || !currentTeam) return;
 
-        const newDatabase: Database = {
-            id: Date.now().toString(),
-            name: newDatabaseName,
-            teamId: currentTeam.id,
-            createdAt: new Date().toISOString(),
-            properties: [
-                { id: 'title', name: 'Name', type: 'text' },
-                { id: 'tags', name: 'Tags', type: 'multi_select', options: [] },
-            ],
-            rows: [],
-            views: [
-                { id: '1', name: 'All', type: 'table' },
-            ]
-        };
+        try {
+            // Create database in Supabase
+            const { data: newDb, error: dbError } = await supabase
+                .from('databases')
+                .insert({
+                    team_id: currentTeam.id,
+                    name: newDatabaseName,
+                    icon: '📊',
+                })
+                .select()
+                .single();
 
-        setDatabases([...databases, newDatabase]);
-        setSelectedDatabase(newDatabase);
-        setShowNewDatabaseDialog(false);
-        setNewDatabaseName('');
-        toast.success(t('database.created'));
+            if (dbError) throw dbError;
+
+            // Create default properties
+            const defaultProps = [
+                { database_id: newDb.id, name: 'Name', type: 'text', position: 0 },
+                { database_id: newDb.id, name: 'Tags', type: 'multi_select', position: 1, options: [] },
+            ];
+            await supabase.from('database_properties').insert(defaultProps);
+
+            // Create default view
+            await supabase.from('database_views').insert({
+                database_id: newDb.id,
+                name: 'All',
+                type: 'table',
+                position: 0,
+            });
+
+            setShowNewDatabaseDialog(false);
+            setNewDatabaseName('');
+            toast.success(t('database.created'));
+
+            // Reload to get full data
+            await loadDatabases();
+        } catch (error) {
+            console.error('Failed to create database:', error);
+            toast.error(t('database.loadError'));
+        }
     };
 
-    const handleAddRow = () => {
+    const handleAddRow = async () => {
         if (!selectedDatabase) return;
 
-        const newRow: DatabaseRow = {
-            id: Date.now().toString(),
-            properties: {},
-            createdAt: new Date().toISOString(),
-            createdBy: 'current_user',
-            updatedAt: new Date().toISOString(),
-            updatedBy: 'current_user'
-        };
+        try {
+            // Insert row in Supabase
+            const { data: newRow, error } = await supabase
+                .from('database_rows')
+                .insert({
+                    database_id: selectedDatabase.id,
+                    properties: {},
+                })
+                .select()
+                .single();
 
-        const updatedDatabase = {
-            ...selectedDatabase,
-            rows: [...selectedDatabase.rows, newRow]
-        };
+            if (error) throw error;
 
-        setSelectedDatabase(updatedDatabase);
-        setDatabases(databases.map(db =>
-            db.id === selectedDatabase.id ? updatedDatabase : db
-        ));
+            // Update local state
+            const updatedRow: DatabaseRow = {
+                id: newRow.id,
+                properties: newRow.properties,
+                createdAt: newRow.created_at,
+                createdBy: newRow.created_by,
+                updatedAt: newRow.updated_at,
+                updatedBy: newRow.updated_by,
+            };
+
+            const updatedDatabase = {
+                ...selectedDatabase,
+                rows: [...selectedDatabase.rows, updatedRow]
+            };
+
+            setSelectedDatabase(updatedDatabase);
+            setDatabases(databases.map(db =>
+                db.id === selectedDatabase.id ? updatedDatabase : db
+            ));
+        } catch (error) {
+            console.error('Failed to add row:', error);
+            toast.error(t('database.loadError'));
+        }
     };
 
     const handleAddProperty = (type: PropertyType) => {
@@ -529,8 +593,8 @@ export function DatabasePage() {
                                     key={db.id}
                                     onClick={() => setSelectedDatabase(db)}
                                     className={`w-full flex items-center gap-2 p-2 rounded-lg text-left text-sm transition-colors ${selectedDatabase?.id === db.id
-                                            ? 'bg-primary/10 text-primary'
-                                            : 'hover:bg-muted'
+                                        ? 'bg-primary/10 text-primary'
+                                        : 'hover:bg-muted'
                                         }`}
                                 >
                                     <span className="text-lg">{db.icon || '📊'}</span>

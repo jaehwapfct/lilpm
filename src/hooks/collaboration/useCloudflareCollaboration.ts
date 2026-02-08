@@ -6,14 +6,18 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import * as Y from 'yjs';
+import { Awareness } from 'y-protocols/awareness';
 
 type SyncStatus = 'disconnected' | 'connecting' | 'connected' | 'synced';
 
 export interface RemoteCursor {
     odId: string;
+    id: string;  // Alias for odId, used by BlockPresenceIndicator
     name: string;
     color: string;
+    avatar?: string;
     position: number;
+    blockId?: string;  // Current block being edited
     lastUpdate: number;
 }
 
@@ -42,6 +46,7 @@ const WORKER_URL = import.meta.env.VITE_COLLAB_WORKER_URL || 'https://lilpm-coll
 
 /**
  * CloudflareYjsProvider - handles Yjs doc sync and cursor positions
+ * Implements awareness protocol for TiptapCollaborationCursor compatibility
  */
 export class CloudflareYjsProvider {
     private ws: WebSocket | null = null;
@@ -49,16 +54,34 @@ export class CloudflareYjsProvider {
 
     public doc: Y.Doc;
     public roomId: string;
-    public userInfo: { id: string; name: string; color: string };
+    public userInfo: { id: string; name: string; color: string; avatar?: string };
     public remoteCursors: Map<string, RemoteCursor> = new Map();
     public onStatusChange: ((status: SyncStatus) => void) | null = null;
     public onSync: (() => void) | null = null;
     public onCursorsChange: ((cursors: Map<string, RemoteCursor>) => void) | null = null;
 
-    constructor(doc: Y.Doc, roomId: string, userInfo: { id: string; name: string; color: string }) {
+    // Yjs Awareness for TiptapCollaborationCursor compatibility
+    public awareness: Awareness;
+
+    constructor(doc: Y.Doc, roomId: string, userInfo: { id: string; name: string; color: string; avatar?: string }) {
         this.doc = doc;
         this.roomId = roomId;
         this.userInfo = userInfo;
+
+        // Initialize Awareness protocol for Tiptap collaboration cursor
+        this.awareness = new Awareness(doc);
+
+        // Set local user state for awareness (used by TiptapCollaborationCursor)
+        this.awareness.setLocalState({
+            user: {
+                name: userInfo.name,
+                color: userInfo.color,
+                avatar: userInfo.avatar,
+            },
+        });
+
+        // Listen for awareness changes and broadcast via WebSocket
+        this.awareness.on('change', this.handleAwarenessChange);
 
         // Listen for local document updates
         this.doc.on('update', this.handleLocalUpdate);
@@ -105,9 +128,12 @@ export class CloudflareYjsProvider {
                         console.log('[CloudflareProvider] Remote cursor update:', msg.userName, 'pos:', msg.position);
                         this.remoteCursors.set(msg.userId, {
                             odId: msg.userId,
+                            id: msg.userId,  // Alias for BlockPresenceIndicator
                             name: msg.userName,
                             color: msg.color,
+                            avatar: msg.avatar,
                             position: msg.position,
+                            blockId: msg.blockId,
                             lastUpdate: Date.now(),
                         });
                         this.onCursorsChange?.(new Map(this.remoteCursors));
@@ -118,6 +144,22 @@ export class CloudflareYjsProvider {
                         console.log('[CloudflareProvider] User left:', msg.userId);
                         this.remoteCursors.delete(msg.userId);
                         this.onCursorsChange?.(new Map(this.remoteCursors));
+                        // Also remove from awareness
+                        this.awareness.setLocalStateField('remoteUsers',
+                            Object.fromEntries(
+                                Object.entries(this.awareness.getLocalState()?.remoteUsers || {})
+                                    .filter(([id]) => id !== msg.userId)
+                            )
+                        );
+                    }
+                } else if (msg.type === 'awareness') {
+                    // Awareness update from other users (for TiptapCollaborationCursor)
+                    if (msg.clientId !== this.doc.clientID) {
+                        console.log('[CloudflareProvider] Remote awareness update from client:', msg.clientId);
+                        // Store remote user's awareness state
+                        const remoteUsers = this.awareness.getLocalState()?.remoteUsers || {};
+                        remoteUsers[msg.clientId] = msg.state;
+                        this.awareness.setLocalStateField('remoteUsers', remoteUsers);
                     }
                 }
             } catch (error) {
@@ -154,23 +196,54 @@ export class CloudflareYjsProvider {
         }
 
         this.doc.off('update', this.handleLocalUpdate);
+        this.awareness.off('change', this.handleAwarenessChange);
     }
 
     destroy() {
         this.disconnect();
+        this.awareness.destroy();
     }
 
-    updateCursorPosition(position: number) {
+    updateCursorPosition(position: number, blockId?: string) {
         if (this.ws?.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify({
                 type: 'cursor',
                 userId: this.userInfo.id,
                 userName: this.userInfo.name,
                 color: this.userInfo.color,
+                avatar: this.userInfo.avatar,
+                blockId,
                 position,
             }));
         }
+
+        // Also update awareness state for TiptapCollaborationCursor
+        const currentState = this.awareness.getLocalState() || {};
+        this.awareness.setLocalState({
+            ...currentState,
+            cursor: { anchor: position, head: position },
+        });
     }
+
+    // Handle awareness changes and broadcast via WebSocket
+    private handleAwarenessChange = ({ added, updated, removed }: { added: number[]; updated: number[]; removed: number[] }) => {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+
+        // Get the states that changed
+        const changedClients = [...added, ...updated];
+
+        if (changedClients.includes(this.doc.clientID)) {
+            // Broadcast our awareness state
+            const state = this.awareness.getLocalState();
+            if (state) {
+                this.ws.send(JSON.stringify({
+                    type: 'awareness',
+                    clientId: this.doc.clientID,
+                    state: state,
+                }));
+            }
+        }
+    };
 
     private handleLocalUpdate = (update: Uint8Array, origin: any) => {
         // Don't send updates that came from remote
@@ -194,6 +267,7 @@ export function useCloudflareCollaboration(options: UseCloudflareCollaborationOp
         userId,
         userName,
         userColor,
+        avatarUrl,
         enabled = true,
     } = options;
 
@@ -220,11 +294,12 @@ export function useCloudflareCollaboration(options: UseCloudflareCollaborationOp
         // Create Yjs document
         const doc = new Y.Doc();
 
-        // Create provider
+        // Create provider with avatar for cursor display
         const newProvider = new CloudflareYjsProvider(doc, roomId, {
             id: userId,
             name: userName,
             color: userColor || getRandomColor(),
+            avatar: avatarUrl,
         });
 
         // Listen for status changes

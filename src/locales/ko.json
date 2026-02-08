@@ -83,6 +83,8 @@
     "teamMembers": "팀 멤버",
     "teamSettings": "팀 설정",
     "cycles": "스프린트",
+    "prd": "PRD",
+    "database": "데이터베이스",
     "createTeam": "팀 만들기",
     "selectTeam": "팀 선택"
   },
@@ -630,10 +632,6 @@
     "unreadCount": "{{count}}개의 읽지 않은 항목",
     "allRead": "모든 항목을 읽었습니다"
   },
-  "notifications": {
-    "today": "오늘",
-    "yesterday": "어제"
-  },
   "myIssues": {
     "title": "내 이슈",
     "assigned": "나에게 할당됨",
@@ -648,5 +646,29 @@
     "noIssues": "할당된 이슈가 없습니다",
     "noIssuesDescription": "팀원이 이슈를 할당하면 여기에 표시됩니다.",
     "assignedBy": "{{name}}님이 할당"
+  },
+  "database": {
+    "title": "데이터베이스",
+    "sampleTasks": "샘플 작업",
+    "sampleTasksDesc": "상태 및 우선순위 필드가 있는 예시 작업 데이터베이스",
+    "loadError": "데이터베이스를 불러오는데 실패했습니다",
+    "createNew": "새 데이터베이스 만들기",
+    "namePlaceholder": "데이터베이스 이름 입력...",
+    "create": "만들기",
+    "created": "데이터베이스가 생성되었습니다",
+    "noDatabase": "데이터베이스를 선택하세요",
+    "noDatabaseDesc": "사이드바에서 데이터베이스를 선택하거나 새로 만드세요",
+    "createFirst": "첫 데이터베이스 만들기",
+    "tableView": "테이블",
+    "boardView": "보드",
+    "calendarView": "캘린더",
+    "listView": "목록",
+    "filter": "필터",
+    "sort": "정렬",
+    "search": "검색...",
+    "newRow": "새 행",
+    "addCard": "카드 추가",
+    "noGroupProperty": "그룹화할 선택 속성이 없습니다",
+    "calendarComingSoon": "캘린더 뷰가 곧 제공됩니다"
   }
 }

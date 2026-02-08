@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useState, useRef, DragEvent } from 'react';
+import React, { useCallback, useEffect, useState, useRef, DragEvent, useMemo } from 'react';
 import './DragHandle.css';
 import './CollaborationCursor.css';
 import './BlockLink.css';
+import { BlockPresenceIndicator } from './BlockPresenceIndicator';
 import { useEditor, EditorContent, NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -1371,6 +1372,19 @@ export function BlockEditor({
               }}
             >
               <EditorContent editor={editor} />
+              {/* Block Presence Indicators - show avatars next to blocks being edited */}
+              {remoteCursors && remoteCursors.size > 0 && (
+                <BlockPresenceIndicator
+                  editor={editor}
+                  users={Array.from(remoteCursors.values()).map(cursor => ({
+                    id: cursor.id,
+                    name: cursor.name,
+                    color: cursor.color,
+                    avatar: cursor.avatar,
+                    blockId: cursor.blockId,
+                  }))}
+                />
+              )}
             </div>
           </ContextMenuTrigger>
           <ContextMenuContent className="w-64">

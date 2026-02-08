@@ -84,6 +84,7 @@
     "teamSettings": "Team Settings",
     "cycles": "Cycles",
     "prd": "PRD",
+    "database": "Database",
     "createTeam": "Create Team",
     "selectTeam": "Select Team"
   },
@@ -701,5 +702,29 @@
     "noIssues": "No issues assigned",
     "noIssuesDescription": "Issues will appear here when a team member assigns them to you.",
     "assignedBy": "Assigned by {{name}}"
+  },
+  "database": {
+    "title": "Databases",
+    "sampleTasks": "Sample Tasks",
+    "sampleTasksDesc": "An example task database with status and priority fields",
+    "loadError": "Failed to load databases",
+    "createNew": "Create New Database",
+    "namePlaceholder": "Enter database name...",
+    "create": "Create",
+    "created": "Database created",
+    "noDatabase": "No Database Selected",
+    "noDatabaseDesc": "Select a database from the sidebar or create a new one",
+    "createFirst": "Create Your First Database",
+    "tableView": "Table",
+    "boardView": "Board",
+    "calendarView": "Calendar",
+    "listView": "List",
+    "filter": "Filter",
+    "sort": "Sort",
+    "search": "Search...",
+    "newRow": "New row",
+    "addCard": "Add card",
+    "noGroupProperty": "No select property found to group by",
+    "calendarComingSoon": "Calendar view coming soon"
   }
 }

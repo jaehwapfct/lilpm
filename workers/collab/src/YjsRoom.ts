@@ -116,7 +116,7 @@ export class YjsRoom implements DurableObject {
                 }
             } else if (msg.type === 'cursor') {
                 // Broadcast cursor position to other clients
-                console.log('[YjsRoom] Cursor update from:', msg.userName, 'pos:', msg.position);
+                console.log('[YjsRoom] Cursor update from:', msg.userName, 'pos:', msg.position, 'block:', msg.blockId);
                 for (const [conn] of this.connections) {
                     if (conn !== ws && conn.readyState === WebSocket.OPEN) {
                         conn.send(JSON.stringify({
@@ -124,6 +124,8 @@ export class YjsRoom implements DurableObject {
                             userId: msg.userId,
                             userName: msg.userName,
                             color: msg.color,
+                            avatar: msg.avatar,
+                            blockId: msg.blockId,
                             position: msg.position,
                         }));
                     }

@@ -16,7 +16,7 @@ export function useAutoSave({ onSave, delay = 1000, enabled = true }: UseAutoSav
 
   const save = useCallback(async (value: string) => {
     if (!enabled) return;
-    
+
     setIsSaving(true);
     try {
       await onSave(value);
@@ -30,17 +30,17 @@ export function useAutoSave({ onSave, delay = 1000, enabled = true }: UseAutoSav
     }
   }, [onSave, enabled]);
 
-  const debouncedSave = useCallback((value: string) => {
+  const debouncedSave = useCallback((value: string, forceUpdate = false) => {
     if (!enabled) return;
 
     pendingValueRef.current = value;
-    
-    // Check if value has actually changed from initial
-    if (initialValueRef.current !== null && value === initialValueRef.current) {
+
+    // Check if value has actually changed from initial (skip if forceUpdate=true)
+    if (!forceUpdate && initialValueRef.current !== null && value === initialValueRef.current) {
       setHasUnsavedChanges(false);
       return;
     }
-    
+
     setHasUnsavedChanges(true);
 
     if (timeoutRef.current) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
@@ -13,6 +13,7 @@ import { BlockEditor } from '@/components/editor';
 import { VersionHistoryPanel } from '@/components/prd/VersionHistoryPanel';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useCloudflareCollaboration } from '@/hooks/useCloudflareCollaboration';
+import { useSupabaseCollaboration } from '@/hooks/collaboration/useSupabaseCollaboration';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -262,15 +263,14 @@ export function PRDDetailPage() {
     return colors[Math.abs(hash) % colors.length];
   };
 
-  // Yjs CRDT Real-time Collaboration
-  // Cloudflare Durable Objects real-time collaboration (Yjs sync + Cursor sync)
+  // Yjs CRDT Real-time Collaboration (WebSocket to Cloudflare Worker)
   const {
     yjsDoc,
     provider: yjsProvider,
     isConnected: isYjsConnected,
     isSynced: isYjsSynced,
-    remoteCursors,
-    updateCursorPosition,
+    remoteCursors: yjsRemoteCursors,
+    updateCursorPosition: yjsUpdateCursorPosition,
   } = useCloudflareCollaboration({
     documentId: prdId || '',
     teamId: currentTeam?.id || '',
@@ -280,6 +280,50 @@ export function PRDDetailPage() {
     avatarUrl: user?.avatarUrl,
     enabled: !!(prdId && currentTeam?.id && user?.id && !isLoading),
   });
+
+  // Supabase Realtime Collaboration (reliable fallback for presence/cursors)
+  const {
+    isConnected: isSupabaseCollabConnected,
+    presenceUsers,
+    updateCursorPosition: supabaseUpdateCursorPosition,
+    broadcastContentChange,
+    onRemoteContentChange,
+  } = useSupabaseCollaboration({
+    entityType: 'prd',
+    entityId: prdId || '',
+    userId: user?.id || '',
+    userName: user?.name || user?.email?.split('@')[0] || 'Anonymous',
+    userColor: user?.id ? getUserColor(user.id) : undefined,
+    avatarUrl: user?.avatarUrl,
+    enabled: !!(prdId && user?.id && !isLoading),
+  });
+
+  // Combine remote cursors from both sources (Yjs + Supabase Presence)
+  const remoteCursors = useMemo(() => {
+    const combined = new Map(yjsRemoteCursors);
+    // Add Supabase presence users as cursors for block presence indicator
+    presenceUsers.forEach((u) => {
+      if (!combined.has(u.id)) {
+        combined.set(u.id, {
+          odId: u.id,
+          id: u.id,
+          name: u.name,
+          color: u.color,
+          avatar: u.avatar,
+          position: u.cursorPosition || 0,
+          blockId: u.blockId,
+          lastUpdate: u.lastSeen,
+        });
+      }
+    });
+    return combined;
+  }, [yjsRemoteCursors, presenceUsers]);
+
+  // Update cursor position to both providers
+  const updateCursorPosition = useCallback((position: number, blockId?: string) => {
+    yjsUpdateCursorPosition(position);
+    supabaseUpdateCursorPosition(position, blockId);
+  }, [yjsUpdateCursorPosition, supabaseUpdateCursorPosition]);
 
   // Provider display names
   const PROVIDER_LABELS: Record<AIProvider, string> = {
@@ -550,7 +594,15 @@ export function PRDDetailPage() {
   const handleContentChange = (value: string) => {
     setContent(value);
     setHasChanges(title !== savedTitle || value !== savedContent || status !== savedStatus);
+
+    // CRITICAL: Always trigger debounced save to guarantee DB persistence
+    // This ensures content is saved even in collaboration mode
     debouncedSaveContent(value);
+
+    // Broadcast to other users via Supabase Realtime
+    if (isSupabaseCollabConnected) {
+      broadcastContentChange(value);
+    }
   };
 
   const handleStatusChange = async (newStatus: PRDStatus) => {
