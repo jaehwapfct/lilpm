@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { projectService } from '@/lib/services/projectService';
+import { projectService } from '@/lib/services';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import type { Project, ProjectStatus } from '@/types/database';

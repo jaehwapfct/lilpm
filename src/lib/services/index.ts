@@ -1,6 +1,8 @@
 // Services index - Supabase based services
 export { profileService, teamService, teamMemberService, teamInviteService } from './teamService';
-export { projectService } from './projectService';
+// Project-related services moved to features/projects/services
+export { projectService } from '@/features/projects/services/projectService';
+export { projectMemberService } from '@/features/projects/services/projectMemberService';
 // Issue-related services moved to features/issues/services
 export { issueService, labelService, commentService, dependencyService, activityService } from '@/features/issues/services/issue';
 export { logActivity, logInviteSent, logInviteCancelled, logInviteAccepted, logRoleChanged, logMemberRemoved, logInviteResent } from './activityService';

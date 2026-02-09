@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { Team, TeamMember, Project } from '@/types';
 import type { Team as DbTeam, Project as DbProject } from '@/types/database';
 import { teamService, teamMemberService } from '@/lib/services';
-import { projectService } from '@/lib/services/projectService';
+import { projectService } from '@/lib/services';
 
 // Convert database Team to app Team type
 const convertDbTeam = (dbTeam: DbTeam): Team => ({

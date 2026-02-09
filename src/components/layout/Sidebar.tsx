@@ -31,7 +31,7 @@ import { useTeamStore } from '@/stores/teamStore';
 import { useLilyStore } from '@/stores/lilyStore';
 import { useCollaborationStore } from '@/stores/collaborationStore';
 import { useNotificationStore } from '@/stores/notificationStore';
-import { projectService } from '@/lib/services/projectService';
+import { projectService } from '@/lib/services';
 import { supabase } from '@/lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
 import { ko, enUS } from 'date-fns/locale';

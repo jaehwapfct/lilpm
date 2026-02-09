@@ -28,7 +28,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { IssueStatus, IssuePriority, Profile, Project } from '@/types/database';
 import { teamMemberService, type TeamMemberWithProfile } from '@/lib/services/teamService';
-import { projectService } from '@/lib/services/projectService';
+import { projectService } from '@/lib/services';
 import { useTeamStore } from '@/stores/teamStore';
 
 export interface IssueFiltersState {

@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { AppLayout } from '@/components/layout';
 import { prdService, type PRDWithRelations } from '@/lib/services/prdService';
-import { projectService } from '@/lib/services/projectService';
+import { projectService } from '@/lib/services';
 import { teamMemberService } from '@/lib/services/teamService';
 import { notificationService } from '@/lib/services/notificationService';
 import { prdVersionService } from '@/lib/services/prdVersionService';

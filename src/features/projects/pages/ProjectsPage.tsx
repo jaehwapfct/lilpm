@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppLayout } from '@/components/layout';
 import { useTeamStore } from '@/stores/teamStore';
-import { projectService } from '@/lib/services/projectService';
+import { projectService } from '@/lib/services';
 import { CreateProjectModal, EditProjectModal, ProjectCard } from '@/components/projects';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

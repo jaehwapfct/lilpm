@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout';
 import { useTeamStore } from '@/stores/teamStore';
 import { prdService, type PRDWithRelations } from '@/lib/services/prdService';
-import { projectService } from '@/lib/services/projectService';
+import { projectService } from '@/lib/services';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';

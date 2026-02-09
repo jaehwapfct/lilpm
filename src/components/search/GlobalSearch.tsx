@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { useTeamStore } from '@/stores/teamStore';
 import { issueService } from '@/lib/services';
-import { projectService } from '@/lib/services/projectService';
+import { projectService } from '@/lib/services';
 import type { IssueWithRelations } from '@/types/database';
 import type { Project } from '@/types/database';
 

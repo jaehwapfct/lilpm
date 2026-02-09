@@ -35,8 +35,8 @@ const IssuesPage = React.lazy(() => import("./features/issues/pages/IssuesPage")
 const LilyPage = React.lazy(() => import("./pages/LilyPage").then(m => ({ default: m.LilyPage })));
 const TeamMembersPage = React.lazy(() => import("./pages/TeamMembersPage").then(m => ({ default: m.TeamMembersPage })));
 const TeamSettingsPage = React.lazy(() => import("./pages/TeamSettingsPage").then(m => ({ default: m.TeamSettingsPage })));
-const ProjectsPage = React.lazy(() => import("./pages/ProjectsPage").then(m => ({ default: m.ProjectsPage })));
-const ProjectDetailPage = React.lazy(() => import("./pages/ProjectDetailPage").then(m => ({ default: m.ProjectDetailPage })));
+const ProjectsPage = React.lazy(() => import("./features/projects/pages/ProjectsPage").then(m => ({ default: m.ProjectsPage })));
+const ProjectDetailPage = React.lazy(() => import("./features/projects/pages/ProjectDetailPage").then(m => ({ default: m.ProjectDetailPage })));
 const IssueDetailPage = React.lazy(() => import("./features/issues/pages/IssueDetailPage").then(m => ({ default: m.IssueDetailPage })));
 const CyclesPage = React.lazy(() => import("./pages/CyclesPage").then(m => ({ default: m.CyclesPage })));
 const NotificationsPage = React.lazy(() => import("./pages/NotificationsPage").then(m => ({ default: m.NotificationsPage })));

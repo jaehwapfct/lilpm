@@ -54,7 +54,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { useTeamStore } from '@/stores/teamStore';
-import { projectService } from '@/lib/services/projectService';
+import { projectService } from '@/lib/services';
 import { teamMemberService } from '@/lib/services/teamService';
 import { labelService } from '@/lib/services';
 import { cycleService } from '@/lib/services/cycleService';

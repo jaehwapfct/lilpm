@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AppLayout } from '@/components/layout';
 import { useTeamStore } from '@/stores/teamStore';
-import { projectService } from '@/lib/services/projectService';
+import { projectService } from '@/lib/services';
 import { issueService } from '@/lib/services';
 import { teamMemberService } from '@/lib/services/teamService';
 import { prdService, type PRDWithRelations } from '@/lib/services/prdService';

@@ -11,8 +11,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, FolderOpen } from 'lucide-react';
 import { toast } from 'sonner';
-import { projectService } from '@/lib/services/projectService';
-import { projectMemberService } from '@/lib/services/projectMemberService';
+import { projectService } from '@/lib/services';
+import { projectMemberService } from '@/lib/services';
 import type { Project, Profile, ProjectMemberRole } from '@/types/database';
 
 interface ProjectAssignmentModalProps {
