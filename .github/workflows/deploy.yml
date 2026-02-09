@@ -38,12 +38,19 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Build
+      - name: Build (Production)
+        if: env.DEPLOY_ENV == 'production'
         run: npm run build
         env:
-          # Use different Supabase config based on environment
-          VITE_SUPABASE_URL: ${{ env.DEPLOY_ENV == 'production' && secrets.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL_DEV }}
-          VITE_SUPABASE_ANON_KEY: ${{ env.DEPLOY_ENV == 'production' && secrets.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY_DEV }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Build (Development)
+        if: env.DEPLOY_ENV == 'development'
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL_DEV }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY_DEV }}
 
   # Step 2: Deploy Vercel
   deploy-vercel:
