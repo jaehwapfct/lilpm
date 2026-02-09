@@ -43,7 +43,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useLilyStore } from '@/stores/lilyStore';
 import { useTeamStore } from '@/stores/teamStore';
-import { useIssueStore } from '@/stores/issueStore';
+import { useIssueStore } from '@/stores';
 import { useMCPStore } from '@/stores/mcpStore';
 import { ApiKeyRequiredModal } from './ApiKeyRequiredModal';
 import { ConversationItem } from './ConversationItem';

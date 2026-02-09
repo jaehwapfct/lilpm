@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Issue, IssueType } from '@/types';
-import { PriorityIcon } from './IssueIcons';
-import { IssueTypeIcon, issueTypeConfig } from './IssueTypeIcon';
+import { PriorityIcon } from '@/features/issues/components/IssueIcons';
+import { IssueTypeIcon, issueTypeConfig } from '@/features/issues/components/IssueTypeIcon';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { IssueFocusIndicator } from '@/components/collaboration';
 import { cn } from '@/lib/utils';
@@ -69,9 +69,9 @@ export function IssueCard({ issue, onClick, onDragStart, onDragEnd, isDragging }
             <span
               key={label.id}
               className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-medium truncate max-w-20"
-              style={{ 
-                backgroundColor: `${label.color}20`, 
-                color: label.color 
+              style={{
+                backgroundColor: `${label.color}20`,
+                color: label.color
               }}
             >
               {label.name}

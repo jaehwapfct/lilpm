@@ -24,8 +24,8 @@ import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import { useTeamStore } from '@/stores/teamStore';
 import { supabase } from '@/lib/supabase';
-import { StatusIcon, PriorityIcon } from '@/components/issues/IssueIcons';
-import { IssueTypeIcon } from '@/components/issues/IssueTypeIcon';
+import { StatusIcon, PriorityIcon } from '@/components/issues';
+import { IssueTypeIcon } from '@/components/issues';
 import type { Issue, IssueStatus, IssueType, Team, Project, Profile } from '@/types/database';
 
 interface IssueWithDetails extends Issue {

@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { issueService } from '@/lib/services/issueService';
+import { issueService } from '@/lib/services';
 import { cycleService } from '@/lib/services/cycleService';
 import { useTeamStore } from '@/stores/teamStore';
 import { StatusIcon, PriorityIcon } from '@/components/issues';

@@ -31,23 +31,23 @@ const SlackSettingsPage = React.lazy(() => import("./pages/settings/SlackSetting
 
 // Core pages - lazy loaded for performance
 const DashboardPage = React.lazy(() => import("./pages/DashboardPage").then(m => ({ default: m.DashboardPage })));
-const IssuesPage = React.lazy(() => import("./pages/IssuesPage").then(m => ({ default: m.IssuesPage })));
+const IssuesPage = React.lazy(() => import("./features/issues/pages/IssuesPage").then(m => ({ default: m.IssuesPage })));
 const LilyPage = React.lazy(() => import("./pages/LilyPage").then(m => ({ default: m.LilyPage })));
 const TeamMembersPage = React.lazy(() => import("./pages/TeamMembersPage").then(m => ({ default: m.TeamMembersPage })));
 const TeamSettingsPage = React.lazy(() => import("./pages/TeamSettingsPage").then(m => ({ default: m.TeamSettingsPage })));
 const ProjectsPage = React.lazy(() => import("./pages/ProjectsPage").then(m => ({ default: m.ProjectsPage })));
 const ProjectDetailPage = React.lazy(() => import("./pages/ProjectDetailPage").then(m => ({ default: m.ProjectDetailPage })));
-const IssueDetailPage = React.lazy(() => import("./pages/IssueDetailPage").then(m => ({ default: m.IssueDetailPage })));
+const IssueDetailPage = React.lazy(() => import("./features/issues/pages/IssueDetailPage").then(m => ({ default: m.IssueDetailPage })));
 const CyclesPage = React.lazy(() => import("./pages/CyclesPage").then(m => ({ default: m.CyclesPage })));
 const NotificationsPage = React.lazy(() => import("./pages/NotificationsPage").then(m => ({ default: m.NotificationsPage })));
 const PRDPage = React.lazy(() => import("./pages/PRDPage").then(m => ({ default: m.PRDPage })));
 const PRDDetailPage = React.lazy(() => import("./pages/PRDDetailPage").then(m => ({ default: m.PRDDetailPage })));
 const InboxPage = React.lazy(() => import("./pages/InboxPage").then(m => ({ default: m.InboxPage })));
-const MyIssuesPage = React.lazy(() => import("./pages/MyIssuesPage").then(m => ({ default: m.MyIssuesPage })));
+const MyIssuesPage = React.lazy(() => import("./features/issues/pages/MyIssuesPage").then(m => ({ default: m.MyIssuesPage })));
 const SharedConversationPage = React.lazy(() => import("./pages/SharedConversationPage").then(m => ({ default: m.SharedConversationPage })));
 const DatabasePage = React.lazy(() => import("./pages/DatabasePage").then(m => ({ default: m.DatabasePage })));
 const HelpPage = React.lazy(() => import("./pages/HelpPage").then(m => ({ default: m.HelpPage })));
-const ArchivePage = React.lazy(() => import("./pages/ArchivePage").then(m => ({ default: m.ArchivePage })));
+const ArchivePage = React.lazy(() => import("./features/issues/pages/ArchivePage").then(m => ({ default: m.ArchivePage })));
 const SettingsMainPage = React.lazy(() => import("./pages/SettingsPage").then(m => ({ default: m.SettingsPage })));
 import NotFound from "./pages/NotFound";
 

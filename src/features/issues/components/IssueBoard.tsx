@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import type { Issue, IssueStatus } from '@/types';
-import { StatusIcon, statusLabels, allStatuses } from './IssueIcons';
-import { IssueCard } from './IssueCard';
+import { StatusIcon, statusLabels, allStatuses } from '@/features/issues/components/IssueIcons';
+import { IssueCard } from './IssueCard/IssueCard';
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,9 +15,9 @@ interface IssueBoardProps {
   onCreateIssue?: (status: IssueStatus) => void;
 }
 
-export function IssueBoard({ 
-  issues, 
-  onIssueClick, 
+export function IssueBoard({
+  issues,
+  onIssueClick,
   onStatusChange,
   onCreateIssue,
 }: IssueBoardProps) {
@@ -53,7 +53,7 @@ export function IssueBoard({
     e.dataTransfer.setData('issueId', issueId);
     e.dataTransfer.effectAllowed = 'move';
     setDraggingIssueId(issueId);
-    
+
     // Add a slight delay for visual feedback
     requestAnimationFrame(() => {
       const target = e.target as HTMLElement;
@@ -90,7 +90,7 @@ export function IssueBoard({
     const issueId = e.dataTransfer.getData('issueId');
     setDragOverColumn(null);
     setDraggingIssueId(null);
-    
+
     if (issueId && onStatusChange) {
       // Find the issue to check if status is actually changing
       const issue = issues.find(i => i.id === issueId);
@@ -107,8 +107,8 @@ export function IssueBoard({
           key={status}
           className={cn(
             "flex-shrink-0 w-[280px] sm:w-72 flex flex-col rounded-lg transition-colors duration-200",
-            dragOverColumn === status 
-              ? "bg-primary/10 ring-2 ring-primary/50" 
+            dragOverColumn === status
+              ? "bg-primary/10 ring-2 ring-primary/50"
               : "bg-muted/30"
           )}
           onDragOver={(e) => handleDragOver(e, status)}
@@ -149,7 +149,7 @@ export function IssueBoard({
                 "py-8 text-center text-muted-foreground text-xs rounded-md transition-colors",
                 dragOverColumn === status && "bg-primary/5"
               )}>
-                {dragOverColumn === status 
+                {dragOverColumn === status
                   ? t('issues.dropHere', 'Drop here')
                   : t('issues.noIssues')
                 }

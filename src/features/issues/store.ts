@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Issue, ViewPreferences, ViewFilters } from '@/types';
-import { issueService, dependencyService } from '@/lib/services/issueService';
+import { issueService, dependencyService } from '@/lib/services';
 import { supabase } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { AppLayout } from '@/components/layout';
 import { useTeamStore } from '@/stores/teamStore';
 import { projectService } from '@/lib/services/projectService';
-import { issueService } from '@/lib/services/issueService';
+import { issueService } from '@/lib/services';
 import { teamMemberService } from '@/lib/services/teamService';
 import { prdService, type PRDWithRelations } from '@/lib/services/prdService';
 import {

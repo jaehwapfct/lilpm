@@ -73,7 +73,7 @@ import { userAISettingsService } from '@/lib/services/conversationService';
 import { useAuthStore } from '@/stores/authStore';
 import { useTeamStore } from '@/stores/teamStore';
 import type { AIProvider } from '@/types';
-import { TimelineThinkingBlock } from '@/components/issues/TimelineThinkingBlock';
+import { TimelineThinkingBlock } from '@/components/issues';
 import { extractOverview, type VersionEntry, type AISuggestion, type AIMessage, type PRDStatus } from './prd/PRDTypes';
 
 

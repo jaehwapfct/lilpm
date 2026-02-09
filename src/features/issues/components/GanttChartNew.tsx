@@ -42,8 +42,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { StatusIcon } from './IssueIcons';
-import { IssueTypeIcon } from './IssueTypeIcon';
+import { StatusIcon } from '@/features/issues/components/IssueIcons';
+import { IssueTypeIcon } from '@/features/issues/components/IssueTypeIcon';
 import { SortableIssueRow, SortableIssueBar } from './SortableGanttComponents';
 import { getStatusColor } from './GanttChart.utils';
 import type { Issue } from '@/types';

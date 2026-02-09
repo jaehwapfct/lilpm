@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Issue, IssueStatus } from '@/types';
 import { IssueRow } from './IssueRow';
-import { StatusIcon, statusLabels, allStatuses } from './IssueIcons';
+import { StatusIcon, statusLabels, allStatuses } from '@/features/issues/components/IssueIcons';
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';

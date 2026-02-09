@@ -1,7 +1,7 @@
 // Stores - Centralized exports
 export { useAuthStore } from './authStore';
 export { useTeamStore } from './teamStore';
-export { useIssueStore } from './issueStore';
+export { useIssueStore } from '@/features/issues/store';
 export { useLilyStore } from './lilyStore';
 export { useCollaborationStore } from './collaborationStore';
 export { useIntegrationStore } from './integrationStore';

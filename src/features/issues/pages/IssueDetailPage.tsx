@@ -5,10 +5,10 @@ import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { AppLayout } from '@/components/layout';
-import { useIssueStore } from '@/stores/issueStore';
+import { useIssueStore } from '@/stores';
 import { useTeamStore } from '@/stores/teamStore';
 import { useAuthStore } from '@/stores/authStore';
-import { issueService, commentService, activityService } from '@/lib/services/issueService';
+import { issueService, commentService, activityService } from '@/lib/services';
 import { teamMemberService } from '@/lib/services/teamService';
 import { cycleService } from '@/lib/services/cycleService';
 import { prdService } from '@/lib/services/prdService';
@@ -80,9 +80,9 @@ import { ko, enUS } from 'date-fns/locale';
 import { userAISettingsService } from '@/lib/services/conversationService';
 import type { Issue, IssueStatus, IssuePriority, CommentWithUser, ActivityWithUser, Profile, IssueType, Cycle } from '@/types/database';
 import type { AIProvider } from '@/types';
-import { StatusIcon, PriorityIcon } from '@/components/issues/IssueIcons';
-import { IssueTypeIcon, issueTypeConfig, allIssueTypes } from '@/components/issues/IssueTypeIcon';
-import { TimelineThinkingBlock } from '@/components/issues/TimelineThinkingBlock';
+import { StatusIcon, PriorityIcon } from '@/components/issues';
+import { IssueTypeIcon, issueTypeConfig, allIssueTypes } from '@/components/issues';
+import { TimelineThinkingBlock } from '@/components/issues';
 
 
 // TimelineThinkingBlock is now imported from @/components/issues/TimelineThinkingBlock

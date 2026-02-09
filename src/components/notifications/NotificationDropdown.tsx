@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useTeamStore } from '@/stores/teamStore';
-import { useIssueStore } from '@/stores/issueStore';
+import { useIssueStore } from '@/stores';
 import { notificationService, type NotificationType } from '@/lib/services/notificationService';
 
 const NOTIFICATION_ICONS: Record<NotificationType, React.ElementType> = {

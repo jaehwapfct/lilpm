@@ -29,7 +29,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
-import { IssueTypeIcon, allIssueTypes } from '@/components/issues/IssueTypeIcon';
+import { IssueTypeIcon, allIssueTypes } from '@/components/issues';
 import { TicketDetailModal } from './TicketDetailModal';
 import type { Issue, IssuePriority, IssueStatus, IssueType } from '@/types';
 

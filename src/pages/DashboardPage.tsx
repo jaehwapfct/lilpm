@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AppLayout } from '@/components/layout';
 import { useTeamStore } from '@/stores/teamStore';
-import { useIssueStore } from '@/stores/issueStore';
+import { useIssueStore } from '@/stores';
 import { useAuthStore } from '@/stores/authStore';
 import { cycleService } from '@/lib/services/cycleService';
-import { activityService } from '@/lib/services/issueService';
+import { activityService } from '@/lib/services';
 import { 
   ActivityFeed, 
   AIHeroCard,

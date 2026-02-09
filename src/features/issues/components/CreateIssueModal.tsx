@@ -41,7 +41,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { StatusIcon, PriorityIcon, statusLabels, priorityLabels, allStatuses, allPriorities } from './IssueIcons';
+import { StatusIcon, PriorityIcon, statusLabels, priorityLabels, allStatuses, allPriorities } from '@/features/issues/components/IssueIcons';
 import {
   Loader2,
   CalendarIcon,
@@ -56,9 +56,9 @@ import {
 import { useTeamStore } from '@/stores/teamStore';
 import { projectService } from '@/lib/services/projectService';
 import { teamMemberService } from '@/lib/services/teamService';
-import { labelService } from '@/lib/services/issueService';
+import { labelService } from '@/lib/services';
 import { cycleService } from '@/lib/services/cycleService';
-import { issueTemplateService, type IssueTemplate } from '@/lib/services/issueTemplateService';
+import { issueTemplateService, type IssueTemplate } from '@/lib/services';
 import { cn } from '@/lib/utils';
 
 const issueSchema = z.object({

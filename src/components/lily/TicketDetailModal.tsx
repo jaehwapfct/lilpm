@@ -18,7 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { IssueTypeIcon, allIssueTypes } from '@/components/issues/IssueTypeIcon';
+import { IssueTypeIcon, allIssueTypes } from '@/components/issues';
 import type { Issue, IssuePriority, IssueType } from '@/types';
 import { cn } from '@/lib/utils';
 
