@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
   ArrowLeft,
   Plus,
   Settings2,
@@ -51,8 +51,9 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AppLayout } from '@/components/layout';
 import { useMCPStore } from '@/stores/mcpStore';
-import { toast } from 'sonner';
 import type { MCPConnector, MCPCategory } from '@/types/mcp';
+import { useMCPSettingsHandlers } from './hooks';
+import { toast } from 'sonner';
 
 const CATEGORY_ICONS: Record<MCPCategory, React.ReactNode> = {
   search: <Globe className="h-4 w-4" />,
@@ -80,14 +81,14 @@ export function MCPSettingsPage() {
   const [selectedCategory, setSelectedCategory] = useState<MCPCategory | 'all'>('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingConnector, setEditingConnector] = useState<MCPConnector | null>(null);
-  
-  const { 
-    connectors, 
-    toggleConnector, 
+
+  const {
+    connectors,
+    toggleConnector,
     addConnector,
     updateConnector,
     removeConnector,
-    initializePresetConnectors 
+    initializePresetConnectors
   } = useMCPStore();
 
   // Initialize preset connectors on mount
@@ -105,7 +106,7 @@ export function MCPSettingsPage() {
     apiEndpoint: '',
     apiKey: '',
   });
-  
+
   // JSON config state
   const [jsonConfig, setJsonConfig] = useState('');
   const [addMode, setAddMode] = useState<'manual' | 'json'>('manual');
@@ -113,7 +114,7 @@ export function MCPSettingsPage() {
   const filteredConnectors = connectors
     .filter((connector) => {
       const matchesSearch = connector.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           connector.description.toLowerCase().includes(searchQuery.toLowerCase());
+        connector.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = selectedCategory === 'all' || connector.category === selectedCategory;
       return matchesSearch && matchesCategory;
     })
@@ -140,7 +141,7 @@ export function MCPSettingsPage() {
             let endpoint = '';
             let apiKey = '';
             let description = '';
-            
+
             // Format 1: { url: "...", headers: { Authorization: "..." } }
             if (serverConfig.url) {
               endpoint = serverConfig.url;
@@ -161,7 +162,7 @@ export function MCPSettingsPage() {
               }
               description = `Custom MCP: ${serverConfig.command} ${(serverConfig.args || []).slice(0, 2).join(' ')}`;
             }
-            
+
             addConnector({
               name,
               description,
@@ -189,14 +190,14 @@ export function MCPSettingsPage() {
         toast.error('Please enter a connector name');
         return;
       }
-      
+
       addConnector({
         ...newConnector,
         enabled: false,
       });
       toast.success('New connector added');
     }
-    
+
     setIsAddDialogOpen(false);
     setNewConnector({
       name: '',
@@ -215,16 +216,16 @@ export function MCPSettingsPage() {
 
   const handleTestConnection = async () => {
     if (!editingConnector) return;
-    
+
     setIsTesting(true);
     setTestResult(null);
-    
+
     try {
       // Extract endpoint and API key from mcpConfig (support multiple formats)
       let endpoint = editingConnector.apiEndpoint || '';
       let apiKey = editingConnector.apiKey || '';
       const mcpConfig = editingConnector.mcpConfig as any;
-      
+
       if (mcpConfig) {
         // Format 1: { url: "...", headers: { Authorization: "Bearer ..." } }
         if (mcpConfig.url) {
@@ -237,7 +238,7 @@ export function MCPSettingsPage() {
         else if (mcpConfig.args) {
           const urlArg = mcpConfig.args.find((arg: string) => arg.startsWith('http'));
           if (urlArg) endpoint = urlArg;
-          
+
           const authIndex = mcpConfig.args.findIndex((arg: string) => arg === '--header');
           if (authIndex !== -1 && mcpConfig.args[authIndex + 1]) {
             const authHeader = mcpConfig.args[authIndex + 1];
@@ -261,22 +262,22 @@ export function MCPSettingsPage() {
           }
         }
       }
-      
+
       if (!endpoint) {
         setTestResult({ success: false, message: 'No endpoint configured. Check your JSON config format.' });
         return;
       }
-      
+
       console.log('[MCP Test] Endpoint:', endpoint);
       console.log('[MCP Test] API Key:', apiKey ? `${apiKey.substring(0, 30)}...` : 'none');
-      
+
       // Use Edge Function proxy to avoid CORS
       const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://lbzjnhlribtfwnoydpdv.supabase.co';
       const MCP_PROXY_URL = `${SUPABASE_URL}/functions/v1/mcp-proxy`;
-      
+
       console.log('[MCP Test] Proxy URL:', MCP_PROXY_URL);
       console.log('[MCP Test] Request body:', { endpoint, apiKey: apiKey ? '***' : 'none', action: 'list' });
-      
+
       // First, check if Edge Function is reachable
       try {
         const healthCheck = await fetch(MCP_PROXY_URL, { method: 'GET' });
@@ -288,17 +289,17 @@ export function MCPSettingsPage() {
         }
       } catch (healthError) {
         console.error('[MCP Test] Health check failed:', healthError);
-        setTestResult({ 
-          success: false, 
-          message: `❌ Cannot reach MCP Proxy Edge Function.\n\nURL: ${MCP_PROXY_URL}\nError: ${healthError instanceof Error ? healthError.message : 'Unknown'}\n\nPlease check:\n1. Edge Function is deployed\n2. No network/firewall issues` 
+        setTestResult({
+          success: false,
+          message: `❌ Cannot reach MCP Proxy Edge Function.\n\nURL: ${MCP_PROXY_URL}\nError: ${healthError instanceof Error ? healthError.message : 'Unknown'}\n\nPlease check:\n1. Edge Function is deployed\n2. No network/firewall issues`
         });
         return;
       }
-      
+
       // Set timeout (60 seconds for actual MCP call)
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
-      
+
       // Test with tools/list action
       console.log('[MCP Test] Sending MCP request...');
       const response = await fetch(MCP_PROXY_URL, {
@@ -314,46 +315,46 @@ export function MCPSettingsPage() {
         }),
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
       console.log('[MCP Test] Response status:', response.status);
-      
+
       const result = await response.json();
       console.log('[MCP Test] Proxy response:', result);
-      
+
       if (result.success) {
-        setTestResult({ 
-          success: true, 
-          message: `✅ MCP Connection Successful!\n\nEndpoint: ${endpoint}\nPattern: ${result.pattern}\n\nResponse:\n${JSON.stringify(result.data, null, 2).substring(0, 500)}` 
+        setTestResult({
+          success: true,
+          message: `✅ MCP Connection Successful!\n\nEndpoint: ${endpoint}\nPattern: ${result.pattern}\n\nResponse:\n${JSON.stringify(result.data, null, 2).substring(0, 500)}`
         });
       } else {
         let errorMsg = `❌ MCP Connection Failed\n\nEndpoint: ${endpoint}\nError: ${result.error}\n`;
-        
+
         if (result.attempts) {
           errorMsg += '\n--- Attempted Patterns ---\n';
           result.attempts.forEach((attempt: any) => {
             errorMsg += `\n${attempt.pattern}\n  Status: ${attempt.status}\n  Error: ${attempt.error || 'N/A'}\n`;
           });
         }
-        
+
         setTestResult({ success: false, message: errorMsg });
       }
     } catch (error) {
       console.error('[MCP Test] Caught error:', error);
       if (error instanceof Error && error.name === 'AbortError') {
-        setTestResult({ 
-          success: false, 
-          message: '⏱️ Timeout: MCP call took too long (60s).\n\nThe MCP server might be slow or unreachable.' 
+        setTestResult({
+          success: false,
+          message: '⏱️ Timeout: MCP call took too long (60s).\n\nThe MCP server might be slow or unreachable.'
         });
       } else if (error instanceof TypeError && error.message.includes('fetch')) {
-        setTestResult({ 
-          success: false, 
-          message: `❌ Network/CORS Error\n\nError: ${error.message}\n\nThis might be a CORS issue. Check browser console for details.` 
+        setTestResult({
+          success: false,
+          message: `❌ Network/CORS Error\n\nError: ${error.message}\n\nThis might be a CORS issue. Check browser console for details.`
         });
       } else {
-        setTestResult({ 
-          success: false, 
-          message: `❌ Error: ${error instanceof Error ? error.message : JSON.stringify(error)}\n\nCheck browser console (F12) for more details.` 
+        setTestResult({
+          success: false,
+          message: `❌ Error: ${error instanceof Error ? error.message : JSON.stringify(error)}\n\nCheck browser console (F12) for more details.`
         });
       }
     } finally {
@@ -363,7 +364,7 @@ export function MCPSettingsPage() {
 
   const handleSaveEdit = () => {
     if (!editingConnector) return;
-    
+
     // Validate JSON config if present
     if (editingConnector.mcpConfig && (editingConnector.mcpConfig as any)._raw) {
       try {
@@ -374,18 +375,18 @@ export function MCPSettingsPage() {
         return;
       }
     }
-    
+
     // Update API endpoint from mcpConfig if available
     if (editingConnector.mcpConfig?.args) {
-      const endpoint = editingConnector.mcpConfig.args.find((arg: string) => 
+      const endpoint = editingConnector.mcpConfig.args.find((arg: string) =>
         arg.startsWith('http')
       );
       if (endpoint) {
         editingConnector.apiEndpoint = endpoint;
       }
-      
+
       // Extract API key from Authorization header
-      const authIndex = editingConnector.mcpConfig.args.findIndex((arg: string) => 
+      const authIndex = editingConnector.mcpConfig.args.findIndex((arg: string) =>
         arg === '--header'
       );
       if (authIndex !== -1 && editingConnector.mcpConfig.args[authIndex + 1]) {
@@ -395,7 +396,7 @@ export function MCPSettingsPage() {
         }
       }
     }
-    
+
     updateConnector(editingConnector.id, editingConnector);
     toast.success('Connector updated');
     setTestResult(null);
@@ -472,13 +473,13 @@ export function MCPSettingsPage() {
                   Add a new MCP connector manually or paste JSON configuration
                 </DialogDescription>
               </DialogHeader>
-              
+
               <Tabs value={addMode} onValueChange={(v) => setAddMode(v as 'manual' | 'json')} className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="manual">Manual</TabsTrigger>
                   <TabsTrigger value="json">JSON Config</TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="manual" className="space-y-4 py-4">
                   <div className="space-y-2">
                     <Label>Name</Label>
@@ -539,7 +540,7 @@ export function MCPSettingsPage() {
                     />
                   </div>
                 </TabsContent>
-                
+
                 <TabsContent value="json" className="space-y-4 py-4">
                   <div className="space-y-2">
                     <Label>MCP Configuration (JSON)</Label>
@@ -562,13 +563,13 @@ export function MCPSettingsPage() {
                       onChange={(e) => setJsonConfig(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Paste your MCP server configuration in JSON format. 
+                      Paste your MCP server configuration in JSON format.
                       The mcpServers object will be parsed to create connectors.
                     </p>
                   </div>
                 </TabsContent>
               </Tabs>
-              
+
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   Cancel
@@ -587,12 +588,12 @@ export function MCPSettingsPage() {
             <TabsTrigger value="grid">Grid</TabsTrigger>
             <TabsTrigger value="list">List</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="grid">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredConnectors.map((connector) => (
-                <Card 
-                  key={connector.id} 
+                <Card
+                  key={connector.id}
                   className={`relative transition-all ${connector.enabled ? 'ring-2 ring-primary/50' : ''}`}
                 >
                   <CardHeader className="pb-2">
@@ -621,9 +622,9 @@ export function MCPSettingsPage() {
                         {connector.configType === 'automatic' ? 'Auto Connect' : 'Manual Setup'}
                       </Badge>
                       {connector.configType === 'manual' && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           className="h-7 text-xs"
                           onClick={() => setEditingConnector(connector)}
                         >
@@ -637,14 +638,14 @@ export function MCPSettingsPage() {
               ))}
             </div>
           </TabsContent>
-          
+
           <TabsContent value="list">
             <Card>
               <CardContent className="p-0">
                 <div className="divide-y">
                   {filteredConnectors.map((connector) => (
-                    <div 
-                      key={connector.id} 
+                    <div
+                      key={connector.id}
                       className="flex items-center justify-between p-4 hover:bg-muted/50"
                     >
                       <div className="flex items-center gap-3">
@@ -661,8 +662,8 @@ export function MCPSettingsPage() {
                       </div>
                       <div className="flex items-center gap-3">
                         {connector.configType === 'manual' && (
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             onClick={() => setEditingConnector(connector)}
                           >
@@ -704,52 +705,52 @@ export function MCPSettingsPage() {
             </DialogHeader>
             {editingConnector && (
               <>
-              <Tabs defaultValue={editingConnector.mcpConfig ? 'json' : 'basic'} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-4">
-                  <TabsTrigger value="basic">Basic</TabsTrigger>
-                  <TabsTrigger value="json">JSON Config</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="basic" className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Name</Label>
-                    <Input
-                      value={editingConnector.name}
-                      onChange={(e) => setEditingConnector({ ...editingConnector, name: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Description</Label>
-                    <Input
-                      value={editingConnector.description}
-                      onChange={(e) => setEditingConnector({ ...editingConnector, description: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>API Endpoint</Label>
-                    <Input
-                      placeholder="https://api.example.com/mcp"
-                      value={editingConnector.apiEndpoint || ''}
-                      onChange={(e) => setEditingConnector({ ...editingConnector, apiEndpoint: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>API Key</Label>
-                    <Input
-                      type="password"
-                      placeholder="sk-..."
-                      value={editingConnector.apiKey || ''}
-                      onChange={(e) => setEditingConnector({ ...editingConnector, apiKey: e.target.value })}
-                    />
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="json" className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>MCP Server Configuration (JSON)</Label>
-                    <textarea
-                      className="w-full h-48 p-3 font-mono text-xs bg-muted rounded-md border resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                      placeholder={`{
+                <Tabs defaultValue={editingConnector.mcpConfig ? 'json' : 'basic'} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsTrigger value="basic">Basic</TabsTrigger>
+                    <TabsTrigger value="json">JSON Config</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="basic" className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Name</Label>
+                      <Input
+                        value={editingConnector.name}
+                        onChange={(e) => setEditingConnector({ ...editingConnector, name: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Description</Label>
+                      <Input
+                        value={editingConnector.description}
+                        onChange={(e) => setEditingConnector({ ...editingConnector, description: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>API Endpoint</Label>
+                      <Input
+                        placeholder="https://api.example.com/mcp"
+                        value={editingConnector.apiEndpoint || ''}
+                        onChange={(e) => setEditingConnector({ ...editingConnector, apiEndpoint: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>API Key</Label>
+                      <Input
+                        type="password"
+                        placeholder="sk-..."
+                        value={editingConnector.apiKey || ''}
+                        onChange={(e) => setEditingConnector({ ...editingConnector, apiKey: e.target.value })}
+                      />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="json" className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>MCP Server Configuration (JSON)</Label>
+                      <textarea
+                        className="w-full h-48 p-3 font-mono text-xs bg-muted rounded-md border resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                        placeholder={`{
   "command": "npx",
   "args": [
     "mcp-remote",
@@ -759,71 +760,70 @@ export function MCPSettingsPage() {
   ],
   "env": {}
 }`}
-                      value={editingConnector.mcpConfig ? JSON.stringify(editingConnector.mcpConfig, null, 2) : ''}
-                      onChange={(e) => {
-                        try {
-                          const config = e.target.value ? JSON.parse(e.target.value) : undefined;
-                          setEditingConnector({ ...editingConnector, mcpConfig: config });
-                        } catch {
-                          // Allow invalid JSON while typing, will validate on save
-                          setEditingConnector({ 
-                            ...editingConnector, 
-                            mcpConfig: { _raw: e.target.value } as any 
-                          });
-                        }
-                      }}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Configure MCP server with command, args, and environment variables.
-                    </p>
-                    {editingConnector.mcpConfig && !(editingConnector.mcpConfig as any)._raw && (
-                      <div className="p-3 bg-muted/50 rounded-md text-xs space-y-1">
-                        <p><strong>Command:</strong> {(editingConnector.mcpConfig as any).command || 'N/A'}</p>
-                        <p><strong>Args:</strong> {(editingConnector.mcpConfig as any).args?.join(' ') || 'N/A'}</p>
-                      </div>
-                    )}
+                        value={editingConnector.mcpConfig ? JSON.stringify(editingConnector.mcpConfig, null, 2) : ''}
+                        onChange={(e) => {
+                          try {
+                            const config = e.target.value ? JSON.parse(e.target.value) : undefined;
+                            setEditingConnector({ ...editingConnector, mcpConfig: config });
+                          } catch {
+                            // Allow invalid JSON while typing, will validate on save
+                            setEditingConnector({
+                              ...editingConnector,
+                              mcpConfig: { _raw: e.target.value } as any
+                            });
+                          }
+                        }}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Configure MCP server with command, args, and environment variables.
+                      </p>
+                      {editingConnector.mcpConfig && !(editingConnector.mcpConfig as any)._raw && (
+                        <div className="p-3 bg-muted/50 rounded-md text-xs space-y-1">
+                          <p><strong>Command:</strong> {(editingConnector.mcpConfig as any).command || 'N/A'}</p>
+                          <p><strong>Args:</strong> {(editingConnector.mcpConfig as any).args?.join(' ') || 'N/A'}</p>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+
+                {/* Test Connection Section */}
+                <div className="border-t pt-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleTestConnection}
+                      disabled={isTesting}
+                    >
+                      {isTesting ? (
+                        <>
+                          <span className="animate-spin mr-2">⏳</span>
+                          Testing...
+                        </>
+                      ) : (
+                        <>
+                          <Plug className="h-4 w-4 mr-2" />
+                          Test Connection
+                        </>
+                      )}
+                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                      Test if the MCP server is reachable
+                    </span>
                   </div>
-                </TabsContent>
-              </Tabs>
-              
-              {/* Test Connection Section */}
-              <div className="border-t pt-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleTestConnection}
-                    disabled={isTesting}
-                  >
-                    {isTesting ? (
-                      <>
-                        <span className="animate-spin mr-2">⏳</span>
-                        Testing...
-                      </>
-                    ) : (
-                      <>
-                        <Plug className="h-4 w-4 mr-2" />
-                        Test Connection
-                      </>
-                    )}
-                  </Button>
-                  <span className="text-xs text-muted-foreground">
-                    Test if the MCP server is reachable
-                  </span>
+                  {testResult && (
+                    <div className={`p-3 rounded-md text-xs font-mono whitespace-pre-wrap ${testResult.success ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                      }`}>
+                      {testResult.message}
+                    </div>
+                  )}
                 </div>
-                {testResult && (
-                  <div className={`p-3 rounded-md text-xs font-mono whitespace-pre-wrap ${
-                    testResult.success ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
-                  }`}>
-                    {testResult.message}
-                  </div>
-                )}
-              </div>
               </>
             )}
             <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 className="w-full sm:w-auto"
                 onClick={() => {
                   if (editingConnector) {
