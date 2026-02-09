@@ -8,7 +8,7 @@ import {
     isSameMonth,
     format
 } from 'date-fns';
-import type { ViewMode, DateRange, HeaderMarker } from './GanttChart.types';
+import type { ViewMode, DateRange, HeaderMarker } from './GanttChart/types';
 
 /**
  * Get color classes for issue status

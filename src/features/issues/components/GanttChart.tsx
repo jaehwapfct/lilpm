@@ -49,7 +49,7 @@ import type {
   GroupBy,
   GroupedIssues,
   DateRange,
-} from './GanttChart.types';
+} from './GanttChart/types';
 import {
   getStatusColor,
   sortIssues,
@@ -57,7 +57,7 @@ import {
   getCellWidth,
   getHeaderMarkers as getHeaderMarkersFromUtils,
   calculateReorderSortOrder,
-} from './GanttChart.utils';
+} from './GanttChart/utils';
 
 export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, onDependencyCreate, onDependencyDelete, onCycleCreate }: GanttChartProps) {
   const { t, i18n } = useTranslation();
