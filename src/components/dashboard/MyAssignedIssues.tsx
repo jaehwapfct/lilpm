@@ -23,16 +23,16 @@ export function MyAssignedIssues({ issues, userId, isLoading }: MyAssignedIssues
       case 'high': return 'bg-orange-500/10 text-orange-500 border-orange-500/30';
       case 'medium': return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30';
       case 'low': return 'bg-blue-500/10 text-blue-500 border-blue-500/30';
-      default: return 'bg-muted text-muted-foreground';
+      default: return 'bg-[#1a1a1f] text-slate-400';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'in_progress': return 'bg-primary/10 text-primary';
+      case 'in_progress': return 'bg-violet-500/10 text-violet-500';
       case 'in_review': return 'bg-purple-500/10 text-purple-500';
-      case 'todo': return 'bg-muted text-muted-foreground';
-      default: return 'bg-muted text-muted-foreground';
+      case 'todo': return 'bg-[#1a1a1f] text-slate-400';
+      default: return 'bg-[#1a1a1f] text-slate-400';
     }
   };
 
@@ -45,7 +45,7 @@ export function MyAssignedIssues({ issues, userId, isLoading }: MyAssignedIssues
         <CardContent>
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
+              <div key={i} className="h-16 bg-white/10 animate-pulse rounded-xl" />
             ))}
           </div>
         </CardContent>
@@ -81,7 +81,7 @@ export function MyAssignedIssues({ issues, userId, isLoading }: MyAssignedIssues
           {myIssues.map((issue) => (
             <div
               key={issue.id}
-              className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+              className="flex items-start gap-3 p-3 rounded-xl bg-[#121215] hover:bg-[#1a1a1f] transition-colors cursor-pointer"
             >
               <div className={cn("h-2 w-2 rounded-full mt-2", getStatusColor(issue.status))} />
               <div className="flex-1 min-w-0">

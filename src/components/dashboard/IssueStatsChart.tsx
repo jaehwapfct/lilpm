@@ -33,10 +33,10 @@ const PRIORITY_COLORS = {
 
 export function IssueStatsChart({ issues, type = 'status' }: IssueStatsChartProps) {
   const { t } = useTranslation();
-  
+
   const colors = type === 'status' ? STATUS_COLORS : PRIORITY_COLORS;
   const field = type === 'status' ? 'status' : 'priority';
-  const keys = type === 'status' 
+  const keys = type === 'status'
     ? ['backlog', 'todo', 'in_progress', 'in_review', 'done', 'cancelled']
     : ['urgent', 'high', 'medium', 'low', 'none'];
 
@@ -91,7 +91,7 @@ export function IssueStatsChart({ issues, type = 'status' }: IssueStatsChartProp
                   if (active && payload && payload.length) {
                     const d = payload[0].payload;
                     return (
-                      <div className="bg-popover border border-border rounded-md shadow-md p-2 text-sm">
+                      <div className="bg-[#1a1a1f] border border-white/10 rounded-xl shadow-lg p-2 text-sm">
                         <p className="font-medium">{d.name}</p>
                         <p className="text-muted-foreground">
                           {d.value} ({Math.round((d.value / total) * 100)}%)

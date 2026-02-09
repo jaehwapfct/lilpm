@@ -32,9 +32,9 @@ export function CycleProgressCard({ cycle, issues, isLoading }: CycleProgressCar
         </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-4">
-            <div className="h-6 w-1/2 bg-muted rounded" />
-            <div className="h-4 w-full bg-muted rounded" />
-            <div className="h-2 w-full bg-muted rounded" />
+            <div className="h-6 w-1/2 bg-white/10 rounded" />
+            <div className="h-4 w-full bg-white/10 rounded" />
+            <div className="h-2 w-full bg-white/10 rounded" />
           </div>
         </CardContent>
       </Card>
@@ -114,7 +114,7 @@ export function CycleProgressCard({ cycle, issues, isLoading }: CycleProgressCar
         </div>
 
         <div className="grid grid-cols-3 gap-2 pt-2">
-          <div className="text-center p-2 rounded-md bg-muted/50">
+          <div className="text-center p-2 rounded-xl bg-[#1a1a1f]">
             <div className="text-lg font-semibold">{issuesByStatus.todo}</div>
             <div className="text-xs text-muted-foreground">{t('dashboard.todo')}</div>
           </div>
@@ -128,9 +128,9 @@ export function CycleProgressCard({ cycle, issues, isLoading }: CycleProgressCar
           </div>
         </div>
 
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           className="w-full"
           onClick={() => navigate(`/cycles`)}
         >

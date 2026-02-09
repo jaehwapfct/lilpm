@@ -54,7 +54,7 @@ export function GlobalSearch() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { currentTeam } = useTeamStore();
-  
+
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -68,7 +68,7 @@ export function GlobalSearch() {
     if (history) {
       setSearchHistory(JSON.parse(history));
     }
-    
+
     const filters = localStorage.getItem(SAVED_FILTERS_KEY);
     if (filters) {
       setSavedFilters(JSON.parse(filters));
@@ -99,7 +99,7 @@ export function GlobalSearch() {
       setIsSearching(true);
       const searchResults: SearchResult[] = [];
       const searchQuery = query.toLowerCase();
-      
+
       // Search issues - run independently
       try {
         const issues = await issueService.getIssues(currentTeam.id, { search: query });
@@ -121,7 +121,7 @@ export function GlobalSearch() {
       try {
         const projects = await projectService.getProjects(currentTeam.id);
         projects
-          .filter((p: Project) => 
+          .filter((p: Project) =>
             p.name.toLowerCase().includes(searchQuery) ||
             (p.description && p.description.toLowerCase().includes(searchQuery))
           )
@@ -148,7 +148,7 @@ export function GlobalSearch() {
           .eq('team_id', currentTeam.id)
           .or(`title.ilike.%${escapedQuery}%,overview.ilike.%${escapedQuery}%`)
           .limit(3);
-        
+
         (prds || []).forEach((prd: any) => {
           searchResults.push({
             id: prd.id,
@@ -170,7 +170,7 @@ export function GlobalSearch() {
 
   const addToHistory = useCallback((searchQuery: string) => {
     if (!searchQuery.trim()) return;
-    
+
     setSearchHistory((prev) => {
       const filtered = prev.filter((h) => h !== searchQuery);
       const newHistory = [searchQuery, ...filtered].slice(0, MAX_HISTORY);
@@ -186,7 +186,7 @@ export function GlobalSearch() {
 
   const saveFilter = useCallback((name: string) => {
     if (!query.trim()) return;
-    
+
     const newFilter: SavedFilter = {
       id: Date.now().toString(),
       name,
@@ -194,7 +194,7 @@ export function GlobalSearch() {
       filters: {},
       createdAt: new Date().toISOString(),
     };
-    
+
     setSavedFilters((prev) => {
       const updated = [...prev, newFilter];
       localStorage.setItem(SAVED_FILTERS_KEY, JSON.stringify(updated));
@@ -214,7 +214,7 @@ export function GlobalSearch() {
     addToHistory(query);
     setOpen(false);
     setQuery('');
-    
+
     switch (result.type) {
       case 'issue':
         navigate(`/issue/${result.id}`);
@@ -265,17 +265,17 @@ export function GlobalSearch() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground bg-muted/50 hover:bg-muted rounded-md border border-border transition-colors"
+        className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-400 bg-[#1a1a1f] hover:bg-[#121215] rounded-xl border border-white/10 transition-colors"
       >
         <Search className="h-4 w-4" />
         <span className="hidden sm:inline">{t('search.placeholder')}</span>
-        <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">
+        <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded-lg border border-white/10 bg-[#0d0d0f] px-1.5 font-mono text-[10px] font-medium text-slate-500">
           <span className="text-xs">⌘</span>K
         </kbd>
       </button>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput 
+        <CommandInput
           placeholder={t('search.placeholder')}
           value={query}
           onValueChange={setQuery}

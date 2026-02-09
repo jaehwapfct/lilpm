@@ -173,7 +173,7 @@ export function NotificationDropdown() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
-        <div className="flex items-center justify-between px-3 py-2 border-b">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
           <span className="font-medium text-sm">{t('notifications.title')}</span>
           {unreadCount > 0 && (
             <Button
@@ -204,8 +204,8 @@ export function NotificationDropdown() {
                     key={notification.id}
                     onClick={() => handleNotificationClick(notification)}
                     className={cn(
-                      "flex items-start gap-3 px-3 py-2.5 cursor-pointer hover:bg-accent transition-colors",
-                      !notification.read && "bg-primary/5"
+                      "flex items-start gap-3 px-3 py-2.5 cursor-pointer hover:bg-white/5 transition-colors",
+                      !notification.read && "bg-violet-500/5"
                     )}
                   >
                     <div className={cn(
@@ -245,7 +245,7 @@ export function NotificationDropdown() {
                     </div>
 
                     {!notification.read && (
-                      <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />
+                      <div className="h-2 w-2 rounded-full bg-violet-500 flex-shrink-0 mt-1.5" />
                     )}
                   </div>
                 );

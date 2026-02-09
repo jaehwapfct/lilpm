@@ -28,7 +28,7 @@ export function TeamOverviewCard({
 }: TeamOverviewCardProps) {
   const { t, i18n } = useTranslation();
   const currentHour = new Date().getHours();
-  
+
   const getGreeting = () => {
     if (currentHour < 12) return t('dashboard.goodMorning');
     if (currentHour < 18) return t('dashboard.goodAfternoon');
@@ -36,7 +36,7 @@ export function TeamOverviewCard({
   };
 
   return (
-    <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20">
+    <Card className="bg-gradient-to-br from-violet-500/10 via-violet-500/5 to-transparent border-violet-500/20">
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
@@ -50,22 +50,22 @@ export function TeamOverviewCard({
           </div>
           <Avatar className="h-12 w-12">
             <AvatarImage src={user?.avatarUrl} alt={user?.name} />
-            <AvatarFallback className="bg-primary text-primary-foreground text-lg">
+            <AvatarFallback className="bg-violet-500 text-white text-lg">
               {user?.name?.charAt(0) || 'U'}
             </AvatarFallback>
           </Avatar>
         </div>
 
         <div className="mt-6 grid grid-cols-3 gap-4">
-          <div className="text-center p-3 bg-background/50 rounded-lg">
+          <div className="text-center p-3 bg-[#121215] rounded-xl">
             <p className="text-2xl font-bold">{totalIssues}</p>
             <p className="text-xs text-muted-foreground">{t('dashboard.totalTasks')}</p>
           </div>
-          <div className="text-center p-3 bg-background/50 rounded-lg">
+          <div className="text-center p-3 bg-[#121215] rounded-xl">
             <p className="text-2xl font-bold text-green-500">{completedThisWeek}</p>
             <p className="text-xs text-muted-foreground">{t('dashboard.completedWeek')}</p>
           </div>
-          <div className="text-center p-3 bg-background/50 rounded-lg">
+          <div className="text-center p-3 bg-[#121215] rounded-xl">
             <p className="text-2xl font-bold">{activeMembers}</p>
             <p className="text-xs text-muted-foreground">{t('dashboard.activeMembers')}</p>
           </div>

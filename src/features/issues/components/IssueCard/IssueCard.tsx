@@ -27,8 +27,8 @@ export function IssueCard({ issue, onClick, onDragStart, onDragEnd, isDragging }
       onDragEnd={onDragEnd}
       onClick={onClick}
       className={cn(
-        "bg-card border border-border rounded-md p-3 cursor-pointer",
-        "hover:border-primary/50 hover:shadow-sm transition-all",
+        "bg-[#1a1a1f] border border-white/10 rounded-xl p-3 cursor-pointer",
+        "hover:border-violet-500/30 hover:shadow-lg hover:shadow-violet-500/5 transition-all",
         "active:cursor-grabbing",
         isDragging && "opacity-50 scale-95 rotate-1"
       )}
@@ -88,7 +88,7 @@ export function IssueCard({ issue, onClick, onDragStart, onDragEnd, isDragging }
             </AvatarFallback>
           </Avatar>
         ) : (
-          <div className="h-5 w-5 rounded-full border border-dashed border-muted-foreground/30 flex-shrink-0" />
+          <div className="h-5 w-5 rounded-full border border-dashed border-white/20 flex-shrink-0" />
         )}
       </div>
     </div>

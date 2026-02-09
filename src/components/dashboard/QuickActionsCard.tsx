@@ -56,7 +56,7 @@ export function QuickActionsCard() {
               <button
                 key={action.label}
                 onClick={action.onClick}
-                className={`p-4 rounded-lg bg-gradient-to-br ${action.gradient} hover:opacity-80 transition-opacity text-left`}
+                className={`p-4 rounded-xl bg-gradient-to-br ${action.gradient} border border-white/10 hover:border-white/20 transition-all text-left`}
               >
                 <Icon className={`h-5 w-5 ${action.iconColor} mb-2`} />
                 <p className="font-medium text-sm">{action.label}</p>

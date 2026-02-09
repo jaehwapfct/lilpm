@@ -1,10 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { 
-  Sparkles, 
-  MessageSquare, 
-  FileText, 
+import {
+  Sparkles,
+  MessageSquare,
+  FileText,
   Zap,
   ArrowRight,
   Brain,
@@ -23,7 +23,7 @@ export function AIHeroCard({ userName }: AIHeroCardProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { getModelsWithValidKeys, autoMixEnabled } = useMCPStore();
-  
+
   const activeModels = getModelsWithValidKeys();
   const hasAIEnabled = activeModels.length > 0;
 
@@ -38,7 +38,7 @@ export function AIHeroCard({ userName }: AIHeroCardProps) {
     <Card className="relative overflow-hidden border-violet-500/20 bg-gradient-to-br from-violet-500/10 via-purple-500/5 to-background">
       {/* Background decoration */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-violet-500/20 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-      
+
       <CardContent className="relative p-6">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Left side - AI Assistant intro */}
@@ -91,7 +91,7 @@ export function AIHeroCard({ userName }: AIHeroCardProps) {
                   <button
                     key={index}
                     onClick={() => navigate('/lily', { state: { initialQuery: suggestion.query } })}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-background/50 hover:bg-background/80 border border-border/50 hover:border-violet-500/30 transition-all text-left group"
+                    className="flex items-center gap-3 p-3 rounded-xl bg-[#121215] hover:bg-[#1a1a1f] border border-white/10 hover:border-violet-500/30 transition-all text-left group"
                   >
                     <Icon className="h-4 w-4 text-violet-500" />
                     <span className="text-sm flex-1">{suggestion.label}</span>
