@@ -58,6 +58,7 @@ import {
 import { Input } from '@/components/ui/input';
 import type { Project } from '@/types/database';
 import { NavItem, ConversationListItem } from './SidebarComponents';
+import { useSidebarKeyboardShortcuts } from './hooks';
 
 // NavItem and ConversationListItem are now imported from ./SidebarComponents
 
@@ -170,58 +171,8 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
     };
   }, [currentTeam?.id]);
 
-  // Keyboard shortcut for search
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Skip shortcuts when typing in input/textarea/contenteditable
-      const target = e.target as HTMLElement;
-      const isTyping = target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable ||
-        target.closest('[role="dialog"]') !== null;
-
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setSearchOpen(true);
-      }
-
-      // Skip all other shortcuts when typing
-      if (isTyping) return;
-
-      // Quick navigation shortcuts
-      if (!e.metaKey && !e.ctrlKey && !e.altKey) {
-        if (e.key === 'g') {
-          // Wait for next key
-          const handleNext = (e2: KeyboardEvent) => {
-            // Also check if typing during second key
-            const target2 = e2.target as HTMLElement;
-            const isTyping2 = target2.tagName === 'INPUT' ||
-              target2.tagName === 'TEXTAREA' ||
-              target2.isContentEditable ||
-              target2.closest('[role="dialog"]') !== null;
-            if (isTyping2) return;
-
-            if (e2.key === 'i') navigate('/issues');
-            if (e2.key === 'm') navigate('/my-issues');
-            if (e2.key === 's') navigate('/settings');
-            if (e2.key === 'a') navigate('/issues');
-            window.removeEventListener('keydown', handleNext);
-          };
-          window.addEventListener('keydown', handleNext, { once: true });
-          setTimeout(() => window.removeEventListener('keydown', handleNext), 500);
-        }
-        if (e.key === 'c' && document.activeElement?.tagName !== 'INPUT') {
-          // Create issue - handled by parent
-        }
-        if (e.key === 'l' && document.activeElement?.tagName !== 'INPUT') {
-          navigate('/lily');
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [navigate]);
+  // Keyboard shortcuts (extracted to hook)
+  useSidebarKeyboardShortcuts(setSearchOpen);
 
   const mainNav = [
     { icon: Home, label: t('nav.dashboard', 'Dashboard'), href: '/dashboard', shortcut: 'G D' },
