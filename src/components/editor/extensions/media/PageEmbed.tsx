@@ -46,18 +46,18 @@ const PageEmbedComponent: React.FC<NodeViewProps> = ({
         return (
             <NodeViewWrapper>
                 <div
-                    className={`p-4 rounded-lg border-2 border-dashed ${selected ? 'border-primary bg-primary/5' : 'border-border bg-muted/30'
+                    className={`p-4 rounded-lg border-2 border-dashed ${selected ? 'border-primary bg-primary/5' : 'border-white/10 bg-white/5'
                         }`}
                 >
                     <div className="flex items-center gap-2 mb-3">
-                        <FileText className="h-5 w-5 text-muted-foreground" />
+                        <FileText className="h-5 w-5 text-slate-400" />
                         <span className="text-sm font-medium">Embed a Page</span>
                     </div>
 
                     <input
                         type="text"
                         placeholder="Search for a page to embed..."
-                        className="w-full px-3 py-2 text-sm border rounded-md bg-background"
+                        className="w-full px-3 py-2 text-sm border rounded-xl bg-[#0d0d0f]"
                         autoFocus
                         onKeyDown={(e) => {
                             if (e.key === 'Escape') {
@@ -66,7 +66,7 @@ const PageEmbedComponent: React.FC<NodeViewProps> = ({
                         }}
                     />
 
-                    <p className="text-xs text-muted-foreground mt-2">
+                    <p className="text-xs text-slate-400 mt-2">
                         Type to search PRDs or Issues, or paste a page link
                     </p>
                 </div>
@@ -77,19 +77,19 @@ const PageEmbedComponent: React.FC<NodeViewProps> = ({
     return (
         <NodeViewWrapper>
             <div
-                className={`group relative flex items-center gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors cursor-pointer ${selected ? 'ring-2 ring-primary' : 'border-border'
+                className={`group relative flex items-center gap-3 p-3 rounded-lg border hover:bg-white/5/50 transition-colors cursor-pointer ${selected ? 'ring-2 ring-primary' : 'border-white/10'
                     }`}
                 onClick={navigateToPage}
             >
                 {/* Page icon/emoji */}
-                <div className="flex-shrink-0 h-10 w-10 rounded-md bg-muted flex items-center justify-center text-lg">
+                <div className="flex-shrink-0 h-10 w-10 rounded-xl bg-[#121215] flex items-center justify-center text-lg">
                     {pageEmoji || '📄'}
                 </div>
 
                 {/* Page info */}
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                        <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase font-medium">
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-[#121215] text-slate-400 uppercase font-medium">
                             {pageType === 'prd' ? 'PRD' : 'Issue'}
                         </span>
                     </div>
@@ -98,7 +98,7 @@ const PageEmbedComponent: React.FC<NodeViewProps> = ({
 
                 {/* Open link icon */}
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                    <ExternalLink className="h-4 w-4 text-slate-400" />
                 </div>
             </div>
         </NodeViewWrapper>

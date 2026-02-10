@@ -45,7 +45,7 @@ interface IssueFiltersProps {
 }
 
 const STATUS_OPTIONS: { value: IssueStatus; icon: React.ElementType; color: string }[] = [
-  { value: 'backlog', icon: Circle, color: 'text-muted-foreground' },
+  { value: 'backlog', icon: Circle, color: 'text-slate-400' },
   { value: 'todo', icon: Circle, color: 'text-blue-500' },
   { value: 'in_progress', icon: Clock, color: 'text-yellow-500' },
   { value: 'in_review', icon: AlertCircle, color: 'text-purple-500' },
@@ -59,7 +59,7 @@ const PRIORITY_OPTIONS: { value: IssuePriority; color: string }[] = [
   { value: 'high', color: 'text-orange-500' },
   { value: 'medium', color: 'text-yellow-500' },
   { value: 'low', color: 'text-blue-500' },
-  { value: 'none', color: 'text-muted-foreground' },
+  { value: 'none', color: 'text-slate-400' },
 ];
 
 export function IssueFilters({ filters, onFiltersChange }: IssueFiltersProps) {
@@ -139,7 +139,7 @@ export function IssueFilters({ filters, onFiltersChange }: IssueFiltersProps) {
     <div className="flex items-center gap-2">
       {/* Search Input */}
       <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
         <Input
           placeholder={t('issues.searchPlaceholder')}
           value={searchQuery}
@@ -149,7 +149,7 @@ export function IssueFilters({ filters, onFiltersChange }: IssueFiltersProps) {
         {searchQuery && (
           <button
             onClick={() => setSearchQuery('')}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
           >
             <X className="h-3 w-3" />
           </button>
@@ -198,7 +198,7 @@ export function IssueFilters({ filters, onFiltersChange }: IssueFiltersProps) {
                     return (
                       <label
                         key={option.value}
-                        className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer"
+                        className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-white/5 cursor-pointer"
                       >
                         <Checkbox
                           checked={filters.status.includes(option.value)}
@@ -224,7 +224,7 @@ export function IssueFilters({ filters, onFiltersChange }: IssueFiltersProps) {
                   {PRIORITY_OPTIONS.map((option) => (
                     <label
                       key={option.value}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer"
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-white/5 cursor-pointer"
                     >
                       <Checkbox
                         checked={filters.priority.includes(option.value)}
@@ -246,17 +246,17 @@ export function IssueFilters({ filters, onFiltersChange }: IssueFiltersProps) {
                   {t('issues.assignee')}
                 </div>
                 <div className="space-y-1">
-                  <label className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer">
+                  <label className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-white/5 cursor-pointer">
                     <Checkbox
                       checked={filters.assigneeId.includes('unassigned')}
                       onCheckedChange={() => toggleAssignee('unassigned')}
                     />
-                    <span className="text-sm text-muted-foreground">{t('issues.unassigned')}</span>
+                    <span className="text-sm text-slate-400">{t('issues.unassigned')}</span>
                   </label>
                   {members.map((member) => (
                     <label
                       key={member.user_id}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer"
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-white/5 cursor-pointer"
                     >
                       <Checkbox
                         checked={filters.assigneeId.includes(member.user_id)}
@@ -282,17 +282,17 @@ export function IssueFilters({ filters, onFiltersChange }: IssueFiltersProps) {
                   {t('issues.project')}
                 </div>
                 <div className="space-y-1">
-                  <label className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer">
+                  <label className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-white/5 cursor-pointer">
                     <Checkbox
                       checked={filters.projectId.includes('no-project')}
                       onCheckedChange={() => toggleProject('no-project')}
                     />
-                    <span className="text-sm text-muted-foreground">{t('issues.noProject')}</span>
+                    <span className="text-sm text-slate-400">{t('issues.noProject')}</span>
                   </label>
                   {projects.map((project) => (
                     <label
                       key={project.id}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer"
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-white/5 cursor-pointer"
                     >
                       <Checkbox
                         checked={filters.projectId.includes(project.id)}

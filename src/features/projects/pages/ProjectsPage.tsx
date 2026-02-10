@@ -87,7 +87,7 @@ export function ProjectsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
           <div>
             <h1 className="text-xl sm:text-2xl font-semibold">{t('projects.title')}</h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-slate-400 mt-1">
               {t('projects.createFirstProject')}
             </p>
           </div>
@@ -100,7 +100,7 @@ export function ProjectsPage() {
 
         {/* Search */}
         <div className="relative mb-4 sm:mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
             placeholder={t('issues.searchPlaceholder')}
             value={searchQuery}
@@ -113,16 +113,16 @@ export function ProjectsPage() {
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-40 bg-muted rounded-lg animate-pulse" />
+              <div key={i} className="h-40 bg-[#121215] rounded-lg animate-pulse" />
             ))}
           </div>
         ) : filteredProjects.length === 0 ? (
           <div className="text-center py-16">
-            <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <FolderOpen className="h-12 w-12 mx-auto text-slate-400 mb-4" />
             <h3 className="text-lg font-medium mb-2">
               {searchQuery ? t('common.noData') : t('projects.noProjects')}
             </h3>
-            <p className="text-muted-foreground mb-4">
+            <p className="text-slate-400 mb-4">
               {searchQuery 
                 ? t('common.noData')
                 : t('projects.createFirstProject')}

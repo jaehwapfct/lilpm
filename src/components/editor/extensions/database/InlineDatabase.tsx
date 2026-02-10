@@ -99,11 +99,11 @@ const EditableCell: React.FC<{
                                 {selected.name}
                             </span>
                         ) : (
-                            <span className="text-muted-foreground text-xs">Select...</span>
+                            <span className="text-slate-400 text-xs">Select...</span>
                         )}
                     </button>
                     {showOptions && (
-                        <div className="absolute top-full left-0 mt-1 w-32 bg-popover border rounded shadow-lg z-20 p-1">
+                        <div className="absolute top-full left-0 mt-1 w-32 bg-[#1a1a1f] border rounded shadow-lg z-20 p-1">
                             {column.options?.map((opt) => (
                                 <button
                                     key={opt.id}
@@ -111,7 +111,7 @@ const EditableCell: React.FC<{
                                         onChange(opt.id);
                                         setShowOptions(false);
                                     }}
-                                    className="w-full px-2 py-1 text-left hover:bg-accent rounded text-xs flex items-center gap-2"
+                                    className="w-full px-2 py-1 text-left hover:bg-white/5 rounded text-xs flex items-center gap-2"
                                 >
                                     <span
                                         className="w-2 h-2 rounded-full"
@@ -163,7 +163,7 @@ const EditableCell: React.FC<{
                     onClick={() => setIsEditing(true)}
                     className="truncate text-xs text-primary underline cursor-pointer"
                 >
-                    {value || <span className="text-muted-foreground no-underline">Add URL</span>}
+                    {value || <span className="text-slate-400 no-underline">Add URL</span>}
                 </div>
             );
 
@@ -182,7 +182,7 @@ const EditableCell: React.FC<{
                     onClick={() => setIsEditing(true)}
                     className="truncate text-xs cursor-text min-h-[20px]"
                 >
-                    {value || <span className="text-muted-foreground">Empty</span>}
+                    {value || <span className="text-slate-400">Empty</span>}
                 </div>
             );
     }
@@ -262,10 +262,10 @@ const InlineDatabaseComponent: React.FC<NodeViewProps> = ({
 
     return (
         <NodeViewWrapper>
-            <div className={`my-4 rounded-lg border ${selected ? 'ring-2 ring-primary' : ''} bg-card overflow-hidden`}>
+            <div className={`my-4 rounded-lg border ${selected ? 'ring-2 ring-primary' : ''} bg-[#1a1a1f] overflow-hidden`}>
                 {/* Header */}
-                <div className="flex items-center gap-2 px-4 py-3 border-b bg-muted/30">
-                    <Database className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-2 px-4 py-3 border-b bg-white/5">
+                    <Database className="h-4 w-4 text-slate-400" />
                     {isEditingTitle ? (
                         <input
                             type="text"
@@ -277,7 +277,7 @@ const InlineDatabaseComponent: React.FC<NodeViewProps> = ({
                         />
                     ) : (
                         <h3
-                            className="font-medium cursor-pointer hover:bg-accent px-1 rounded"
+                            className="font-medium cursor-pointer hover:bg-white/5 px-1 rounded"
                             onClick={() => setIsEditingTitle(true)}
                         >
                             {title || 'Untitled Database'}
@@ -289,12 +289,12 @@ const InlineDatabaseComponent: React.FC<NodeViewProps> = ({
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="border-b bg-muted/20">
+                            <tr className="border-b bg-white/[3%]">
                                 <th className="w-8"></th>
                                 {columns.map((col) => (
                                     <th
                                         key={col.id}
-                                        className="px-3 py-2 text-left font-medium text-muted-foreground text-xs"
+                                        className="px-3 py-2 text-left font-medium text-slate-400 text-xs"
                                         style={{ width: col.width }}
                                     >
                                         <div className="flex items-center gap-1">
@@ -307,17 +307,17 @@ const InlineDatabaseComponent: React.FC<NodeViewProps> = ({
                                     <div className="relative">
                                         <button
                                             onClick={() => setShowAddColumn(!showAddColumn)}
-                                            className="p-1 hover:bg-accent rounded"
+                                            className="p-1 hover:bg-white/5 rounded"
                                         >
-                                            <Plus className="h-4 w-4 text-muted-foreground" />
+                                            <Plus className="h-4 w-4 text-slate-400" />
                                         </button>
                                         {showAddColumn && (
-                                            <div className="absolute right-0 top-full mt-1 w-40 bg-popover border rounded shadow-lg z-20 p-1">
+                                            <div className="absolute right-0 top-full mt-1 w-40 bg-[#1a1a1f] border rounded shadow-lg z-20 p-1">
                                                 {Object.entries(columnTypeIcons).map(([type, icon]) => (
                                                     <button
                                                         key={type}
                                                         onClick={() => addColumn(type as InlineColumn['type'])}
-                                                        className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-accent rounded"
+                                                        className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-white/5 rounded"
                                                     >
                                                         {icon}
                                                         <span className="capitalize">{type}</span>
@@ -331,11 +331,11 @@ const InlineDatabaseComponent: React.FC<NodeViewProps> = ({
                         </thead>
                         <tbody>
                             {rows.map((row) => (
-                                <tr key={row.id} className="border-b hover:bg-muted/30 group">
+                                <tr key={row.id} className="border-b hover:bg-white/5 group">
                                     <td className="px-2">
                                         <div className="flex items-center opacity-0 group-hover:opacity-100">
-                                            <button className="p-0.5 hover:bg-accent rounded cursor-grab">
-                                                <GripVertical className="h-3 w-3 text-muted-foreground" />
+                                            <button className="p-0.5 hover:bg-white/5 rounded cursor-grab">
+                                                <GripVertical className="h-3 w-3 text-slate-400" />
                                             </button>
                                         </div>
                                     </td>
@@ -365,7 +365,7 @@ const InlineDatabaseComponent: React.FC<NodeViewProps> = ({
                 {/* Add Row */}
                 <button
                     onClick={addRow}
-                    className="w-full py-2 text-xs text-muted-foreground hover:bg-muted/50 flex items-center justify-center gap-1"
+                    className="w-full py-2 text-xs text-slate-400 hover:bg-white/5 flex items-center justify-center gap-1"
                 >
                     <Plus className="h-3 w-3" />
                     New row

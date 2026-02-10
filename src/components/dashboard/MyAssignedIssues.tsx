@@ -60,7 +60,7 @@ export function MyAssignedIssues({ issues, userId, isLoading }: MyAssignedIssues
           <CardTitle className="text-base">{t('dashboard.myTasks')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-8 text-slate-400">
             <p className="text-sm">{t('dashboard.noAssignedTasks')}</p>
           </div>
         </CardContent>
@@ -90,7 +90,7 @@ export function MyAssignedIssues({ issues, userId, isLoading }: MyAssignedIssues
                   <Badge variant="outline" className={cn("text-xs", getPriorityColor(issue.priority))}>
                     {t(`priority.${issue.priority}`)}
                   </Badge>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-slate-400">
                     {issue.identifier}
                   </span>
                 </div>

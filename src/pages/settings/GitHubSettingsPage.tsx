@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
   ArrowLeft,
   Github,
   Link2,
@@ -48,10 +48,10 @@ export function GitHubSettingsPage() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [showRepoDialog, setShowRepoDialog] = useState(false);
   const [repoUrl, setRepoUrl] = useState('');
-  
-  const { 
-    github, 
-    setGitHubIntegration, 
+
+  const {
+    github,
+    setGitHubIntegration,
     updateGitHubSettings,
     commits,
     pullRequests,
@@ -59,10 +59,10 @@ export function GitHubSettingsPage() {
 
   const handleConnect = async () => {
     setIsConnecting(true);
-    
+
     // Simulate OAuth flow
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    
+
     setGitHubIntegration({
       id: Math.random().toString(36).substring(2),
       team_id: 'current-team',
@@ -73,7 +73,7 @@ export function GitHubSettingsPage() {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
-    
+
     setIsConnecting(false);
     setShowRepoDialog(true);
   };
@@ -92,7 +92,7 @@ export function GitHubSettingsPage() {
     }
 
     const [, owner, repo] = match;
-    
+
     updateGitHubSettings({
       repository_url: repoUrl,
       repository_owner: owner,
@@ -122,7 +122,7 @@ export function GitHubSettingsPage() {
               <Github className="h-5 w-5 md:h-6 md:w-6" />
               GitHub 연동
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-slate-400">
               커밋과 PR을 이슈와 연결하여 개발 진행 상황을 추적합니다
             </p>
           </div>
@@ -148,7 +148,7 @@ export function GitHubSettingsPage() {
               <Alert className="mb-4">
                 <Link2 className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>연동 방법:</strong> 커밋 메시지에 <code className="bg-muted px-1 rounded">LPM-123</code> 형식으로 
+                  <strong>연동 방법:</strong> 커밋 메시지에 <code className="bg-[#121215] px-1 rounded">LPM-123</code> 형식으로
                   이슈 ID를 포함하면 자동으로 해당 이슈와 연결됩니다.
                 </AlertDescription>
               </Alert>
@@ -182,17 +182,17 @@ export function GitHubSettingsPage() {
               </CardHeader>
               <CardContent>
                 {github.repository_name ? (
-                  <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+                  <div className="flex items-center gap-3 p-4 bg-[#121215] rounded-lg">
                     <Github className="h-8 w-8" />
                     <div className="flex-1">
                       <p className="font-medium">{github.repository_owner}/{github.repository_name}</p>
-                      <p className="text-sm text-muted-foreground">{github.repository_url}</p>
+                      <p className="text-sm text-slate-400">{github.repository_url}</p>
                     </div>
-                    <a 
-                      href={github.repository_url} 
-                      target="_blank" 
+                    <a
+                      href={github.repository_url}
+                      target="_blank"
                       rel="noopener noreferrer"
-                      className="text-muted-foreground hover:text-foreground"
+                      className="text-slate-400 hover:text-white"
                     >
                       <ExternalLink className="h-4 w-4" />
                     </a>
@@ -221,7 +221,7 @@ export function GitHubSettingsPage() {
                       <GitCommit className="h-4 w-4" />
                       커밋 자동 연결
                     </Label>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-400">
                       커밋 메시지에 이슈 ID가 있으면 자동으로 연결합니다
                     </p>
                   </div>
@@ -239,7 +239,7 @@ export function GitHubSettingsPage() {
                       <GitPullRequest className="h-4 w-4" />
                       PR 자동 연결
                     </Label>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-400">
                       PR 제목이나 브랜치명에 이슈 ID가 있으면 자동으로 연결합니다
                     </p>
                   </div>
@@ -257,7 +257,7 @@ export function GitHubSettingsPage() {
                       <GitBranch className="h-4 w-4" />
                       PR 병합 시 자동 완료
                     </Label>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-400">
                       연결된 PR이 병합되면 이슈를 자동으로 완료 상태로 변경합니다
                     </p>
                   </div>
@@ -279,37 +279,36 @@ export function GitHubSettingsPage() {
               </CardHeader>
               <CardContent>
                 {commits.length === 0 && pullRequests.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="text-center py-8 text-slate-400">
                     <GitCommit className="h-12 w-12 mx-auto mb-3 opacity-50" />
                     <p>아직 연결된 활동이 없습니다</p>
                     <p className="text-sm mt-1">
-                      커밋 메시지에 <code className="bg-muted px-1 rounded">LPM-123</code>를 포함하세요
+                      커밋 메시지에 <code className="bg-[#121215] px-1 rounded">LPM-123</code>를 포함하세요
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {/* Sample data display */}
                     {commits.slice(0, 5).map((commit) => (
-                      <div key={commit.id} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                        <GitCommit className="h-4 w-4 text-muted-foreground" />
+                      <div key={commit.id} className="flex items-center gap-3 p-3 bg-[#121215] rounded-xl">
+                        <GitCommit className="h-4 w-4 text-slate-400" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm truncate">{commit.commit_message}</p>
-                          <p className="text-xs text-muted-foreground">{commit.author_name}</p>
+                          <p className="text-xs text-slate-400">{commit.author_name}</p>
                         </div>
-                        <code className="text-xs bg-muted px-2 py-1 rounded">
+                        <code className="text-xs bg-[#121215] px-2 py-1 rounded">
                           {commit.commit_sha.substring(0, 7)}
                         </code>
                       </div>
                     ))}
                     {pullRequests.slice(0, 5).map((pr) => (
-                      <div key={pr.id} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                        <GitPullRequest className={`h-4 w-4 ${
-                          pr.pr_state === 'merged' ? 'text-purple-500' : 
-                          pr.pr_state === 'open' ? 'text-green-500' : 'text-red-500'
-                        }`} />
+                      <div key={pr.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
+                        <GitPullRequest className={`h-4 w-4 ${pr.pr_state === 'merged' ? 'text-purple-500' :
+                            pr.pr_state === 'open' ? 'text-green-500' : 'text-red-500'
+                          }`} />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm truncate">{pr.pr_title}</p>
-                          <p className="text-xs text-muted-foreground">#{pr.pr_number} by {pr.author_name}</p>
+                          <p className="text-xs text-slate-400">#{pr.pr_number} by {pr.author_name}</p>
                         </div>
                         <Badge variant={pr.pr_state === 'merged' ? 'default' : 'outline'}>
                           {pr.pr_state}

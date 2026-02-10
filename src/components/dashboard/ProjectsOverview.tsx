@@ -30,7 +30,7 @@ export function ProjectsOverview({ projects, issues, isLoading }: ProjectsOvervi
       case 'in_progress': return 'bg-blue-500';
       case 'completed': return 'bg-green-500';
       case 'paused': return 'bg-yellow-500';
-      default: return 'bg-muted';
+      default: return 'bg-[#121215]';
     }
   };
 
@@ -43,7 +43,7 @@ export function ProjectsOverview({ projects, issues, isLoading }: ProjectsOvervi
         <CardContent>
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />
+              <div key={i} className="h-20 bg-[#121215] animate-pulse rounded-lg" />
             ))}
           </div>
         </CardContent>
@@ -60,7 +60,7 @@ export function ProjectsOverview({ projects, issues, isLoading }: ProjectsOvervi
           <CardTitle className="text-base">{t('dashboard.projectsOverview')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-8 text-slate-400">
             <Folder className="h-10 w-10 mx-auto mb-3 opacity-50" />
             <p className="text-sm">{t('projects.noProjects')}</p>
             <Button 
@@ -109,7 +109,7 @@ export function ProjectsOverview({ projects, issues, isLoading }: ProjectsOvervi
                 </div>
                 <Progress value={stats.progress} className="h-1.5" />
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-slate-400">
                     {stats.progress}% {t('dashboard.completed').toLowerCase()}
                   </span>
                   <div className={`h-2 w-2 rounded-full ${getStatusColor(project.status)}`} />

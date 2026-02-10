@@ -7,25 +7,25 @@ import { useIssueStore } from '@/stores';
 import { useAuthStore } from '@/stores/authStore';
 import { cycleService } from '@/lib/services/cycleService';
 import { activityService } from '@/lib/services';
-import { 
-  ActivityFeed, 
+import {
+  ActivityFeed,
   AIHeroCard,
-  CycleProgressCard, 
-  IssueStatsChart, 
+  CycleProgressCard,
+  IssueStatsChart,
   MyAssignedIssues,
   ProjectsOverview,
   QuickActionsCard,
   TeamOverviewCard,
   UpcomingDueIssues,
-  WeeklyActivityChart 
+  WeeklyActivityChart
 } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusIcon, allStatuses } from '@/components/issues';
-import { 
-  Inbox, 
-  CheckCircle2, 
-  Clock, 
+import {
+  Inbox,
+  CheckCircle2,
+  Clock,
   AlertTriangle,
   Users,
   FolderKanban,
@@ -68,11 +68,11 @@ export function DashboardPage() {
       }
 
       if (issues.length > 0) {
-        const activitiesPromises = issues.slice(0, 10).map(issue => 
+        const activitiesPromises = issues.slice(0, 10).map(issue =>
           activityService.getActivities(issue.id)
         );
         const allActivitiesData = await Promise.all(activitiesPromises);
-        const flatActivities = allActivitiesData.flat().sort((a, b) => 
+        const flatActivities = allActivitiesData.flat().sort((a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
         setAllActivities(flatActivities);
@@ -99,7 +99,7 @@ export function DashboardPage() {
   // Calculate weekly completion
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-  const completedThisWeek = issues.filter(i => 
+  const completedThisWeek = issues.filter(i =>
     i.status === 'done' && new Date(i.updatedAt) > oneWeekAgo
   ).length;
 
@@ -116,9 +116,9 @@ export function DashboardPage() {
       <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* AI Hero Card - Main focus */}
         <AIHeroCard userName={user?.name} />
-        
+
         {/* Team Overview - Smaller */}
-        <TeamOverviewCard 
+        <TeamOverviewCard
           teamName={currentTeam?.name || ''}
           user={user}
           totalIssues={totalIssues}
@@ -131,11 +131,11 @@ export function DashboardPage() {
           <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate('/issues')}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
               <CardTitle className="text-xs sm:text-sm font-medium">{t('dashboard.totalIssues')}</CardTitle>
-              <Inbox className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+              <Inbox className="h-3 w-3 sm:h-4 sm:w-4 text-slate-400" />
             </CardHeader>
             <CardContent className="pt-0">
               <div className="text-xl sm:text-2xl font-bold">{totalIssues}</div>
-              <p className="text-xs text-muted-foreground hidden sm:block">
+              <p className="text-xs text-slate-400 hidden sm:block">
                 {todoIssues + inProgressIssues} {t('dashboard.activeIssues')}
               </p>
             </CardContent>
@@ -148,7 +148,7 @@ export function DashboardPage() {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="text-xl sm:text-2xl font-bold">{inProgressIssues}</div>
-              <p className="text-xs text-muted-foreground hidden sm:block">
+              <p className="text-xs text-slate-400 hidden sm:block">
                 {t('dashboard.currentlyWorking')}
               </p>
             </CardContent>
@@ -161,7 +161,7 @@ export function DashboardPage() {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="text-xl sm:text-2xl font-bold">{doneIssues}</div>
-              <p className="text-xs text-muted-foreground hidden sm:block">
+              <p className="text-xs text-slate-400 hidden sm:block">
                 {t('dashboard.completedIssues')}
               </p>
             </CardContent>
@@ -174,7 +174,7 @@ export function DashboardPage() {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="text-xl sm:text-2xl font-bold">{urgentIssues}</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-slate-400">
                 {t('dashboard.needsAttention')}
               </p>
             </CardContent>
@@ -187,7 +187,7 @@ export function DashboardPage() {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="text-xl sm:text-2xl font-bold">{completionRate}%</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-slate-400">
                 {t('dashboard.overallProgress')}
               </p>
             </CardContent>
@@ -205,13 +205,13 @@ export function DashboardPage() {
             </div>
 
             {/* Weekly Activity Chart */}
-            <WeeklyActivityChart 
+            <WeeklyActivityChart
               activities={allActivities}
               isLoading={isLoadingExtra}
             />
 
             {/* Upcoming Due Issues */}
-            <UpcomingDueIssues 
+            <UpcomingDueIssues
               issues={issues}
               isLoading={isLoadingExtra}
             />
@@ -231,7 +231,7 @@ export function DashboardPage() {
                       <StatusIcon status={status} />
                       <span className="flex-1 text-sm">{t(`status.${status}`)}</span>
                       <span className="text-sm font-medium">{count}</span>
-                      <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="w-32 h-2 bg-white/10 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-primary transition-all"
                           style={{
@@ -252,28 +252,28 @@ export function DashboardPage() {
             <QuickActionsCard />
 
             {/* My Assigned Issues */}
-            <MyAssignedIssues 
+            <MyAssignedIssues
               issues={issues}
               userId={user?.id}
               isLoading={isLoadingExtra}
             />
 
             {/* Active Sprint */}
-            <CycleProgressCard 
-              cycle={activeCycle} 
+            <CycleProgressCard
+              cycle={activeCycle}
               issues={cycleIssues}
               isLoading={isLoadingExtra}
             />
 
             {/* Projects Overview */}
-            <ProjectsOverview 
+            <ProjectsOverview
               projects={projects}
               issues={issues}
               isLoading={isLoadingExtra}
             />
 
             {/* Recent Activity */}
-            <ActivityFeed 
+            <ActivityFeed
               activities={recentActivities}
               isLoading={isLoadingExtra}
             />
@@ -283,7 +283,7 @@ export function DashboardPage() {
               <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate('/team/members')}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{t('dashboard.teamMembers')}</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <Users className="h-4 w-4 text-slate-400" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{members.length}</div>
@@ -293,7 +293,7 @@ export function DashboardPage() {
               <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate('/projects')}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{t('dashboard.projects')}</CardTitle>
-                  <FolderKanban className="h-4 w-4 text-muted-foreground" />
+                  <FolderKanban className="h-4 w-4 text-slate-400" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{projects.length}</div>

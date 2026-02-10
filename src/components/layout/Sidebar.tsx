@@ -331,7 +331,7 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 hover:bg-white/5 rounded-md px-2 py-1.5 w-full">
+            <button className="flex items-center gap-2 hover:bg-white/5 rounded-xl px-2 py-1.5 w-full">
               <div
                 className="h-6 w-6 rounded flex items-center justify-center text-xs font-semibold bg-violet-500 text-white"
               >
@@ -392,7 +392,7 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
       <div className="px-3 py-2">
         <button
           onClick={() => setSearchOpen(true)}
-          className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-slate-400 hover:text-white hover:bg-white/5 rounded-md transition-colors"
+          className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
         >
           <Search className="h-4 w-4" />
           <span className="flex-1 text-left">{t('common.search')}...</span>
@@ -420,7 +420,7 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
             <button
               onClick={() => setShowLilySidebar(true)}
               className={cn(
-                "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors group w-full",
+                "flex items-center gap-2 px-2 py-1.5 rounded-xl text-sm transition-colors group w-full",
                 "bg-gradient-to-r from-violet-500/10 to-purple-500/10 hover:from-violet-500/20 hover:to-purple-500/20",
                 "from-violet-500/20 to-purple-500/20"
               )}
@@ -434,13 +434,13 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
               to="/lily"
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors group",
+                "flex items-center gap-2 px-2 py-1.5 rounded-xl text-sm transition-colors group",
                 "bg-gradient-to-r from-violet-500/10 to-purple-500/10 hover:from-violet-500/20 hover:to-purple-500/20"
               )}
             >
               <Sparkles className="h-4 w-4 text-violet-500" />
               <span className="flex-1 truncate font-medium">{t('lily.title')}</span>
-              <span className="hidden group-hover:inline-flex text-xs text-muted-foreground kbd">L</span>
+              <span className="hidden group-hover:inline-flex text-xs text-slate-400 kbd">L</span>
             </Link>
           )}
         </div>
@@ -448,7 +448,7 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
         {/* Projects Section - Moved up */}
         <Collapsible open={projectsOpen} onOpenChange={setProjectsOpen}>
           <div className="flex items-center gap-1">
-            <CollapsibleTrigger className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground">
+            <CollapsibleTrigger className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-white">
               {projectsOpen ? (
                 <ChevronDown className="h-3 w-3" />
               ) : (
@@ -467,7 +467,7 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
           </div>
           <CollapsibleContent className="space-y-0.5 mt-1">
             {!isTeamLoading && projects.length === 0 ? (
-              <p className="px-2 py-1 text-xs text-muted-foreground">
+              <p className="px-2 py-1 text-xs text-slate-400">
                 No projects yet
               </p>
             ) : (
@@ -477,12 +477,12 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
                   to={`/project/${project.id}`}
                   onClick={onNavigate}
                   className={cn(
-                    "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
-                    "hover:bg-accent",
-                    location.pathname === `/project/${project.id}` && "bg-accent"
+                    "flex items-center gap-2 px-2 py-1.5 rounded-xl text-sm transition-colors",
+                    "hover:bg-white/5",
+                    location.pathname === `/project/${project.id}` && "bg-white/5"
                   )}
                 >
-                  <Folder className="h-4 w-4 text-muted-foreground" />
+                  <Folder className="h-4 w-4 text-slate-400" />
                   <span className="flex-1 truncate">{project.name}</span>
                   {/* Show presence avatars for users on this project page */}
                   {getPresenceForPath(`/project/${project.id}`).length > 0 && (
@@ -510,7 +510,7 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
               <Link
                 to="/projects"
                 onClick={onNavigate}
-                className="flex items-center gap-2 px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+                className="flex items-center gap-2 px-2 py-1 text-xs text-slate-400 hover:text-white"
               >
                 +{projects.length - 8} more
               </Link>
@@ -571,7 +571,7 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
           </DialogHeader>
           <div className="p-4 pt-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder={`${t('common.search')}...`}
                 value={searchQuery}
@@ -581,11 +581,11 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
               />
             </div>
             <div className="mt-4 space-y-2">
-              <div className="text-xs font-medium text-muted-foreground uppercase">Quick Actions</div>
+              <div className="text-xs font-medium text-slate-400 uppercase">Quick Actions</div>
               <div className="space-y-1">
                 <button
                   onClick={() => { navigate('/issues'); setSearchOpen(false); }}
-                  className="flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent rounded-md"
+                  className="flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-white/5 rounded-xl"
                 >
                   <Layers className="h-4 w-4" />
                   {t('nav.allIssues')}
@@ -593,7 +593,7 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
                 </button>
                 <button
                   onClick={() => { navigate('/lily'); setSearchOpen(false); }}
-                  className="flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent rounded-md"
+                  className="flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-white/5 rounded-xl"
                 >
                   <Sparkles className="h-4 w-4 text-violet-500" />
                   {t('lily.title')}
@@ -601,7 +601,7 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
                 </button>
                 <button
                   onClick={() => { navigate('/projects'); setSearchOpen(false); }}
-                  className="flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent rounded-md"
+                  className="flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-white/5 rounded-xl"
                 >
                   <Folder className="h-4 w-4" />
                   {t('nav.projects')}
@@ -609,13 +609,13 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
               </div>
               {filteredProjects.length > 0 && searchQuery && (
                 <>
-                  <div className="text-xs font-medium text-muted-foreground uppercase mt-4">{t('nav.projects')}</div>
+                  <div className="text-xs font-medium text-slate-400 uppercase mt-4">{t('nav.projects')}</div>
                   <div className="space-y-1">
                     {filteredProjects.slice(0, 5).map((project) => (
                       <button
                         key={project.id}
                         onClick={() => { navigate(`/project/${project.id}`); setSearchOpen(false); }}
-                        className="flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent rounded-md"
+                        className="flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-white/5 rounded-xl"
                       >
                         <span>{PROJECT_ICONS[project.icon || 'folder'] || '📁'}</span>
                         {project.name}

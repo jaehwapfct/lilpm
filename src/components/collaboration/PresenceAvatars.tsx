@@ -53,7 +53,7 @@ export function PresenceAvatars({ className, maxVisible = 5 }: PresenceAvatarsPr
           <TooltipContent>
             <p className="font-medium">{user.name}</p>
             {user.focusedIssueId && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-slate-400">
                 보고 있는 이슈: {user.focusedIssueId}
               </p>
             )}
@@ -64,7 +64,7 @@ export function PresenceAvatars({ className, maxVisible = 5 }: PresenceAvatarsPr
       {remainingCount > 0 && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="h-7 w-7 rounded-full bg-muted border-2 border-background flex items-center justify-center">
+            <div className="h-7 w-7 rounded-full bg-[#121215] border-2 border-background flex items-center justify-center">
               <span className="text-xs font-medium">+{remainingCount}</span>
             </div>
           </TooltipTrigger>

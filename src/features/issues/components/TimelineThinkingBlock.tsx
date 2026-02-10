@@ -32,7 +32,7 @@ export function TimelineThinkingBlock({ content, isExpanded = false }: TimelineT
                     Thinking...
                 </button>
                 {expanded && (
-                    <div className="text-xs text-muted-foreground bg-amber-500/5 border border-amber-500/20 rounded-lg p-2 mt-1">
+                    <div className="text-xs text-slate-400 bg-amber-500/5 border border-amber-500/20 rounded-lg p-2 mt-1">
                         {content}
                     </div>
                 )}

@@ -47,11 +47,11 @@ export function NotificationsPage() {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'ko' ? ko : enUS;
   const { user } = useAuthStore();
-  const { 
-    notifications, 
-    unreadCount, 
-    loadNotifications, 
-    markAsRead, 
+  const {
+    notifications,
+    unreadCount,
+    loadNotifications,
+    markAsRead,
     markAllAsRead,
     deleteNotification,
     clearAll,
@@ -66,7 +66,7 @@ export function NotificationsPage() {
     }
   }, [user?.id, loadNotifications]);
 
-  const filteredNotifications = filter === 'unread' 
+  const filteredNotifications = filter === 'unread'
     ? notifications.filter(n => !n.read)
     : notifications;
 
@@ -144,8 +144,8 @@ export function NotificationsPage() {
               <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
               {t('notifications.title')}
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {unreadCount > 0 
+            <p className="text-sm text-slate-400 mt-1">
+              {unreadCount > 0
                 ? t('notifications.unreadCount', { count: unreadCount })
                 : t('notifications.allRead')
               }
@@ -192,7 +192,7 @@ export function NotificationsPage() {
 
               {selectedIds.length > 0 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-sm text-slate-400">
                     {t('notifications.selected', { count: selectedIds.length })}
                   </span>
                   <Button size="sm" variant="outline" onClick={handleBulkMarkAsRead}>
@@ -213,14 +213,14 @@ export function NotificationsPage() {
         {filteredNotifications.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16">
-              <Bell className="h-12 w-12 text-muted-foreground/50 mb-4" />
+              <Bell className="h-12 w-12 text-slate-400/50 mb-4" />
               <h3 className="text-lg font-medium mb-2">
-                {filter === 'unread' 
+                {filter === 'unread'
                   ? t('notifications.noUnread')
                   : t('notifications.empty')
                 }
               </h3>
-              <p className="text-sm text-muted-foreground text-center max-w-md">
+              <p className="text-sm text-slate-400 text-center max-w-md">
                 {t('notifications.emptyDescription')}
               </p>
             </CardContent>
@@ -233,7 +233,7 @@ export function NotificationsPage() {
                 checked={selectedIds.length === filteredNotifications.length && filteredNotifications.length > 0}
                 onCheckedChange={handleSelectAll}
               />
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-slate-400">
                 {t('notifications.selectAll')}
               </span>
             </div>
@@ -241,20 +241,20 @@ export function NotificationsPage() {
             {/* Grouped by Date */}
             {Object.entries(groupedNotifications).map(([date, dateNotifications]) => (
               <div key={date}>
-                <h3 className="text-sm font-medium text-muted-foreground mb-3 px-1">
+                <h3 className="text-sm font-medium text-slate-400 mb-3 px-1">
                   {getDateLabel(date)}
                 </h3>
                 <Card>
                   <CardContent className="p-0 divide-y">
                     {dateNotifications.map((notification) => {
                       const Icon = NOTIFICATION_ICONS[notification.type] || Bell;
-                      const colorClass = NOTIFICATION_COLORS[notification.type] || 'bg-muted text-muted-foreground';
-                      
+                      const colorClass = NOTIFICATION_COLORS[notification.type] || 'bg-[#1a1a1f] text-slate-400';
+
                       return (
                         <div
                           key={notification.id}
                           className={cn(
-                            "flex items-start gap-2 sm:gap-4 p-3 sm:p-4 hover:bg-muted/50 transition-colors cursor-pointer",
+                            "flex items-start gap-2 sm:gap-4 p-3 sm:p-4 hover:bg-white/5 transition-colors cursor-pointer",
                             !notification.read && "bg-primary/5"
                           )}
                           onClick={() => handleNotificationClick(notification)}
@@ -271,14 +271,14 @@ export function NotificationsPage() {
                             onClick={(e) => e.stopPropagation()}
                             className="mt-1"
                           />
-                          
+
                           <div className={cn(
                             "h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center flex-shrink-0",
                             colorClass
                           )}>
                             <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                           </div>
-                          
+
                           <div className="flex-1 min-w-0">
                             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-4">
                               <div className="flex-1 min-w-0">
@@ -288,15 +288,15 @@ export function NotificationsPage() {
                                 )}>
                                   {notification.title}
                                 </p>
-                                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 line-clamp-1">
+                                <p className="text-xs sm:text-sm text-slate-400 mt-0.5 line-clamp-1">
                                   {notification.body}
                                 </p>
                               </div>
                               <div className="flex items-center gap-2 flex-shrink-0">
-                                <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                  {formatDistanceToNow(new Date(notification.created_at), { 
-                                    addSuffix: true, 
-                                    locale 
+                                <span className="text-xs text-slate-400 whitespace-nowrap">
+                                  {formatDistanceToNow(new Date(notification.created_at), {
+                                    addSuffix: true,
+                                    locale
                                   })}
                                 </span>
                                 {!notification.read && (
@@ -304,7 +304,7 @@ export function NotificationsPage() {
                                 )}
                               </div>
                             </div>
-                            
+
                             {notification.data?.issue_identifier && (
                               <Badge variant="outline" className="mt-2 text-xs">
                                 {notification.data.issue_identifier as string}

@@ -157,7 +157,7 @@ export function MentionInput({
       {showSuggestions && filteredMembers.length > 0 && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 mt-1 w-64 bg-popover border border-border rounded-md shadow-lg"
+          className="absolute z-50 mt-1 w-64 bg-[#1a1a1f] border border-white/10 rounded-xl shadow-lg"
         >
           <ScrollArea className="max-h-48">
             <div className="p-1">
@@ -167,7 +167,7 @@ export function MentionInput({
                   type="button"
                   className={cn(
                     "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm text-left",
-                    index === suggestionIndex ? "bg-accent" : "hover:bg-accent/50"
+                    index === suggestionIndex ? "bg-white/5" : "hover:bg-white/5/50"
                   )}
                   onClick={() => selectMember(member)}
                   onMouseEnter={() => setSuggestionIndex(index)}
@@ -180,7 +180,7 @@ export function MentionInput({
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{member.name || t('common.user')}</p>
-                    <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                    <p className="text-xs text-slate-400 truncate">{member.email}</p>
                   </div>
                 </button>
               ))}

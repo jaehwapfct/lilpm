@@ -8,7 +8,7 @@ export function ExpiredLinkPage() {
     const { t } = useTranslation();
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="min-h-screen flex items-center justify-center bg-[#0d0d0f] px-4">
             <div className="w-full max-w-sm space-y-8 text-center">
                 {/* Icon */}
                 <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-amber-500/10 mb-4">
@@ -18,7 +18,7 @@ export function ExpiredLinkPage() {
                 {/* Title & Description */}
                 <div className="space-y-2">
                     <h1 className="text-2xl font-semibold">{t('auth.linkExpired', 'Link expired')}</h1>
-                    <p className="text-muted-foreground">
+                    <p className="text-slate-400">
                         {t('auth.linkExpiredDesc', 'This password reset link has expired. Reset links are valid for 30 minutes.')}
                     </p>
                 </div>
@@ -40,7 +40,7 @@ export function ExpiredLinkPage() {
                 </div>
 
                 {/* Help text */}
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-400">
                     {t('auth.linkExpiredHelp', 'If you continue having issues, please contact support.')}
                 </p>
             </div>

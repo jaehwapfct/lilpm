@@ -248,8 +248,8 @@ export function SlashCommandsMenu({ editor, isOpen, onClose }: SlashCommandsMenu
     if (!isOpen) return null;
 
     return (
-        <div className="bg-popover border rounded-lg shadow-lg p-1 w-64">
-            <div className="px-2 py-1 text-xs text-muted-foreground font-medium">
+        <div className="bg-[#1a1a1f] border rounded-lg shadow-lg p-1 w-64">
+            <div className="px-2 py-1 text-xs text-slate-400 font-medium">
                 Basic blocks
             </div>
             {commands.map((cmd, i) => (
@@ -259,14 +259,14 @@ export function SlashCommandsMenu({ editor, isOpen, onClose }: SlashCommandsMenu
                         cmd.action();
                         onClose();
                     }}
-                    className="flex items-center gap-3 w-full px-2 py-1.5 rounded hover:bg-accent text-left"
+                    className="flex items-center gap-3 w-full px-2 py-1.5 rounded hover:bg-white/5 text-left"
                 >
-                    <div className="flex items-center justify-center w-8 h-8 rounded bg-muted">
+                    <div className="flex items-center justify-center w-8 h-8 rounded bg-[#121215]">
                         {cmd.icon}
                     </div>
                     <div>
                         <div className="text-sm font-medium">{cmd.label}</div>
-                        <div className="text-xs text-muted-foreground">{cmd.description}</div>
+                        <div className="text-xs text-slate-400">{cmd.description}</div>
                     </div>
                 </button>
             ))}

@@ -128,7 +128,7 @@ function StatusBadge({ status, size = 'sm' }: { status: string; size?: 'sm' | 'm
     };
     const sizeClass = size === 'md' ? 'text-xs px-2 py-1' : 'text-[10px] px-2 py-0.5';
     return (
-        <span className={`${sizeClass} rounded font-medium ${colors[status] || 'bg-muted text-muted-foreground'}`}>
+        <span className={`${sizeClass} rounded font-medium ${colors[status] || 'bg-[#121215] text-slate-400'}`}>
             {status}
         </span>
     );

@@ -50,12 +50,12 @@ const VideoComponent: React.FC<any> = ({ node, updateAttributes, selected }) => 
             >
                 {!src ? (
                     // URL Input
-                    <div className="p-8 bg-muted/50 text-center">
-                        <Play className="h-10 w-10 mx-auto mb-4 text-muted-foreground/50" />
+                    <div className="p-8 bg-white/5 text-center">
+                        <Play className="h-10 w-10 mx-auto mb-4 text-slate-400/50" />
                         <input
                             type="url"
                             placeholder="Paste YouTube or Vimeo URL..."
-                            className="w-full max-w-md mx-auto block px-4 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                            className="w-full max-w-md mx-auto block px-4 py-2 rounded-lg border bg-[#0d0d0f] text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                     const target = e.target as HTMLInputElement;
@@ -68,7 +68,7 @@ const VideoComponent: React.FC<any> = ({ node, updateAttributes, selected }) => 
                                 }
                             }}
                         />
-                        <p className="text-xs text-muted-foreground mt-2">
+                        <p className="text-xs text-slate-400 mt-2">
                             Supports YouTube and Vimeo videos
                         </p>
                     </div>
@@ -84,19 +84,19 @@ const VideoComponent: React.FC<any> = ({ node, updateAttributes, selected }) => 
                                 allowFullScreen
                             />
                         </div>
-                        <div className="p-2 bg-muted/30 flex items-center justify-between">
+                        <div className="p-2 bg-white/5 flex items-center justify-between">
                             <input
                                 type="text"
                                 value={caption}
                                 onChange={(e) => updateAttributes({ caption: e.target.value })}
                                 placeholder="Add a caption..."
-                                className="flex-1 bg-transparent text-xs text-muted-foreground focus:outline-none"
+                                className="flex-1 bg-transparent text-xs text-slate-400 focus:outline-none"
                             />
                             <a
                                 href={src}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-muted-foreground hover:text-foreground"
+                                className="text-slate-400 hover:text-white"
                             >
                                 <ExternalLink className="h-4 w-4" />
                             </a>

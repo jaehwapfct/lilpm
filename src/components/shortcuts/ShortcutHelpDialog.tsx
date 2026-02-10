@@ -75,7 +75,7 @@ export function ShortcutHelpDialog({ open, onOpenChange }: ShortcutHelpDialogPro
         <div className="space-y-6 py-4">
           {shortcutGroups.map((group) => (
             <div key={group.title}>
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">
+              <h3 className="text-sm font-medium text-slate-400 uppercase tracking-wide mb-3">
                 {getGroupTitle(group.title)}
               </h3>
               <div className="space-y-2">
@@ -85,7 +85,7 @@ export function ShortcutHelpDialog({ open, onOpenChange }: ShortcutHelpDialogPro
                     <div className="flex items-center gap-1">
                       {keys.split(' ').map((key, i) => (
                         <React.Fragment key={i}>
-                          {i > 0 && <span className="text-muted-foreground text-xs">then</span>}
+                          {i > 0 && <span className="text-slate-400 text-xs">then</span>}
                           <kbd className="kbd px-2 py-0.5 text-xs">{key}</kbd>
                         </React.Fragment>
                       ))}

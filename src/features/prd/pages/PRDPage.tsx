@@ -59,7 +59,7 @@ type ViewMode = 'grid' | 'list';
 type SortOption = 'updated' | 'created' | 'title' | 'status';
 
 const statusConfig: Record<PRDStatus, { label: string; color: string; icon: React.ReactNode }> = {
-  draft: { label: 'Draft', color: 'bg-muted text-muted-foreground', icon: <Pencil className="h-3 w-3" /> },
+  draft: { label: 'Draft', color: 'bg-[#121215] text-slate-400', icon: <Pencil className="h-3 w-3" /> },
   review: { label: 'In Review', color: 'bg-yellow-500/20 text-yellow-600', icon: <Eye className="h-3 w-3" /> },
   approved: { label: 'Approved', color: 'bg-green-500/20 text-green-600', icon: <Check className="h-3 w-3" /> },
   archived: { label: 'Archived', color: 'bg-gray-500/20 text-gray-600', icon: <Archive className="h-3 w-3" /> },
@@ -198,7 +198,7 @@ export function PRDPage() {
               <FileText className="h-5 w-5 sm:h-6 sm:w-6" />
               {t('prd.title', 'PRD Documents')}
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-slate-400 mt-1">
               {t('prd.description', 'Product Requirements Documents for your team')}
             </p>
           </div>
@@ -222,7 +222,7 @@ export function PRDPage() {
         {/* Toolbar: Search, Filters, View Toggle */}
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
               placeholder={t('prd.searchPlaceholder', 'Search PRDs...')}
               value={searchQuery}
@@ -276,7 +276,7 @@ export function PRDPage() {
             </Select>
 
             {/* View Toggle */}
-            <div className="flex border rounded-md">
+            <div className="flex border rounded-xl">
               <Button
                 variant={viewMode === 'list' ? 'secondary' : 'ghost'}
                 size="icon"
@@ -300,19 +300,19 @@ export function PRDPage() {
         {/* PRD List */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
           </div>
         ) : filteredPRDs.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+              <FileText className="h-12 w-12 text-slate-400 mb-4" />
               <h3 className="text-lg font-medium mb-1">
                 {searchQuery
                   ? t('prd.noResults', 'No PRDs found')
                   : t('prd.noPRDs', 'No PRD documents yet')
                 }
               </h3>
-              <p className="text-sm text-muted-foreground text-center max-w-sm mb-4">
+              <p className="text-sm text-slate-400 text-center max-w-sm mb-4">
                 {t('prd.emptyDescription', 'Create a PRD to define product requirements, or use AI to generate one from a conversation.')}
               </p>
               <div className="flex gap-2">
@@ -331,8 +331,8 @@ export function PRDPage() {
           /* List View */
           <div className="border rounded-lg overflow-hidden">
             <table className="w-full">
-              <thead className="bg-muted/50 border-b">
-                <tr className="text-left text-sm text-muted-foreground">
+              <thead className="bg-white/5 border-b">
+                <tr className="text-left text-sm text-slate-400">
                   <th className="px-4 py-3 font-medium">Title</th>
                   <th className="px-4 py-3 font-medium hidden sm:table-cell">Project</th>
                   <th className="px-4 py-3 font-medium">Status</th>
@@ -344,13 +344,13 @@ export function PRDPage() {
                 {filteredPRDs.map((prd) => (
                   <tr
                     key={prd.id}
-                    className="hover:bg-muted/30 cursor-pointer transition-colors"
+                    className="hover:bg-white/5 cursor-pointer transition-colors"
                     onClick={() => navigate(`/prd/${prd.id}`)}
                   >
                     <td className="px-4 py-3">
                       <div className="font-medium">{prd.title}</div>
                       {prd.overview && (
-                        <div className="text-sm text-muted-foreground line-clamp-1 mt-0.5">
+                        <div className="text-sm text-slate-400 line-clamp-1 mt-0.5">
                           {prd.overview}
                         </div>
                       )}
@@ -359,7 +359,7 @@ export function PRDPage() {
                       {prd.project ? (
                         <span className="text-sm">📁 {prd.project.name}</span>
                       ) : (
-                        <span className="text-sm text-muted-foreground">—</span>
+                        <span className="text-sm text-slate-400">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -371,7 +371,7 @@ export function PRDPage() {
                         {statusConfig[prd.status as PRDStatus]?.label}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground hidden md:table-cell">
+                    <td className="px-4 py-3 text-sm text-slate-400 hidden md:table-cell">
                       {format(new Date(prd.updated_at), 'MMM d, yyyy')}
                     </td>
                     <td className="px-4 py-3">
@@ -459,7 +459,7 @@ export function PRDPage() {
                   )}
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
                     <Badge
                       variant="secondary"
                       className={`${statusConfig[prd.status as PRDStatus]?.color} gap-1`}
@@ -473,7 +473,7 @@ export function PRDPage() {
                     </span>
                   </div>
                   {prd.project && (
-                    <div className="mt-2 text-xs text-muted-foreground">
+                    <div className="mt-2 text-xs text-slate-400">
                       📁 {prd.project.name}
                     </div>
                   )}

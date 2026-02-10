@@ -46,7 +46,7 @@ export function NotificationSettingsPage() {
               <Bell className="h-6 w-6" />
               {t('settings.notifications')}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-slate-400">
               {t('settings.notificationsDescription')}
             </p>
           </div>
@@ -63,10 +63,10 @@ export function NotificationSettingsPage() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Bell className="h-5 w-5 text-muted-foreground" />
+                <Bell className="h-5 w-5 text-slate-400" />
                 <div>
                   <Label>{t('settings.enableNotifications')}</Label>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-slate-400">
                     {t('settings.enableNotificationsDesc')}
                   </p>
                 </div>
@@ -79,10 +79,10 @@ export function NotificationSettingsPage() {
             <Separator />
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Volume2 className="h-5 w-5 text-muted-foreground" />
+                <Volume2 className="h-5 w-5 text-slate-400" />
                 <div>
                   <Label>{t('settings.enableSounds')}</Label>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-slate-400">
                     {t('settings.enableSoundsDesc')}
                   </p>
                 </div>
@@ -95,10 +95,10 @@ export function NotificationSettingsPage() {
             <Separator />
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Monitor className="h-5 w-5 text-muted-foreground" />
+                <Monitor className="h-5 w-5 text-slate-400" />
                 <div>
                   <Label>{t('settings.desktopNotifications')}</Label>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-slate-400">
                     {t('settings.desktopNotificationsDesc')}
                   </p>
                 </div>

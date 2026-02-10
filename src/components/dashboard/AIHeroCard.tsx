@@ -56,13 +56,13 @@ export function AIHeroCard({ userName }: AIHeroCardProps) {
                     </Badge>
                   )}
                 </h2>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-slate-400">
                   {t('lily.subtitle')}
                 </p>
               </div>
             </div>
 
-            <p className="text-muted-foreground">
+            <p className="text-slate-400">
               {t('lily.welcomeMessage')}
             </p>
 
@@ -83,7 +83,7 @@ export function AIHeroCard({ userName }: AIHeroCardProps) {
 
           {/* Right side - Quick suggestions */}
           <div className="lg:w-80 space-y-3">
-            <p className="text-sm font-medium text-muted-foreground">Quick start</p>
+            <p className="text-sm font-medium text-slate-400">Quick start</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2">
               {suggestions.map((suggestion, index) => {
                 const Icon = suggestion.icon;
@@ -95,7 +95,7 @@ export function AIHeroCard({ userName }: AIHeroCardProps) {
                   >
                     <Icon className="h-4 w-4 text-violet-500" />
                     <span className="text-sm flex-1">{suggestion.label}</span>
-                    <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <ArrowRight className="h-3 w-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
                 );
               })}
@@ -105,7 +105,7 @@ export function AIHeroCard({ userName }: AIHeroCardProps) {
 
         {/* AI Status */}
         {hasAIEnabled && autoMixEnabled && activeModels.length >= 2 && (
-          <div className="mt-4 pt-4 border-t border-border/50 flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="mt-4 pt-4 border-t border-white/10/50 flex items-center gap-2 text-sm text-slate-400">
             <Zap className="h-4 w-4 text-amber-500" />
             <span>Auto-mix enabled: Using {activeModels.map(m => m.name).join(', ')}</span>
           </div>

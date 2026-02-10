@@ -51,7 +51,7 @@ import type { Cycle, CycleStatus, Issue } from '@/types/database';
 const STATUS_CONFIG: Record<CycleStatus, { labelKey: string; color: string; icon: React.ReactNode }> = {
   upcoming: { labelKey: 'cycles.upcoming', color: 'bg-blue-500/10 text-blue-500', icon: <Clock className="h-4 w-4" /> },
   active: { labelKey: 'cycles.active', color: 'bg-green-500/10 text-green-500', icon: <Play className="h-4 w-4" /> },
-  completed: { labelKey: 'cycles.completed', color: 'bg-muted text-muted-foreground', icon: <CheckCircle2 className="h-4 w-4" /> },
+  completed: { labelKey: 'cycles.completed', color: 'bg-[#1a1a1f] text-slate-400', icon: <CheckCircle2 className="h-4 w-4" /> },
 };
 
 interface CycleWithStats extends Cycle {
@@ -67,7 +67,7 @@ export function CyclesPage() {
   const { currentTeam } = useTeamStore();
   const { language } = useLanguageStore();
   const dateLocale = language === 'ko' ? ko : enUS;
-  
+
   const [cycles, setCycles] = useState<CycleWithStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -88,7 +88,7 @@ export function CyclesPage() {
     setIsLoading(true);
     try {
       const cyclesData = await cycleService.getCycles(currentTeam.id);
-      
+
       // Load issues for each cycle
       const cyclesWithStats = await Promise.all(
         cyclesData.map(async (cycle) => {
@@ -235,7 +235,7 @@ export function CyclesPage() {
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
         </div>
       </AppLayout>
     );
@@ -248,7 +248,7 @@ export function CyclesPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-semibold">{t('cycles.title')}</h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-slate-400 mt-1">
               {t('cycles.manageTeamSprints')}
             </p>
           </div>
@@ -279,7 +279,7 @@ export function CyclesPage() {
               <Play className="h-5 w-5 text-green-500" />
               {t('cycles.activeSprints')}
             </h2>
-            
+
             {activeCycles.map((cycle) => (
               <div key={cycle.id} className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
                 {/* Cycle Info Card */}
@@ -292,9 +292,9 @@ export function CyclesPage() {
                         </div>
                         <div>
                           <CardTitle className="text-lg">{cycle.name}</CardTitle>
-                          <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2 mt-1 text-sm text-slate-400">
                             <Calendar className="h-3 w-3" />
-                            {format(new Date(cycle.start_date), 'MMM d', { locale: dateLocale })} 
+                            {format(new Date(cycle.start_date), 'MMM d', { locale: dateLocale })}
                             <ArrowRight className="h-3 w-3" />
                             {format(new Date(cycle.end_date), 'MMM d', { locale: dateLocale })}
                             <Badge variant="outline" className="ml-2">
@@ -332,30 +332,30 @@ export function CyclesPage() {
                   </CardHeader>
                   <CardContent>
                     {cycle.description && (
-                      <p className="text-sm text-muted-foreground mb-4">{cycle.description}</p>
+                      <p className="text-sm text-slate-400 mb-4">{cycle.description}</p>
                     )}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">{t('dashboard.progress')}</span>
+                        <span className="text-slate-400">{t('dashboard.progress')}</span>
                         <span className="font-medium">
                           {cycle.completedCount}/{cycle.totalCount} {t('cycles.issuesCompleted')} ({Math.round(cycle.progress)}%)
                         </span>
                       </div>
                       <Progress value={cycle.progress} className="h-2" />
                     </div>
-                    
+
                     {/* Quick Actions */}
                     <div className="mt-4 flex gap-2">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => setIssueModalCycle(cycle)}
                       >
                         <Plus className="h-4 w-4 mr-1" />
                         {t('cycles.addIssues')}
                       </Button>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => navigate(`/cycle/${cycle.id}`)}
                       >
@@ -392,9 +392,9 @@ export function CyclesPage() {
                     <div className="flex items-start justify-between">
                       <div>
                         <CardTitle className="text-base">{cycle.name}</CardTitle>
-                        <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2 mt-1 text-sm text-slate-400">
                           <Calendar className="h-3 w-3" />
-                          {format(new Date(cycle.start_date), 'MMM d', { locale: dateLocale })} 
+                          {format(new Date(cycle.start_date), 'MMM d', { locale: dateLocale })}
                           → {format(new Date(cycle.end_date), 'MMM d', { locale: dateLocale })}
                         </div>
                       </div>
@@ -418,7 +418,7 @@ export function CyclesPage() {
                             {t('common.edit')}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => handleDelete(cycle)}
                             className="text-destructive"
                           >
@@ -431,11 +431,11 @@ export function CyclesPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center justify-between">
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-slate-400">
                         {cycle.totalCount} {t('issues.title').toLowerCase()}
                       </div>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="sm"
                         onClick={() => setIssueModalCycle(cycle)}
                       >
@@ -454,7 +454,7 @@ export function CyclesPage() {
         {completedCycles.length > 0 && (
           <div className="space-y-4">
             <h2 className="text-lg font-medium flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
+              <CheckCircle2 className="h-5 w-5 text-slate-400" />
               {t('cycles.completedSprints')}
             </h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -462,8 +462,8 @@ export function CyclesPage() {
                 <Card key={cycle.id} className="opacity-75">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">{cycle.name}</CardTitle>
-                    <div className="text-sm text-muted-foreground">
-                      {format(new Date(cycle.start_date), 'MMM d', { locale: dateLocale })} 
+                    <div className="text-sm text-slate-400">
+                      {format(new Date(cycle.start_date), 'MMM d', { locale: dateLocale })}
                       → {format(new Date(cycle.end_date), 'MMM d', { locale: dateLocale })}
                     </div>
                   </CardHeader>
@@ -482,9 +482,9 @@ export function CyclesPage() {
         {cycles.length === 0 && (
           <Card className="p-12">
             <div className="text-center">
-              <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <Target className="h-12 w-12 text-slate-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">{t('cycles.noCycles')}</h3>
-              <p className="text-muted-foreground mb-4">
+              <p className="text-slate-400 mb-4">
                 {t('cycles.createFirstCycle')}
               </p>
               <Button onClick={handleOpenCreate}>

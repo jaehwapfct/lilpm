@@ -182,7 +182,7 @@ export function ProjectDetailPage() {
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
         </div>
       </AppLayout>
     );
@@ -192,9 +192,9 @@ export function ProjectDetailPage() {
     return (
       <AppLayout>
         <div className="flex flex-col items-center justify-center h-full gap-4">
-          <FolderOpen className="h-12 w-12 text-muted-foreground" />
+          <FolderOpen className="h-12 w-12 text-slate-400" />
           <p className="text-lg font-medium">{t('projects.notFound')}</p>
-          <p className="text-sm text-muted-foreground text-center max-w-md">
+          <p className="text-sm text-slate-400 text-center max-w-md">
             {t('projects.notFoundOrNoAccess', '프로젝트를 찾을 수 없거나 접근 권한이 없습니다. 팀 관리자에게 프로젝트 할당을 요청하세요.')}
           </p>
           <Button onClick={() => navigate('/projects')}>{t('projects.backToList')}</Button>
@@ -208,7 +208,7 @@ export function ProjectDetailPage() {
     <AppLayout>
       <div className="h-full overflow-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border px-6 py-4">
+        <div className="sticky top-0 bg-[#0d0d0f]/95 backdrop-blur z-10 border-b border-white/10 px-6 py-4">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="icon" onClick={() => navigate('/projects')}>
@@ -222,10 +222,10 @@ export function ProjectDetailPage() {
                   <Badge variant="outline">{t(`projects.${project.status}`)}</Badge>
                 </div>
                 {project.description && (
-                  <p className="text-sm text-muted-foreground mt-0.5">{project.description}</p>
+                  <p className="text-sm text-slate-400 mt-0.5">{project.description}</p>
                 )}
                 {(project.start_date || project.target_date) && (
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                  <div className="flex items-center gap-1 text-xs text-slate-400 mt-1">
                     <Calendar className="h-3 w-3" />
                     {project.start_date && format(new Date(project.start_date), 'PP', { locale: dateLocale })}
                     {project.start_date && project.target_date && ' → '}
@@ -297,7 +297,7 @@ export function ProjectDetailPage() {
               </div>
               <div className="divide-y divide-border rounded-lg border">
                 {issues.length === 0 ? (
-                  <div className="py-12 text-center text-muted-foreground">
+                  <div className="py-12 text-center text-slate-400">
                     <ListTodo className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>{t('issues.noIssues')}</p>
                   </div>
@@ -305,7 +305,7 @@ export function ProjectDetailPage() {
                   issues.map((issue) => (
                     <div
                       key={issue.id}
-                      className="p-3 hover:bg-muted/50 cursor-pointer transition-colors"
+                      className="p-3 hover:bg-white/5 cursor-pointer transition-colors"
                       onClick={() => navigate(`/issue/${issue.id}`)}
                     >
                       <IssueRow
@@ -343,7 +343,7 @@ export function ProjectDetailPage() {
               </div>
               <div className="divide-y divide-border rounded-lg border">
                 {prds.length === 0 ? (
-                  <div className="py-12 text-center text-muted-foreground">
+                  <div className="py-12 text-center text-slate-400">
                     <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>{t('prd.noPRDs', 'No PRDs linked to this project')}</p>
                     <p className="text-xs mt-1">{t('prd.linkFromPRD', 'Link PRDs from the PRD detail page')}</p>
@@ -352,15 +352,15 @@ export function ProjectDetailPage() {
                   prds.map((prd) => (
                     <div
                       key={prd.id}
-                      className="p-4 hover:bg-muted/50 cursor-pointer transition-colors flex items-center justify-between"
+                      className="p-4 hover:bg-white/5 cursor-pointer transition-colors flex items-center justify-between"
                       onClick={() => navigate(`/prd/${prd.id}`)}
                     >
                       <div className="flex items-center gap-3">
-                        <FileText className="h-5 w-5 text-muted-foreground" />
+                        <FileText className="h-5 w-5 text-slate-400" />
                         <div>
                           <p className="font-medium">{prd.title || t('prd.untitled')}</p>
                           {prd.overview && (
-                            <p className="text-sm text-muted-foreground line-clamp-1">{prd.overview}</p>
+                            <p className="text-sm text-slate-400 line-clamp-1">{prd.overview}</p>
                           )}
                         </div>
                       </div>

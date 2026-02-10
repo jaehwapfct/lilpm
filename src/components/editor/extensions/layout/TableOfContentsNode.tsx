@@ -46,7 +46,7 @@ const TocComponent: React.FC<any> = ({ editor, selected }) => {
         <NodeViewWrapper>
             <div
                 className={cn(
-                    'my-4 p-4 rounded-lg border bg-muted/30',
+                    'my-4 p-4 rounded-lg border bg-white/5',
                     selected && 'ring-2 ring-primary/50'
                 )}
             >
@@ -57,15 +57,15 @@ const TocComponent: React.FC<any> = ({ editor, selected }) => {
                     </div>
                     <button
                         onClick={extractHeadings}
-                        className="p-1 rounded hover:bg-muted transition-colors"
+                        className="p-1 rounded hover:bg-white/5 transition-colors"
                         title="Refresh"
                     >
-                        <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />
+                        <RefreshCw className="h-3.5 w-3.5 text-slate-400" />
                     </button>
                 </div>
 
                 {headings.length === 0 ? (
-                    <p className="text-sm text-muted-foreground italic">
+                    <p className="text-sm text-slate-400 italic">
                         Add headings to your document to see them here.
                     </p>
                 ) : (
@@ -85,8 +85,8 @@ const TocComponent: React.FC<any> = ({ editor, selected }) => {
                                 className={cn(
                                     'block py-1 text-sm hover:text-primary transition-colors',
                                     heading.level === 1 && 'font-semibold',
-                                    heading.level === 2 && 'text-muted-foreground',
-                                    heading.level >= 3 && 'text-muted-foreground/80 text-xs'
+                                    heading.level === 2 && 'text-slate-400',
+                                    heading.level >= 3 && 'text-slate-400/80 text-xs'
                                 )}
                                 style={{ paddingLeft: getLevelPadding(heading.level) }}
                             >

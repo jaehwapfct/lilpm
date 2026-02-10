@@ -614,16 +614,16 @@ export function LilyChat({ projectContext }: LilyChatProps) {
         />
       )}
 
-      <div className="flex h-full bg-background">
+      <div className="flex h-full bg-[#0d0d0f]">
         {/* Sidebar - Hidden on desktop (moved to main Sidebar), shown on mobile when toggled */}
         <div
           className={cn(
-            "relative border-r border-border flex flex-col transition-all duration-200 fixed inset-y-0 left-0 z-40 bg-background md:hidden",
+            "relative border-r border-white/10 flex flex-col transition-all duration-200 fixed inset-y-0 left-0 z-40 bg-[#0d0d0f] md:hidden",
             showHistory ? "translate-x-0" : "-translate-x-full"
           )}
           style={{ width: historyWidth }}
         >
-          <div className="h-12 flex items-center px-3 border-b border-border">
+          <div className="h-12 flex items-center px-3 border-b border-white/10">
             <Button
               onClick={handleNewConversation}
               className="w-full gap-2"
@@ -638,7 +638,7 @@ export function LilyChat({ projectContext }: LilyChatProps) {
           <ScrollArea className="flex-1">
             <div className="p-2 space-y-1">
               {conversations.length === 0 ? (
-                <p className="text-center text-muted-foreground text-sm py-4">
+                <p className="text-center text-slate-400 text-sm py-4">
                   {t('lily.noHistory')}
                 </p>
               ) : (
@@ -655,7 +655,7 @@ export function LilyChat({ projectContext }: LilyChatProps) {
                       {/* Pinned Conversations */}
                       {conversations.filter(c => pinnedConversations.includes(c.id)).length > 0 && (
                         <div className="mb-2">
-                          <p className="text-xs font-medium text-muted-foreground px-2 mb-1 flex items-center gap-1">
+                          <p className="text-xs font-medium text-slate-400 px-2 mb-1 flex items-center gap-1">
                             <Pin className="h-3 w-3" />
                             {t('lily.pinned', 'Pinned')}
                           </p>
@@ -697,7 +697,7 @@ export function LilyChat({ projectContext }: LilyChatProps) {
                       {conversations.filter(c => !pinnedConversations.includes(c.id)).length > 0 && (
                         <div>
                           {pinnedConversations.length > 0 && (
-                            <p className="text-xs font-medium text-muted-foreground px-2 mb-1">
+                            <p className="text-xs font-medium text-slate-400 px-2 mb-1">
                               {t('lily.recent', 'Recent')}
                             </p>
                           )}
@@ -763,7 +763,7 @@ export function LilyChat({ projectContext }: LilyChatProps) {
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Header - matches sidebar h-12 */}
-          <div className="h-12 flex items-center justify-between px-3 sm:px-4 border-b border-border">
+          <div className="h-12 flex items-center justify-between px-3 sm:px-4 border-b border-white/10">
             <div className="flex items-center gap-2 sm:gap-3">
               <Button
                 variant="ghost"
@@ -778,7 +778,7 @@ export function LilyChat({ projectContext }: LilyChatProps) {
               </div>
               <div>
                 <h2 className="font-semibold text-sm">{t('lily.title')}</h2>
-                <p className="text-xs text-muted-foreground hidden sm:block">{t('lily.subtitle')}</p>
+                <p className="text-xs text-slate-400 hidden sm:block">{t('lily.subtitle')}</p>
               </div>
             </div>
 
@@ -801,13 +801,13 @@ export function LilyChat({ projectContext }: LilyChatProps) {
                       onClick={() => setProvider(provider)}
                       className={cn(
                         "flex items-center gap-2",
-                        selectedProvider === provider && "bg-accent"
+                        selectedProvider === provider && "bg-white/5"
                       )}
                     >
                       <span>{AI_PROVIDER_LABELS[provider].icon}</span>
                       <div className="flex-1">
                         <p className="font-medium text-sm">{AI_PROVIDER_LABELS[provider].name}</p>
-                        <p className="text-xs text-muted-foreground">{AI_PROVIDER_LABELS[provider].description}</p>
+                        <p className="text-xs text-slate-400">{AI_PROVIDER_LABELS[provider].description}</p>
                       </div>
                       {selectedProvider === provider && <Check className="h-4 w-4" />}
                     </DropdownMenuItem>
@@ -870,7 +870,7 @@ export function LilyChat({ projectContext }: LilyChatProps) {
                     <Sparkles className="h-8 w-8 text-primary" />
                   </div>
                   <h3 className="text-lg font-semibold mb-2">{t('lily.askLily', 'Ask Lily')}</h3>
-                  <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                  <p className="text-slate-400 text-sm max-w-md mx-auto">
                     {t('lily.welcomeMessage', 'Discuss project ideas, feature requirements, or technical questions to automatically generate PRDs and development tickets.')}
                   </p>
                   <div className="mt-6 flex flex-wrap gap-2 justify-center">
@@ -910,13 +910,13 @@ export function LilyChat({ projectContext }: LilyChatProps) {
                   </div>
 
                   {/* Model Info */}
-                  <div className="mt-8 p-4 bg-muted/50 rounded-lg max-w-md mx-auto">
-                    <p className="text-xs text-muted-foreground mb-2">{t('lily.currentModel', 'Current AI Model')}</p>
+                  <div className="mt-8 p-4 bg-white/5 rounded-lg max-w-md mx-auto">
+                    <p className="text-xs text-slate-400 mb-2">{t('lily.currentModel', 'Current AI Model')}</p>
                     <div className="flex items-center justify-center gap-2">
                       <span className="text-lg">{AI_PROVIDER_LABELS[selectedProvider].icon}</span>
                       <span className="font-medium">{AI_PROVIDER_LABELS[selectedProvider].name}</span>
-                      <span className="text-muted-foreground">-</span>
-                      <span className="text-sm text-muted-foreground">{AI_PROVIDER_LABELS[selectedProvider].description}</span>
+                      <span className="text-slate-400">-</span>
+                      <span className="text-sm text-slate-400">{AI_PROVIDER_LABELS[selectedProvider].description}</span>
                     </div>
                   </div>
                 </div>
@@ -949,10 +949,10 @@ export function LilyChat({ projectContext }: LilyChatProps) {
                       <Bot className="h-3 w-3" />
                     </AvatarFallback>
                   </Avatar>
-                  <div className="bg-muted rounded-lg px-3 py-1.5">
+                  <div className="bg-[#121215] rounded-lg px-3 py-1.5">
                     <div className="flex items-center gap-1.5">
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      <span className="text-xs text-muted-foreground">{t('lily.thinking')}</span>
+                      <span className="text-xs text-slate-400">{t('lily.thinking')}</span>
                     </div>
                   </div>
                 </div>
@@ -969,7 +969,7 @@ export function LilyChat({ projectContext }: LilyChatProps) {
               <Button
                 variant="secondary"
                 size="icon"
-                className="h-8 w-8 rounded-full shadow-md bg-background/90 backdrop-blur-sm border"
+                className="h-8 w-8 rounded-full shadow-md bg-[#0d0d0f]/90 backdrop-blur-sm border"
                 onClick={scrollToTop}
                 title={t('lily.scrollToTop', '맨 위로')}
               >
@@ -978,7 +978,7 @@ export function LilyChat({ projectContext }: LilyChatProps) {
               <Button
                 variant="secondary"
                 size="icon"
-                className="h-8 w-8 rounded-full shadow-md bg-background/90 backdrop-blur-sm border"
+                className="h-8 w-8 rounded-full shadow-md bg-[#0d0d0f]/90 backdrop-blur-sm border"
                 onClick={() => scrollToMessage('prev')}
                 title={t('lily.prevMessage', '이전 대화')}
               >
@@ -987,7 +987,7 @@ export function LilyChat({ projectContext }: LilyChatProps) {
               <Button
                 variant="secondary"
                 size="icon"
-                className="h-8 w-8 rounded-full shadow-md bg-background/90 backdrop-blur-sm border"
+                className="h-8 w-8 rounded-full shadow-md bg-[#0d0d0f]/90 backdrop-blur-sm border"
                 onClick={() => scrollToMessage('next')}
                 title={t('lily.nextMessage', '다음 대화')}
               >
@@ -997,7 +997,7 @@ export function LilyChat({ projectContext }: LilyChatProps) {
           )}
 
           {/* Input */}
-          <div className="border-t border-border p-3 sm:p-4">
+          <div className="border-t border-white/10 p-3 sm:p-4">
             <div className="flex gap-2 items-end">
               {/* MCP Connect Button */}
               <DropdownMenu>
@@ -1026,7 +1026,7 @@ export function LilyChat({ projectContext }: LilyChatProps) {
                     {sortedConnectors.slice(0, 8).map((connector) => (
                       <div
                         key={connector.id}
-                        className="flex items-center justify-between px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
+                        className="flex items-center justify-between px-2 py-1.5 hover:bg-white/5 rounded-lg cursor-pointer"
                         onClick={(e) => {
                           e.preventDefault();
                           toggleConnector(connector.id);
@@ -1040,7 +1040,7 @@ export function LilyChat({ projectContext }: LilyChatProps) {
                           <span className="text-lg">{connector.icon}</span>
                           <div>
                             <p className="text-sm font-medium">{connector.name}</p>
-                            <p className="text-[10px] text-muted-foreground truncate max-w-[150px]">
+                            <p className="text-[10px] text-slate-400 truncate max-w-[150px]">
                               {connector.description}
                             </p>
                           </div>
@@ -1109,16 +1109,16 @@ export function LilyChat({ projectContext }: LilyChatProps) {
               <div className="flex-1 flex flex-col gap-2">
                 {/* Uploaded files preview */}
                 {uploadedFiles.length > 0 && (
-                  <div className="flex flex-wrap gap-2 p-2 bg-muted/50 rounded-lg border border-border">
+                  <div className="flex flex-wrap gap-2 p-2 bg-white/5 rounded-lg border border-white/10">
                     {uploadedFiles.map((file) => (
                       <div
                         key={file.id}
-                        className="relative group flex items-center gap-2 px-2 py-1 bg-background rounded-md border"
+                        className="relative group flex items-center gap-2 px-2 py-1 bg-[#0d0d0f] rounded-xl border"
                       >
                         {file.preview ? (
                           <img src={file.preview} alt={file.file.name} className="h-8 w-8 object-cover rounded" />
                         ) : (
-                          <div className="h-8 w-8 flex items-center justify-center bg-muted rounded">
+                          <div className="h-8 w-8 flex items-center justify-center bg-[#121215] rounded">
                             {getFileTypeIcon(file.type)}
                           </div>
                         )}
@@ -1167,7 +1167,7 @@ export function LilyChat({ projectContext }: LilyChatProps) {
                 </Button>
               )}
             </div>
-            <p className="text-center text-xs text-muted-foreground mt-2 hidden sm:block">
+            <p className="text-center text-xs text-slate-400 mt-2 hidden sm:block">
               {AI_PROVIDER_LABELS[selectedProvider].icon} {t('lily.usingModel', 'Using')} {AI_PROVIDER_LABELS[selectedProvider].name}
             </p>
           </div>
@@ -1175,15 +1175,15 @@ export function LilyChat({ projectContext }: LilyChatProps) {
 
         {/* Unified Right Panel - Shows for canvas mode OR suggested issues OR PRD viewer */}
         {(canvasMode || suggestedIssues.length > 0 || selectedPRDContent || (showArtifact && artifact)) ? (
-          <div className="w-[500px] border-l border-border flex flex-col bg-background">
+          <div className="w-[500px] border-l border-white/10 flex flex-col bg-[#0d0d0f]">
             {/* Artifact Header */}
-            <div className="h-12 flex items-center justify-between px-4 border-b border-border">
+            <div className="h-12 flex items-center justify-between px-4 border-b border-white/10">
               <div className="flex items-center gap-2">
                 {showCanvasPanel ? (
                   <>
                     <Code className="h-4 w-4 text-amber-500" />
                     <span className="font-medium text-sm">{t('lily.canvas', 'Canvas')}</span>
-                    {isLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                    {isLoading && <Loader2 className="h-3 w-3 animate-spin text-slate-400" />}
                   </>
                 ) : artifact && (
                   <>
@@ -1193,14 +1193,14 @@ export function LilyChat({ projectContext }: LilyChatProps) {
                     {artifact.type === 'document' && <FileText className="h-4 w-4 text-purple-500" />}
                     <span className="font-medium text-sm truncate">{artifact.title}</span>
                     {artifact.isGenerating && (
-                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                      <Loader2 className="h-3 w-3 animate-spin text-slate-400" />
                     )}
                   </>
                 )}
               </div>
               {/* Tab Selector for Code/Issues when both exist */}
               {(canvasMode && suggestedIssues.length > 0) && (
-                <div className="flex gap-1 rounded-md border border-border ml-2">
+                <div className="flex gap-1 rounded-xl border border-white/10 ml-2">
                   <Button
                     variant={showCanvasPanel ? 'secondary' : 'ghost'}
                     size="sm"
@@ -1223,7 +1223,7 @@ export function LilyChat({ projectContext }: LilyChatProps) {
               )}
               <div className="flex items-center gap-1">
                 {showCanvasPanel && (
-                  <div className="flex rounded-md border border-border mr-2">
+                  <div className="flex rounded-xl border border-white/10 mr-2">
                     <Button
                       variant={canvasViewMode === 'code' ? 'default' : 'ghost'}
                       size="sm"
@@ -1285,11 +1285,11 @@ export function LilyChat({ projectContext }: LilyChatProps) {
                   canvasViewMode === 'code' ? (
                     <div className="space-y-2">
                       {canvasCode ? (
-                        <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto font-mono">
+                        <pre className="bg-[#121215] p-4 rounded-lg text-sm overflow-x-auto font-mono">
                           <code className="text-green-400">{canvasCode}</code>
                         </pre>
                       ) : (
-                        <div className="text-center py-16 text-muted-foreground">
+                        <div className="text-center py-16 text-slate-400">
                           <Code className="h-12 w-12 mx-auto mb-4 opacity-30" />
                           <p className="text-sm">{t('lily.canvasWaiting', 'Waiting for code generation...')}</p>
                           <p className="text-xs mt-2 max-w-[250px] mx-auto">
@@ -1369,7 +1369,7 @@ export function LilyChat({ projectContext }: LilyChatProps) {
                           />
                         </div>
                       ) : (
-                        <div className="text-center py-16 text-muted-foreground">
+                        <div className="text-center py-16 text-slate-400">
                           <Eye className="h-12 w-12 mx-auto mb-4 opacity-30" />
                           <p className="text-sm">{t('lily.previewWaiting', 'No code to preview')}</p>
                         </div>
@@ -1409,7 +1409,7 @@ export function LilyChat({ projectContext }: LilyChatProps) {
                           </span>
                         </div>
                         <div className="prose prose-sm dark:prose-invert max-w-none">
-                          <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                          <p className="text-sm text-slate-400 whitespace-pre-wrap leading-relaxed">
                             {suggestedIssues[selectedIssueIndex].description || t('issues.noDescription', 'No description')}
                           </p>
                         </div>
@@ -1494,14 +1494,14 @@ export function LilyChat({ projectContext }: LilyChatProps) {
                         {suggestedIssues.map((issue, index) => (
                           <div
                             key={index}
-                            className="p-3 border rounded-lg bg-card hover:bg-accent/5 transition-colors cursor-pointer"
+                            className="p-3 border rounded-lg bg-[#1a1a1f] hover:bg-white/5/5 transition-colors cursor-pointer"
                             onClick={() => setSelectedIssueIndex(index)}
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1 min-w-0">
                                 <h4 className="font-medium text-sm truncate">{issue.title || 'Untitled Issue'}</h4>
                                 {issue.description && (
-                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{issue.description}</p>
+                                  <p className="text-xs text-slate-400 mt-1 line-clamp-2">{issue.description}</p>
                                 )}
                                 <div className="flex items-center gap-2 mt-2">
                                   <span className={cn(
@@ -1591,7 +1591,7 @@ export function LilyChat({ projectContext }: LilyChatProps) {
                     </div>
                   </div>
                 ) : artifact?.type === 'code' ? (
-                  <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
+                  <pre className="bg-[#121215] p-4 rounded-lg text-sm overflow-x-auto">
                     <code>{artifact.content}</code>
                   </pre>
                 ) : artifact && (
@@ -1604,7 +1604,7 @@ export function LilyChat({ projectContext }: LilyChatProps) {
                   [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mt-6 [&_h1]:mb-3
                   [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-5 [&_h2]:mb-2
                   [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2
-                  [&_code]:text-xs [&_code]:bg-muted/70 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md
+                  [&_code]:text-xs [&_code]:bg-white/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-xl
                   [&_pre]:my-4 [&_pre]:bg-zinc-900 [&_pre]:p-4 [&_pre]:rounded-lg
                   [&_pre_code]:bg-transparent [&_pre_code]:p-0
                   [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:pl-4 [&_blockquote]:my-4 [&_blockquote]:italic
@@ -1616,7 +1616,7 @@ export function LilyChat({ projectContext }: LilyChatProps) {
             </ScrollArea>
 
             {/* Artifact Footer */}
-            <div className="border-t border-border p-3">
+            <div className="border-t border-white/10 p-3">
               <div className="flex gap-2">
                 {showCanvasPanel ? (
                   <>

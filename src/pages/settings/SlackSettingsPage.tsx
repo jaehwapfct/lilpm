@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
   ArrowLeft,
   MessageSquare,
   Bell,
@@ -58,7 +58,7 @@ export function SlackSettingsPage() {
   const [showWebhookDialog, setShowWebhookDialog] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState('');
   const [testingWebhook, setTestingWebhook] = useState(false);
-  
+
   const { slack, setSlackIntegration, updateSlackSettings } = useIntegrationStore();
   const { connectors, toggleConnector } = useMCPStore();
 
@@ -103,10 +103,10 @@ export function SlackSettingsPage() {
     }
 
     setTestingWebhook(true);
-    
+
     // Simulate webhook test
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    
+
     toast.success('테스트 메시지가 전송되었습니다');
     setTestingWebhook(false);
   };
@@ -136,7 +136,7 @@ export function SlackSettingsPage() {
               <MessageSquare className="h-5 w-5 md:h-6 md:w-6" />
               Slack 연동
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-slate-400">
               Slack으로 알림을 받고 AI와 연동합니다
             </p>
           </div>
@@ -180,9 +180,9 @@ export function SlackSettingsPage() {
                         <li>알림을 받을 채널을 선택하세요</li>
                         <li>생성된 Webhook URL을 복사하세요</li>
                       </ol>
-                      <a 
-                        href="https://api.slack.com/apps" 
-                        target="_blank" 
+                      <a
+                        href="https://api.slack.com/apps"
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 mt-2 text-primary hover:underline"
                       >
@@ -214,11 +214,11 @@ export function SlackSettingsPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+                    <div className="flex items-center gap-3 p-4 bg-[#121215] rounded-xl">
                       <Hash className="h-8 w-8 text-[#4A154B]" />
                       <div className="flex-1">
                         <p className="font-medium">{slack.channel_name || 'Slack 채널'}</p>
-                        <p className="text-sm text-muted-foreground truncate">
+                        <p className="text-sm text-slate-400 truncate">
                           {slack.webhook_url?.substring(0, 50)}...
                         </p>
                       </div>
@@ -244,7 +244,7 @@ export function SlackSettingsPage() {
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label className="text-base">이슈 생성</Label>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-slate-400">
                           새 이슈가 생성되면 알림을 받습니다
                         </p>
                       </div>
@@ -259,7 +259,7 @@ export function SlackSettingsPage() {
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label className="text-base">이슈 완료</Label>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-slate-400">
                           이슈가 완료되면 알림을 받습니다
                         </p>
                       </div>
@@ -274,7 +274,7 @@ export function SlackSettingsPage() {
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label className="text-base">댓글</Label>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-slate-400">
                           새 댓글이 작성되면 알림을 받습니다
                         </p>
                       </div>
@@ -289,7 +289,7 @@ export function SlackSettingsPage() {
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label className="text-base">멘션</Label>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-slate-400">
                           나를 멘션하면 알림을 받습니다
                         </p>
                       </div>
@@ -304,13 +304,13 @@ export function SlackSettingsPage() {
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label className="text-base">스프린트 시작/종료</Label>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-slate-400">
                           스프린트 시작/종료 시 알림을 받습니다
                         </p>
                       </div>
                       <Switch
                         checked={slack.notify_on_cycle_start}
-                        onCheckedChange={(checked) => updateSlackSettings({ 
+                        onCheckedChange={(checked) => updateSlackSettings({
                           notify_on_cycle_start: checked,
                           notify_on_cycle_end: checked,
                         })}
@@ -348,12 +348,12 @@ export function SlackSettingsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-[#121215] rounded-xl">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">💬</span>
                     <div>
                       <p className="font-medium">Slack MCP Connector</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-slate-400">
                         Lily AI가 Slack 채널에 접근할 수 있습니다
                       </p>
                     </div>
@@ -367,13 +367,13 @@ export function SlackSettingsPage() {
                 <Alert>
                   <Bot className="h-4 w-4" />
                   <AlertDescription>
-                    MCP 연동을 활성화하면 Lily AI가 Slack에서 메시지를 읽고, 
+                    MCP 연동을 활성화하면 Lily AI가 Slack에서 메시지를 읽고,
                     작업 현황을 공유할 수 있습니다. MCP 설정에서 더 자세한 구성이 가능합니다.
                   </AlertDescription>
                 </Alert>
 
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => navigate('/settings/mcp')}
                   className="w-full"
                 >

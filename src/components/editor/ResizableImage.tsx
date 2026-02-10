@@ -89,7 +89,7 @@ export const ResizableImageComponent = ({ node, updateAttributes, selected }: No
                         "absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full pt-1 z-10 transition-opacity",
                         selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                     )}>
-                        <div className="flex items-center gap-1 bg-background border border-border rounded px-1.5 py-0.5 shadow-sm">
+                        <div className="flex items-center gap-1 bg-[#0d0d0f] border border-white/10 rounded px-1.5 py-0.5 shadow-sm">
                             <input
                                 type="number"
                                 value={widthInput}
@@ -98,7 +98,7 @@ export const ResizableImageComponent = ({ node, updateAttributes, selected }: No
                                 placeholder="Width"
                                 min="50"
                             />
-                            <span className="text-xs text-muted-foreground">px</span>
+                            <span className="text-xs text-slate-400">px</span>
                         </div>
                     </div>
                 </>

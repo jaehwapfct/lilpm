@@ -63,7 +63,7 @@ export function TicketDetailModal({
         high: 'border-orange-500 text-orange-500 bg-orange-500/10',
         medium: 'border-yellow-500 text-yellow-500 bg-yellow-500/10',
         low: 'border-blue-500 text-blue-500 bg-blue-500/10',
-        none: 'border-muted-foreground text-muted-foreground',
+        none: 'border-muted-foreground text-slate-400',
     };
 
     return (
@@ -124,7 +124,7 @@ export function TicketDetailModal({
                     <div className="grid grid-cols-2 gap-4">
                         {/* Type */}
                         <div className="space-y-1.5">
-                            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                            <label className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
                                 <Tag className="h-3.5 w-3.5" />
                                 {t('issues.type', 'Type')}
                             </label>
@@ -155,7 +155,7 @@ export function TicketDetailModal({
 
                         {/* Priority */}
                         <div className="space-y-1.5">
-                            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                            <label className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
                                 <Flag className="h-3.5 w-3.5" />
                                 {t('issues.priority', 'Priority')}
                             </label>
@@ -187,7 +187,7 @@ export function TicketDetailModal({
                         {/* Estimate */}
                         {(issue.estimate || isEditing) && (
                             <div className="space-y-1.5">
-                                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                                <label className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
                                     <Clock className="h-3.5 w-3.5" />
                                     {t('issues.estimate', 'Estimate')}
                                 </label>
@@ -210,7 +210,7 @@ export function TicketDetailModal({
 
                     {/* Description */}
                     <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">
+                        <label className="text-xs font-medium text-slate-400">
                             {t('issues.description', 'Description')}
                         </label>
                         {isEditing ? (
@@ -222,10 +222,10 @@ export function TicketDetailModal({
                                 rows={6}
                             />
                         ) : (
-                            <div className="bg-muted/50 rounded-lg p-4 min-h-[80px]">
+                            <div className="bg-white/5 rounded-lg p-4 min-h-[80px]">
                                 <p className="text-sm whitespace-pre-wrap">
                                     {issue.description || (
-                                        <span className="text-muted-foreground italic">
+                                        <span className="text-slate-400 italic">
                                             {t('issues.noDescription', 'No description provided')}
                                         </span>
                                     )}
@@ -237,10 +237,10 @@ export function TicketDetailModal({
                     {/* Acceptance Criteria (if exists) */}
                     {issue.acceptanceCriteria && issue.acceptanceCriteria.length > 0 && (
                         <div className="space-y-1.5">
-                            <label className="text-xs font-medium text-muted-foreground">
+                            <label className="text-xs font-medium text-slate-400">
                                 {t('issues.acceptanceCriteria', 'Acceptance Criteria')}
                             </label>
-                            <div className="bg-muted/50 rounded-lg p-4">
+                            <div className="bg-white/5 rounded-lg p-4">
                                 <ul className="space-y-2">
                                     {issue.acceptanceCriteria.map((criteria, index) => (
                                         <li key={index} className="flex items-start gap-2 text-sm">

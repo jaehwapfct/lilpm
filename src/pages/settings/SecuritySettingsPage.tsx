@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { 
+import {
   ArrowLeft,
   Shield,
   Key,
@@ -44,7 +44,7 @@ export function SecuritySettingsPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { logout } = useAuthStore();
-  
+
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -113,7 +113,7 @@ export function SecuritySettingsPage() {
               <Shield className="h-6 w-6" />
               {t('settings.security')}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-slate-400">
               {t('security.description')}
             </p>
           </div>
@@ -191,8 +191,8 @@ export function SecuritySettingsPage() {
                 placeholder="••••••••"
               />
             </div>
-            <Button 
-              onClick={handlePasswordChange} 
+            <Button
+              onClick={handlePasswordChange}
               disabled={isUpdating || !newPassword || !confirmPassword}
             >
               {isUpdating ? t('common.loading') : t('profile.updatePassword')}
@@ -215,7 +215,7 @@ export function SecuritySettingsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">{t('security.enableTwoFactor')}</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-slate-400">
                   {t('security.twoFactorStatus', { status: twoFactorEnabled ? t('common.enabled') : t('common.disabled') })}
                 </p>
               </div>
@@ -242,20 +242,20 @@ export function SecuritySettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-[#121215] rounded-xl">
               <div className="flex items-center gap-3">
                 <div className="h-2 w-2 bg-green-500 rounded-full" />
                 <div>
                   <p className="font-medium">{t('security.currentSession')}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-slate-400">
                     {t('security.thisDevice')}
                   </p>
                 </div>
               </div>
             </div>
             <Separator />
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full"
               onClick={handleLogoutAllDevices}
             >
@@ -292,7 +292,7 @@ export function SecuritySettingsPage() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                  <AlertDialogAction 
+                  <AlertDialogAction
                     onClick={handleDeleteAccount}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >

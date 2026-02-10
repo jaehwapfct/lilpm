@@ -111,7 +111,7 @@ const TableView: React.FC<{
                         {visibleColumns.map((col) => (
                             <th
                                 key={col.id}
-                                className="px-3 py-2 text-left font-medium text-muted-foreground"
+                                className="px-3 py-2 text-left font-medium text-slate-400"
                                 style={{ width: col.width || 'auto' }}
                             >
                                 {col.name}
@@ -122,15 +122,15 @@ const TableView: React.FC<{
                 </thead>
                 <tbody>
                     {database.rows.map((row) => (
-                        <tr key={row.id} className="border-b hover:bg-muted/50 group">
+                        <tr key={row.id} className="border-b hover:bg-white/5 group">
                             {visibleColumns.map((col) => (
                                 <td key={col.id} className="px-3 py-2">
                                     {getCellValue(row, col)}
                                 </td>
                             ))}
                             <td className="px-2">
-                                <button className="opacity-0 group-hover:opacity-100 p-1 hover:bg-accent rounded">
-                                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                                <button className="opacity-0 group-hover:opacity-100 p-1 hover:bg-white/5 rounded">
+                                    <MoreHorizontal className="h-4 w-4 text-slate-400" />
                                 </button>
                             </td>
                         </tr>
@@ -139,7 +139,7 @@ const TableView: React.FC<{
             </table>
             <button
                 onClick={onAddRow}
-                className="w-full py-2 text-sm text-muted-foreground hover:bg-muted/50 flex items-center justify-center gap-1"
+                className="w-full py-2 text-sm text-slate-400 hover:bg-white/5 flex items-center justify-center gap-1"
             >
                 <Plus className="h-4 w-4" />
                 New
@@ -175,23 +175,23 @@ const BoardView: React.FC<{
                         <span>{group.name}</span>
                         <span className="text-xs opacity-70">{getRowsForGroup(group.id).length}</span>
                     </div>
-                    <div className="bg-muted/30 rounded-b-lg p-2 min-h-[100px] space-y-2">
+                    <div className="bg-white/5 rounded-b-lg p-2 min-h-[100px] space-y-2">
                         {getRowsForGroup(group.id).map((row) => (
                             <div
                                 key={row.id}
-                                className="bg-background p-3 rounded-md shadow-sm border hover:shadow-md transition-shadow cursor-pointer"
+                                className="bg-[#0d0d0f] p-3 rounded-xl shadow-sm border hover:shadow-md transition-shadow cursor-pointer"
                             >
                                 <div className="font-medium text-sm truncate">
                                     {row.cells[database.columns[0]?.id] || 'Untitled'}
                                 </div>
-                                <div className="text-xs text-muted-foreground mt-1">
+                                <div className="text-xs text-slate-400 mt-1">
                                     {new Date(row.updatedAt).toLocaleDateString()}
                                 </div>
                             </div>
                         ))}
                         <button
                             onClick={onAddRow}
-                            className="w-full py-2 text-xs text-muted-foreground hover:bg-muted/50 rounded flex items-center justify-center gap-1"
+                            className="w-full py-2 text-xs text-slate-400 hover:bg-white/5 rounded flex items-center justify-center gap-1"
                         >
                             <Plus className="h-3 w-3" />
                             Add
@@ -273,12 +273,12 @@ const LinkedDatabaseComponent: React.FC<NodeViewProps> = ({
     if (showPicker) {
         return (
             <NodeViewWrapper>
-                <div className={`p-6 rounded-lg border-2 border-dashed ${selected ? 'border-primary' : 'border-border'} bg-muted/30`}>
+                <div className={`p-6 rounded-lg border-2 border-dashed ${selected ? 'border-primary' : 'border-white/10'} bg-white/5`}>
                     <div className="flex items-center gap-3 mb-4">
-                        <Database className="h-6 w-6 text-muted-foreground" />
+                        <Database className="h-6 w-6 text-slate-400" />
                         <div>
                             <h3 className="font-medium">Link a Database</h3>
-                            <p className="text-sm text-muted-foreground">Create a linked view of an existing database</p>
+                            <p className="text-sm text-slate-400">Create a linked view of an existing database</p>
                         </div>
                     </div>
 
@@ -287,14 +287,14 @@ const LinkedDatabaseComponent: React.FC<NodeViewProps> = ({
                             <button
                                 key={db.id}
                                 onClick={() => handleSelectDatabase(db.id, db.name)}
-                                className="w-full flex items-center gap-3 p-3 rounded-md hover:bg-accent text-left"
+                                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 text-left"
                             >
                                 <span className="text-lg">{db.emoji || '📊'}</span>
                                 <span className="font-medium">{db.name}</span>
                             </button>
                         ))}
                         {(!options.availableDatabases || options.availableDatabases.length === 0) && (
-                            <div className="text-center py-8 text-muted-foreground">
+                            <div className="text-center py-8 text-slate-400">
                                 <Database className="h-8 w-8 mx-auto mb-2 opacity-50" />
                                 <p className="text-sm">No databases available</p>
                                 <p className="text-xs mt-1">Create a database first to link it here</p>
@@ -305,7 +305,7 @@ const LinkedDatabaseComponent: React.FC<NodeViewProps> = ({
                     <div className="flex gap-2 mt-4">
                         <button
                             onClick={deleteNode}
-                            className="px-4 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-md"
+                            className="px-4 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-xl"
                         >
                             Cancel
                         </button>
@@ -317,7 +317,7 @@ const LinkedDatabaseComponent: React.FC<NodeViewProps> = ({
 
     return (
         <NodeViewWrapper>
-            <div className={`my-4 rounded-lg border ${selected ? 'ring-2 ring-primary' : ''} bg-card`}>
+            <div className={`my-4 rounded-lg border ${selected ? 'ring-2 ring-primary' : ''} bg-[#1a1a1f]`}>
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b">
                     <div className="flex items-center gap-2">
@@ -330,7 +330,7 @@ const LinkedDatabaseComponent: React.FC<NodeViewProps> = ({
                         <div className="relative">
                             <button
                                 onClick={() => setShowViewMenu(!showViewMenu)}
-                                className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-accent rounded"
+                                className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-white/5 rounded"
                             >
                                 {currentView && getViewIcon(currentView.type)}
                                 <span>{currentView?.name || 'Table'}</span>
@@ -338,7 +338,7 @@ const LinkedDatabaseComponent: React.FC<NodeViewProps> = ({
                             </button>
 
                             {showViewMenu && database && (
-                                <div className="absolute right-0 top-full mt-1 w-48 bg-popover border rounded-lg shadow-lg p-1 z-10">
+                                <div className="absolute right-0 top-full mt-1 w-48 bg-[#1a1a1f] border rounded-lg shadow-lg p-1 z-10">
                                     {database.views.map((view) => (
                                         <button
                                             key={view.id}
@@ -347,7 +347,7 @@ const LinkedDatabaseComponent: React.FC<NodeViewProps> = ({
                                                 updateAttributes({ viewId: view.id });
                                                 setShowViewMenu(false);
                                             }}
-                                            className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-accent ${currentView?.id === view.id ? 'bg-accent' : ''
+                                            className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-white/5 ${currentView?.id === view.id ? 'bg-white/5' : ''
                                                 }`}
                                         >
                                             {getViewIcon(view.type)}
@@ -358,14 +358,14 @@ const LinkedDatabaseComponent: React.FC<NodeViewProps> = ({
                             )}
                         </div>
 
-                        <button className="p-1.5 hover:bg-accent rounded">
-                            <Filter className="h-4 w-4 text-muted-foreground" />
+                        <button className="p-1.5 hover:bg-white/5 rounded">
+                            <Filter className="h-4 w-4 text-slate-400" />
                         </button>
-                        <button className="p-1.5 hover:bg-accent rounded">
-                            <SortAsc className="h-4 w-4 text-muted-foreground" />
+                        <button className="p-1.5 hover:bg-white/5 rounded">
+                            <SortAsc className="h-4 w-4 text-slate-400" />
                         </button>
-                        <button className="p-1.5 hover:bg-accent rounded">
-                            <Settings className="h-4 w-4 text-muted-foreground" />
+                        <button className="p-1.5 hover:bg-white/5 rounded">
+                            <Settings className="h-4 w-4 text-slate-400" />
                         </button>
                     </div>
                 </div>
@@ -393,7 +393,7 @@ const LinkedDatabaseComponent: React.FC<NodeViewProps> = ({
                             />
                         )
                     ) : (
-                        <div className="text-center py-8 text-muted-foreground">
+                        <div className="text-center py-8 text-slate-400">
                             <p>Failed to load database</p>
                         </div>
                     )}

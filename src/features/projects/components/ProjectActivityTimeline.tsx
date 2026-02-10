@@ -63,7 +63,7 @@ export function ProjectActivityTimeline({ activities, className }: ProjectActivi
       </CardHeader>
       <CardContent>
         {activities.length === 0 ? (
-          <div className="text-center py-6 text-muted-foreground">
+          <div className="text-center py-6 text-slate-400">
             <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">{t('dashboard.noActivity')}</p>
           </div>
@@ -75,7 +75,7 @@ export function ProjectActivityTimeline({ activities, className }: ProjectActivi
             <div className="space-y-4">
               {activities.slice(0, 10).map((activity) => {
                 const Icon = ACTIVITY_ICONS[activity.type] || Circle;
-                const colorClass = ACTIVITY_COLORS[activity.type] || 'bg-muted';
+                const colorClass = ACTIVITY_COLORS[activity.type] || 'bg-[#121215]';
                 
                 return (
                   <div key={activity.id} className="relative flex gap-3 pl-2">
@@ -96,7 +96,7 @@ export function ProjectActivityTimeline({ activities, className }: ProjectActivi
                         <span className="text-sm font-medium truncate">
                           {activity.user.name}
                         </span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-slate-400">
                           {formatDistanceToNow(new Date(activity.createdAt), { 
                             addSuffix: true, 
                             locale: dateLocale 
@@ -104,10 +104,10 @@ export function ProjectActivityTimeline({ activities, className }: ProjectActivi
                         </span>
                       </div>
                       
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-slate-400">
                         {t(`activity.${activity.type}`)}
                         {activity.issueTitle && (
-                          <span className="font-medium text-foreground ml-1">
+                          <span className="font-medium text-white ml-1">
                             "{activity.issueTitle}"
                           </span>
                         )}

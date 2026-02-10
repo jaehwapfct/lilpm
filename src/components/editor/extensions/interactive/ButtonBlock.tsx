@@ -75,9 +75,9 @@ const ButtonBlockComponent: React.FC<NodeViewProps> = ({
     const getVariantStyles = () => {
         const variants: Record<string, string> = {
             primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
-            secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-            outline: 'border border-input bg-background hover:bg-accent',
-            ghost: 'hover:bg-accent hover:text-accent-foreground',
+            secondary: 'bg-secondary text-slate-300 hover:bg-[#1a1a1f]/80',
+            outline: 'border border-white/10 bg-[#0d0d0f] hover:bg-white/5',
+            ghost: 'hover:bg-white/5 hover:text-white',
             destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
         };
         return variants[variant] || variants.primary;
@@ -86,26 +86,26 @@ const ButtonBlockComponent: React.FC<NodeViewProps> = ({
     if (isEditing) {
         return (
             <NodeViewWrapper>
-                <div className={`p-4 rounded-lg border-2 border-dashed ${selected ? 'border-primary' : 'border-border'} bg-muted/30`}>
+                <div className={`p-4 rounded-lg border-2 border-dashed ${selected ? 'border-primary' : 'border-white/10'} bg-white/5`}>
                     <div className="space-y-3">
                         <div>
-                            <label className="text-xs font-medium text-muted-foreground">Button Label</label>
+                            <label className="text-xs font-medium text-slate-400">Button Label</label>
                             <input
                                 type="text"
                                 value={label || ''}
                                 onChange={(e) => updateAttributes({ label: e.target.value })}
                                 placeholder="Click me"
-                                className="w-full mt-1 px-3 py-2 text-sm border rounded-md bg-background"
+                                className="w-full mt-1 px-3 py-2 text-sm border rounded-xl bg-[#0d0d0f]"
                                 autoFocus
                             />
                         </div>
 
                         <div>
-                            <label className="text-xs font-medium text-muted-foreground">Action Type</label>
+                            <label className="text-xs font-medium text-slate-400">Action Type</label>
                             <select
                                 value={actionType || ''}
                                 onChange={(e) => updateAttributes({ actionType: e.target.value })}
-                                className="w-full mt-1 px-3 py-2 text-sm border rounded-md bg-background"
+                                className="w-full mt-1 px-3 py-2 text-sm border rounded-xl bg-[#0d0d0f]"
                             >
                                 <option value="">Select action...</option>
                                 <option value="openUrl">Open URL</option>
@@ -117,7 +117,7 @@ const ButtonBlockComponent: React.FC<NodeViewProps> = ({
 
                         {actionType === 'openUrl' && (
                             <div>
-                                <label className="text-xs font-medium text-muted-foreground">URL</label>
+                                <label className="text-xs font-medium text-slate-400">URL</label>
                                 <input
                                     type="url"
                                     value={JSON.parse(actionPayload || '{}').url || ''}
@@ -126,14 +126,14 @@ const ButtonBlockComponent: React.FC<NodeViewProps> = ({
                                         icon: 'link'
                                     })}
                                     placeholder="https://example.com"
-                                    className="w-full mt-1 px-3 py-2 text-sm border rounded-md bg-background"
+                                    className="w-full mt-1 px-3 py-2 text-sm border rounded-xl bg-[#0d0d0f]"
                                 />
                             </div>
                         )}
 
                         {actionType === 'copyToClipboard' && (
                             <div>
-                                <label className="text-xs font-medium text-muted-foreground">Text to Copy</label>
+                                <label className="text-xs font-medium text-slate-400">Text to Copy</label>
                                 <textarea
                                     value={JSON.parse(actionPayload || '{}').text || ''}
                                     onChange={(e) => updateAttributes({
@@ -141,18 +141,18 @@ const ButtonBlockComponent: React.FC<NodeViewProps> = ({
                                         icon: 'copy'
                                     })}
                                     placeholder="Text to copy..."
-                                    className="w-full mt-1 px-3 py-2 text-sm border rounded-md bg-background resize-none"
+                                    className="w-full mt-1 px-3 py-2 text-sm border rounded-xl bg-[#0d0d0f] resize-none"
                                     rows={2}
                                 />
                             </div>
                         )}
 
                         <div>
-                            <label className="text-xs font-medium text-muted-foreground">Style</label>
+                            <label className="text-xs font-medium text-slate-400">Style</label>
                             <select
                                 value={variant || 'primary'}
                                 onChange={(e) => updateAttributes({ variant: e.target.value })}
-                                className="w-full mt-1 px-3 py-2 text-sm border rounded-md bg-background"
+                                className="w-full mt-1 px-3 py-2 text-sm border rounded-xl bg-[#0d0d0f]"
                             >
                                 <option value="primary">Primary</option>
                                 <option value="secondary">Secondary</option>
@@ -165,14 +165,14 @@ const ButtonBlockComponent: React.FC<NodeViewProps> = ({
                         <div className="flex gap-2 pt-2">
                             <button
                                 onClick={() => setIsEditing(false)}
-                                className="flex-1 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md"
+                                className="flex-1 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-xl"
                                 disabled={!label}
                             >
                                 Done
                             </button>
                             <button
                                 onClick={deleteNode}
-                                className="px-4 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-md"
+                                className="px-4 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-xl"
                             >
                                 <Trash2 className="h-4 w-4" />
                             </button>
@@ -189,7 +189,7 @@ const ButtonBlockComponent: React.FC<NodeViewProps> = ({
                 <button
                     onClick={executeAction}
                     disabled={isExecuting || !actionType}
-                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${getVariantStyles()} disabled:opacity-50`}
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${getVariantStyles()} disabled:opacity-50`}
                 >
                     {isExecuting ? (
                         <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -201,9 +201,9 @@ const ButtonBlockComponent: React.FC<NodeViewProps> = ({
 
                 <button
                     onClick={() => setIsEditing(true)}
-                    className="p-1.5 hover:bg-accent rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="p-1.5 hover:bg-white/5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                    <Settings className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Settings className="h-3.5 w-3.5 text-slate-400" />
                 </button>
             </div>
         </NodeViewWrapper>

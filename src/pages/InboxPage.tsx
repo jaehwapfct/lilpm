@@ -372,7 +372,7 @@ export function InboxPage() {
               <Inbox className="h-5 w-5 sm:h-6 sm:w-6" />
               {t('nav.inbox')}
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-slate-400 mt-1">
               {unreadCount > 0
                 ? t('inbox.unreadCount', { count: unreadCount })
                 : t('inbox.allRead')
@@ -420,12 +420,12 @@ export function InboxPage() {
         {/* Content */}
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
           </div>
         ) : filteredItems.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16">
-              <Inbox className="h-12 w-12 text-muted-foreground/50 mb-4" />
+              <Inbox className="h-12 w-12 text-slate-400/50 mb-4" />
               <h3 className="text-lg font-medium mb-2">
                 {filter === 'unread'
                   ? t('inbox.noUnread')
@@ -434,7 +434,7 @@ export function InboxPage() {
                     : t('inbox.empty')
                 }
               </h3>
-              <p className="text-sm text-muted-foreground text-center max-w-md">
+              <p className="text-sm text-slate-400 text-center max-w-md">
                 {t('inbox.emptyDescription')}
               </p>
             </CardContent>
@@ -443,20 +443,20 @@ export function InboxPage() {
           <div className="space-y-6">
             {Object.entries(groupedItems).map(([date, dateItems]) => (
               <div key={date}>
-                <h3 className="text-sm font-medium text-muted-foreground mb-3 px-1">
+                <h3 className="text-sm font-medium text-slate-400 mb-3 px-1">
                   {getDateLabel(date)}
                 </h3>
                 <Card>
                   <CardContent className="p-0 divide-y">
                     {dateItems.map((item) => {
                       const Icon = ITEM_TYPE_ICONS[item.type] || Inbox;
-                      const colorClass = ITEM_TYPE_COLORS[item.type] || 'bg-muted text-muted-foreground';
+                      const colorClass = ITEM_TYPE_COLORS[item.type] || 'bg-[#1a1a1f] text-slate-400';
 
                       return (
                         <div
                           key={item.id}
                           className={cn(
-                            "flex items-start gap-3 p-4 hover:bg-muted/50 transition-colors cursor-pointer group",
+                            "flex items-start gap-3 p-4 hover:bg-white/5 transition-colors cursor-pointer group",
                             !item.read && "bg-primary/5"
                           )}
                           onClick={() => handleItemClick(item)}
@@ -487,7 +487,7 @@ export function InboxPage() {
                                     {item.title}
                                   </p>
                                 </div>
-                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                <p className="text-sm text-slate-400 line-clamp-2">
                                   {item.message || item.body}
                                 </p>
 
@@ -506,7 +506,7 @@ export function InboxPage() {
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          className="gap-2 text-muted-foreground hover:text-destructive"
+                                          className="gap-2 text-slate-400 hover:text-destructive"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             deleteItem(item.id);
@@ -548,7 +548,7 @@ export function InboxPage() {
                               </div>
 
                               <div className="flex items-center gap-2 flex-shrink-0">
-                                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                <span className="text-xs text-slate-400 whitespace-nowrap">
                                   {formatDistanceToNow(new Date(item.created_at), {
                                     addSuffix: true,
                                     locale

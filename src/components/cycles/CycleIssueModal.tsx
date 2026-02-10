@@ -251,14 +251,14 @@ export function CycleIssueModal({
     <div
       className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${isSelected
         ? mode === 'add' ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'
-        : 'hover:bg-muted/50 border border-transparent'
+        : 'hover:bg-white/5 border border-transparent'
         }`}
       onClick={onToggle}
     >
       <Checkbox checked={isSelected} />
       <div className="flex items-center gap-2 flex-1 min-w-0">
         <StatusIcon status={issue.status} className="h-4 w-4 flex-shrink-0" />
-        <span className="text-xs text-muted-foreground flex-shrink-0">{issue.identifier}</span>
+        <span className="text-xs text-slate-400 flex-shrink-0">{issue.identifier}</span>
         <span className="truncate text-sm">{issue.title}</span>
       </div>
       <PriorityIcon priority={issue.priority} className="h-4 w-4 flex-shrink-0" />
@@ -269,9 +269,9 @@ export function CycleIssueModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-background">
+    <div className="fixed inset-0 z-50 bg-[#0d0d0f]">
       {/* Header */}
-      <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-border bg-background/95 backdrop-blur-sm">
+      <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#0d0d0f]/95 backdrop-blur-sm">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -311,7 +311,7 @@ export function CycleIssueModal({
       <div className="flex flex-col h-[calc(100vh-73px)] p-6">
         {/* Search */}
         <div className="relative max-w-xl mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
             placeholder={t('issues.searchPlaceholder')}
             value={searchQuery}
@@ -322,12 +322,12 @@ export function CycleIssueModal({
 
         {isLoading ? (
           <div className="flex items-center justify-center flex-1">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
           </div>
         ) : (
           <div className="flex-1 overflow-hidden grid grid-cols-2 gap-6">
             {/* Current Cycle Issues */}
-            <div className="flex flex-col min-h-0 bg-card rounded-xl border border-border p-4">
+            <div className="flex flex-col min-h-0 bg-[#1a1a1f] rounded-xl border border-white/10 p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium flex items-center gap-2">
                   <Minus className="h-5 w-5 text-red-500" />
@@ -343,7 +343,7 @@ export function CycleIssueModal({
               <ScrollArea className="flex-1">
                 <div className="space-y-2">
                   {filteredCycleIssues.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground">
+                    <div className="text-center py-12 text-slate-400">
                       {t('cycles.noIssuesInCycle')}
                     </div>
                   ) : (
@@ -362,7 +362,7 @@ export function CycleIssueModal({
             </div>
 
             {/* Available Issues */}
-            <div className="flex flex-col min-h-0 bg-card rounded-xl border border-border p-4">
+            <div className="flex flex-col min-h-0 bg-[#1a1a1f] rounded-xl border border-white/10 p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium flex items-center gap-2">
                   <Plus className="h-5 w-5 text-green-500" />
@@ -484,7 +484,7 @@ export function CycleIssueModal({
                     <div className="mt-4 space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span className="font-medium">{t('ai.suggestions', 'Generated Issues')}</span>
-                        <span className="text-muted-foreground">
+                        <span className="text-slate-400">
                           {selectedAiSuggestions.size}/{aiSuggestions.length} {t('common.selected', 'selected')}
                         </span>
                       </div>
@@ -494,7 +494,7 @@ export function CycleIssueModal({
                           onClick={() => toggleAiSuggestion(idx)}
                           className={`p-2 rounded-lg border cursor-pointer transition-colors ${selectedAiSuggestions.has(idx)
                               ? 'border-violet-500/50 bg-violet-500/10'
-                              : 'border-border hover:bg-muted/50'
+                              : 'border-white/10 hover:bg-white/5'
                             }`}
                         >
                           <div className="flex items-center gap-2">
@@ -520,7 +520,7 @@ export function CycleIssueModal({
               <ScrollArea className="flex-1">
                 <div className="space-y-2">
                   {filteredAvailable.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground">
+                    <div className="text-center py-12 text-slate-400">
                       {t('cycles.noAvailableIssues')}
                     </div>
                   ) : (

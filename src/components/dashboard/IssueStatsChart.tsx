@@ -56,7 +56,7 @@ export function IssueStatsChart({ issues, type = 'status' }: IssueStatsChartProp
           <CardTitle className="text-base">{title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-48 flex items-center justify-center text-muted-foreground">
+          <div className="h-48 flex items-center justify-center text-slate-400">
             {t('common.noData')}
           </div>
         </CardContent>
@@ -93,7 +93,7 @@ export function IssueStatsChart({ issues, type = 'status' }: IssueStatsChartProp
                     return (
                       <div className="bg-[#1a1a1f] border border-white/10 rounded-xl shadow-lg p-2 text-sm">
                         <p className="font-medium">{d.name}</p>
-                        <p className="text-muted-foreground">
+                        <p className="text-slate-400">
                           {d.value} ({Math.round((d.value / total) * 100)}%)
                         </p>
                       </div>
@@ -110,7 +110,7 @@ export function IssueStatsChart({ issues, type = 'status' }: IssueStatsChartProp
             <div key={d.name} className="flex items-center gap-1.5 text-xs">
               <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: d.color }} />
               <span>{d.name}</span>
-              <span className="text-muted-foreground">({d.value})</span>
+              <span className="text-slate-400">({d.value})</span>
             </div>
           ))}
         </div>

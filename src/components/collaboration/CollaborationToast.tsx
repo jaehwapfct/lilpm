@@ -22,7 +22,7 @@ export function CollaborationToast() {
     const handleUserLeft = (event: CustomEvent) => {
       const { name } = event.detail;
       toast(t('collaboration.userLeft', { name }), {
-        icon: <UserMinus className="h-4 w-4 text-muted-foreground" />,
+        icon: <UserMinus className="h-4 w-4 text-slate-400" />,
         duration: 3000,
       });
     };

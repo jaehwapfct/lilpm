@@ -98,8 +98,8 @@ export function IssueRow({
   return (
     <div
       className={cn(
-        "group flex items-center gap-3 px-4 py-2 border-b border-border hover:bg-accent/50 transition-colors",
-        isSelected && "bg-accent",
+        "group flex items-center gap-3 px-4 py-2 border-b border-white/10 hover:bg-white/5 transition-colors",
+        isSelected && "bg-violet-500/10",
         isDragging && "opacity-50",
         draggable && "cursor-grab active:cursor-grabbing"
       )}
@@ -128,20 +128,20 @@ export function IssueRow({
 
       {/* Priority */}
       <button
-        className="flex-shrink-0 hover:bg-muted rounded p-1"
+        className="flex-shrink-0 hover:bg-[#1a1a1f] rounded p-1"
         onClick={() => {/* Open priority picker */ }}
       >
         <PriorityIcon priority={issue.priority} />
       </button>
 
       {/* Identifier */}
-      <span className="flex-shrink-0 text-xs text-muted-foreground font-mono w-16">
+      <span className="flex-shrink-0 text-xs text-slate-400 font-mono w-16">
         {issue.identifier}
       </span>
 
       {/* Status */}
       <button
-        className="flex-shrink-0 hover:bg-muted rounded p-1"
+        className="flex-shrink-0 hover:bg-[#1a1a1f] rounded p-1"
         onClick={() => {/* Open status picker */ }}
       >
         <StatusIcon status={issue.status} />
@@ -171,7 +171,7 @@ export function IssueRow({
             </span>
           ))}
           {issue.labels.length > 2 && (
-            <span className="text-2xs text-muted-foreground">
+            <span className="text-2xs text-slate-400">
               +{issue.labels.length - 2}
             </span>
           )}
@@ -179,7 +179,7 @@ export function IssueRow({
       )}
 
       {/* Meta Icons */}
-      <div className="hidden sm:flex items-center gap-2 text-muted-foreground">
+      <div className="hidden sm:flex items-center gap-2 text-slate-400">
         {/* Placeholder for comments count */}
         <div className="flex items-center gap-1 text-xs">
           <MessageSquare className="h-3 w-3" />
@@ -197,13 +197,13 @@ export function IssueRow({
             </AvatarFallback>
           </Avatar>
         ) : (
-          <div className="h-5 w-5 rounded-full border border-dashed border-muted-foreground/50" />
+          <div className="h-5 w-5 rounded-full border border-dashed border-white/20" />
         )}
       </div>
 
       {/* Due Date */}
       {issue.dueDate && (
-        <span className="hidden md:inline text-xs text-muted-foreground">
+        <span className="hidden md:inline text-xs text-slate-400">
           {new Date(issue.dueDate).toLocaleDateString()}
         </span>
       )}

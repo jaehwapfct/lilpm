@@ -45,7 +45,7 @@ export function ProjectProgressChart({ data, className }: ProjectProgressChartPr
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-48 text-muted-foreground">
+          <div className="flex items-center justify-center h-48 text-slate-400">
             {t('common.noData')}
           </div>
         </CardContent>
@@ -89,7 +89,7 @@ export function ProjectProgressChart({ data, className }: ProjectProgressChartPr
               verticalAlign="bottom" 
               height={36}
               formatter={(value) => (
-                <span className="text-xs text-muted-foreground">{value}</span>
+                <span className="text-xs text-slate-400">{value}</span>
               )}
             />
           </PieChart>

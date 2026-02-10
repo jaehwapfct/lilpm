@@ -126,17 +126,17 @@ export function ProjectAssignmentModal({
                 </DialogHeader>
 
                 {member && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-400">
                         {member.profile?.name || 'User'}님의 프로젝트 접근 권한을 설정합니다.
                     </p>
                 )}
 
                 {isLoading ? (
                     <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
                     </div>
                 ) : projects.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-8 text-slate-400">
                         <FolderOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
                         <p>{t('projects.noProjects', '프로젝트가 없습니다')}</p>
                     </div>
@@ -145,7 +145,7 @@ export function ProjectAssignmentModal({
                         {projects.map((project) => (
                             <label
                                 key={project.id}
-                                className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
+                                className="flex items-center gap-3 p-3 rounded-lg border hover:bg-white/5 cursor-pointer transition-colors"
                             >
                                 <Checkbox
                                     checked={assignedProjectIds.has(project.id)}

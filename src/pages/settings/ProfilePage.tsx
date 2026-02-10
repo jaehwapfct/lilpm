@@ -240,7 +240,7 @@ export function ProfilePage() {
         {/* Header */}
         <div>
           <h1 className="text-xl sm:text-2xl font-bold">{t('profile.title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('profile.description')}</p>
+          <p className="text-sm text-slate-400">{t('profile.description')}</p>
         </div>
 
         {/* Stats Overview */}
@@ -292,7 +292,7 @@ export function ProfilePage() {
                   </div>
                   <div className="space-y-1 text-center sm:text-left">
                     <p className="text-sm font-medium">{t('profile.uploadAvatar')}</p>
-                    <p className="text-xs text-muted-foreground">{t('profile.avatarRequirements')}</p>
+                    <p className="text-xs text-slate-400">{t('profile.avatarRequirements')}</p>
                   </div>
                 </div>
               </CardContent>

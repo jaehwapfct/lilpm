@@ -40,11 +40,11 @@ export function TeamOverviewCard({
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">{getGreeting()}</p>
+            <p className="text-sm text-slate-400">{getGreeting()}</p>
             <h2 className="text-2xl font-bold">
               {user?.name || t('dashboard.welcome')}
             </h2>
-            <p className="text-muted-foreground">
+            <p className="text-slate-400">
               {t('dashboard.welcomeTeam', { team: teamName })}
             </p>
           </div>
@@ -59,15 +59,15 @@ export function TeamOverviewCard({
         <div className="mt-6 grid grid-cols-3 gap-4">
           <div className="text-center p-3 bg-[#121215] rounded-xl">
             <p className="text-2xl font-bold">{totalIssues}</p>
-            <p className="text-xs text-muted-foreground">{t('dashboard.totalTasks')}</p>
+            <p className="text-xs text-slate-400">{t('dashboard.totalTasks')}</p>
           </div>
           <div className="text-center p-3 bg-[#121215] rounded-xl">
             <p className="text-2xl font-bold text-green-500">{completedThisWeek}</p>
-            <p className="text-xs text-muted-foreground">{t('dashboard.completedWeek')}</p>
+            <p className="text-xs text-slate-400">{t('dashboard.completedWeek')}</p>
           </div>
           <div className="text-center p-3 bg-[#121215] rounded-xl">
             <p className="text-2xl font-bold">{activeMembers}</p>
-            <p className="text-xs text-muted-foreground">{t('dashboard.activeMembers')}</p>
+            <p className="text-xs text-slate-400">{t('dashboard.activeMembers')}</p>
           </div>
         </div>
       </CardContent>

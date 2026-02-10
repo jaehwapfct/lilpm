@@ -111,22 +111,22 @@ const ColumnBlockComponent: React.FC<NodeViewProps> = ({
                 className={`relative group my-4 ${selected ? 'ring-2 ring-primary rounded-lg' : ''}`}
             >
                 {/* Column controls */}
-                <div className="absolute -top-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-popover border rounded-md shadow-sm p-1 z-10">
+                <div className="absolute -top-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-[#1a1a1f] border rounded-xl shadow-sm p-1 z-10">
                     <button
                         onClick={() => updateAttributes({ columnCount: 2 })}
-                        className={`px-2 py-1 text-xs rounded ${columnCount === 2 ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`}
+                        className={`px-2 py-1 text-xs rounded ${columnCount === 2 ? 'bg-primary text-primary-foreground' : 'hover:bg-white/5'}`}
                     >
                         2 cols
                     </button>
                     <button
                         onClick={() => updateAttributes({ columnCount: 3 })}
-                        className={`px-2 py-1 text-xs rounded ${columnCount === 3 ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`}
+                        className={`px-2 py-1 text-xs rounded ${columnCount === 3 ? 'bg-primary text-primary-foreground' : 'hover:bg-white/5'}`}
                     >
                         3 cols
                     </button>
                     <button
                         onClick={() => updateAttributes({ columnCount: 4 })}
-                        className={`px-2 py-1 text-xs rounded ${columnCount === 4 ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`}
+                        className={`px-2 py-1 text-xs rounded ${columnCount === 4 ? 'bg-primary text-primary-foreground' : 'hover:bg-white/5'}`}
                     >
                         4 cols
                     </button>

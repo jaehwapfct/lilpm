@@ -130,7 +130,7 @@ export function MyIssuesPage() {
       case 'in_progress': return 'bg-blue-500';
       case 'in_review': return 'bg-purple-500';
       case 'todo': return 'bg-yellow-500';
-      default: return 'bg-muted-foreground';
+      default: return 'bg-slate-500';
     }
   };
 
@@ -144,7 +144,7 @@ export function MyIssuesPage() {
               <User className="h-5 w-5 sm:h-6 sm:w-6" />
               {t('nav.myIssues')}
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-slate-400 mt-1">
               {t('myIssues.description')}
             </p>
           </div>
@@ -173,16 +173,16 @@ export function MyIssuesPage() {
         {/* Content */}
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
           </div>
         ) : filteredIssues.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16">
-              <User className="h-12 w-12 text-muted-foreground/50 mb-4" />
+              <User className="h-12 w-12 text-slate-400/50 mb-4" />
               <h3 className="text-lg font-medium mb-2">
                 {t('myIssues.noIssues')}
               </h3>
-              <p className="text-sm text-muted-foreground text-center max-w-md">
+              <p className="text-sm text-slate-400 text-center max-w-md">
                 {t('myIssues.noIssuesDescription')}
               </p>
             </CardContent>
@@ -203,14 +203,14 @@ export function MyIssuesPage() {
                     {teamIssues.map((issue) => (
                       <div
                         key={issue.id}
-                        className="flex items-start gap-3 p-4 hover:bg-muted/50 cursor-pointer transition-colors"
+                        className="flex items-start gap-3 p-4 hover:bg-white/5 cursor-pointer transition-colors"
                         onClick={() => navigate(`/issue/${issue.id}`)}
                       >
                         <IssueTypeIcon type={(issue.type as IssueType) || 'task'} size="sm" />
                         
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-mono text-muted-foreground">
+                            <span className="text-xs font-mono text-slate-400">
                               {issue.identifier}
                             </span>
                             <div className={cn("h-2 w-2 rounded-full", getStatusColor(issue.status))} />
@@ -218,7 +218,7 @@ export function MyIssuesPage() {
                           
                           <p className="font-medium text-sm truncate">{issue.title}</p>
                           
-                          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
+                          <div className="flex items-center gap-3 mt-2 text-xs text-slate-400 flex-wrap">
                             {issue.project && (
                               <span className="flex items-center gap-1">
                                 <FolderKanban className="h-3 w-3" />

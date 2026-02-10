@@ -182,14 +182,14 @@ export function ImageUploadModal({
                         />
                         <Upload className={cn(
                             "h-10 w-10 mx-auto mb-3",
-                            isDragging ? "text-primary" : "text-muted-foreground"
+                            isDragging ? "text-primary" : "text-slate-400"
                         )} />
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-slate-400">
                             {isDragging
                                 ? t('upload.dropHere', 'Drop images here')
                                 : t('upload.dragOrClick', 'Drag images here or click to select')}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-slate-400 mt-1">
                             {images.length}/{maxFiles} {t('upload.imagesSelected', 'images selected')}
                         </p>
                     </div>
@@ -201,7 +201,7 @@ export function ImageUploadModal({
                                 {images.map((image) => (
                                     <div
                                         key={image.id}
-                                        className="relative aspect-square rounded-lg overflow-hidden group border border-border"
+                                        className="relative aspect-square rounded-lg overflow-hidden group border border-white/10"
                                     >
                                         <img
                                             src={image.previewUrl}

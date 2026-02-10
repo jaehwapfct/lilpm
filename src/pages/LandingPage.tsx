@@ -20,7 +20,7 @@ export function LandingPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-hidden">
+    <div className="min-h-screen bg-[#0d0d0f] text-white overflow-hidden">
       {/* Subtle Background - Reduced glow */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-violet-500/10 rounded-full blur-[150px]" />
@@ -28,7 +28,7 @@ export function LandingPage() {
       </div>
 
       {/* Navigation - Full width */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0d0d0f]/80 backdrop-blur-xl border-b border-white/10">
         <div className="px-6 lg:px-12 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 group">
             <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/20 group-hover:shadow-violet-500/30 transition-shadow">
@@ -38,20 +38,20 @@ export function LandingPage() {
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <a href="#features" className="text-sm text-slate-400 hover:text-white transition-colors">
               {t('landing.features')}
             </a>
-            <a href="#ai" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <a href="#ai" className="text-sm text-slate-400 hover:text-white transition-colors">
               {t('landing.ai')}
             </a>
-            <a href="#demo" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <a href="#demo" className="text-sm text-slate-400 hover:text-white transition-colors">
               Demo
             </a>
           </div>
 
           <div className="flex items-center gap-3">
             <Link to="/login">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+              <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
                 {t('auth.login')}
               </Button>
             </Link>
@@ -76,7 +76,7 @@ export function LandingPage() {
 
           {/* Headline */}
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.1]">
-            <span className="text-foreground">
+            <span className="text-white">
               {t('landing.heroTitle1')}
             </span>
             <br />
@@ -86,7 +86,7 @@ export function LandingPage() {
           </h1>
 
           {/* Subheadline */}
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
             {t('landing.heroDescription')}
           </p>
 
@@ -99,20 +99,20 @@ export function LandingPage() {
               </Button>
             </Link>
             <a href="#demo">
-              <Button variant="outline" size="lg" className="h-14 px-8 text-base border-border/50 hover:bg-muted/50">
+              <Button variant="outline" size="lg" className="h-14 px-8 text-base border-white/10 hover:bg-white/5">
                 {t('landing.watchDemo')}
               </Button>
             </a>
           </div>
 
           {/* Trust badges */}
-          <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-slate-400">
             {[
               { icon: CheckCircle2, text: t('landing.freeToStart') },
               { icon: CheckCircle2, text: t('landing.noCardRequired') },
               { icon: CheckCircle2, text: t('landing.proTrial') },
             ].map((item, i) => (
-              <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/30 border border-border/30">
+              <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#121215] border border-white/10">
                 <item.icon className="h-4 w-4 text-emerald-500" />
                 <span>{item.text}</span>
               </div>
@@ -134,10 +134,10 @@ export function LandingPage() {
               { value: 'AI', label: 'ChatGPT, Claude, Gemini', icon: Bot },
               { value: 'Free', label: 'Start Now', icon: Zap },
             ].map((stat, i) => (
-              <div key={i} className="text-center p-4 rounded-xl bg-card/50 border border-border/50 hover:border-violet-500/30 transition-colors group cursor-default">
+              <div key={i} className="text-center p-4 rounded-xl bg-[#1a1a1f]/50 border border-white/10 hover:border-violet-500/30 transition-colors group cursor-default">
                 <stat.icon className="h-5 w-5 mx-auto mb-2 text-violet-500 group-hover:scale-110 transition-transform" />
                 <div className="text-xl font-bold text-violet-500">{stat.value}</div>
-                <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
+                <p className="text-xs text-slate-400 mt-1">{stat.label}</p>
               </div>
             ))}
           </div>
@@ -145,7 +145,7 @@ export function LandingPage() {
       </section>
 
       {/* Features Section - Full width */}
-      <section id="features" className="py-20 px-6 lg:px-12 bg-muted/20">
+      <section id="features" className="py-20 px-6 lg:px-12 bg-[#121215]/30">
         <div className="max-w-[1400px] mx-auto">
           <div className="text-center mb-14">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/10 text-violet-500 text-xs font-medium mb-4">
@@ -155,7 +155,7 @@ export function LandingPage() {
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               {t('landing.featuresTitle')}
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto">
               {t('landing.featuresDescription')}
             </p>
           </div>
@@ -212,7 +212,7 @@ export function LandingPage() {
                   {t('landing.aiTitle2')}
                 </span>
               </h2>
-              <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
+              <p className="text-lg text-slate-400 mb-8 leading-relaxed">
                 {t('landing.aiDescription')}
               </p>
 
@@ -227,21 +227,21 @@ export function LandingPage() {
                     <div className="h-5 w-5 rounded-full bg-violet-500 flex items-center justify-center">
                       <CheckCircle2 className="h-3 w-3 text-white" />
                     </div>
-                    <span className="text-foreground/80">{text}</span>
+                    <span className="text-white/80">{text}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
             <div className="relative">
-              <div className="rounded-2xl border border-border/50 bg-card p-6 shadow-xl">
-                <div className="flex items-center gap-3 mb-5 pb-4 border-b border-border/50">
+              <div className="rounded-2xl border border-white/10/50 bg-[#1a1a1f] p-6 shadow-xl">
+                <div className="flex items-center gap-3 mb-5 pb-4 border-b border-white/10/50">
                   <div className="h-10 w-10 rounded-xl bg-violet-500 flex items-center justify-center">
                     <Sparkles className="h-5 w-5 text-white" />
                   </div>
                   <div>
                     <span className="font-semibold">Lily</span>
-                    <p className="text-xs text-muted-foreground">AI Project Assistant</p>
+                    <p className="text-xs text-slate-400">AI Project Assistant</p>
                   </div>
                   <div className="ml-auto flex items-center gap-1.5 text-xs text-emerald-500">
                     <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -250,8 +250,8 @@ export function LandingPage() {
                 </div>
                 <div className="space-y-4">
                   <div className="flex gap-3">
-                    <div className="h-8 w-8 rounded-full bg-muted flex-shrink-0 flex items-center justify-center text-xs font-medium">JD</div>
-                    <div className="bg-muted/50 rounded-2xl rounded-bl-sm px-4 py-3 text-sm">
+                    <div className="h-8 w-8 rounded-full bg-[#121215] flex-shrink-0 flex items-center justify-center text-xs font-medium">JD</div>
+                    <div className="bg-white/5 rounded-2xl rounded-bl-sm px-4 py-3 text-sm">
                       {t('landing.chatExample1')}
                     </div>
                   </div>
@@ -271,12 +271,12 @@ export function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-6 lg:px-12 bg-muted/20">
+      <section className="py-20 px-6 lg:px-12 bg-[#121215]/30">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
             {t('landing.ctaTitle')}
           </h2>
-          <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-400 mb-10 max-w-2xl mx-auto">
             {t('landing.ctaDescription')}
           </p>
           <Link to="/signup">
@@ -289,7 +289,7 @@ export function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-10 px-6 lg:px-12 border-t border-border/50">
+      <footer className="py-10 px-6 lg:px-12 border-t border-white/10">
         <div className="max-w-[1400px] mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <Link to="/" className="flex items-center gap-2.5">
@@ -299,13 +299,13 @@ export function LandingPage() {
               <span className="text-lg font-semibold">Lil PM</span>
             </Link>
 
-            <div className="flex items-center gap-8 text-sm text-muted-foreground">
-              <a href="#" className="hover:text-foreground transition-colors">{t('landing.terms')}</a>
-              <a href="#" className="hover:text-foreground transition-colors">{t('landing.privacy')}</a>
-              <a href="#" className="hover:text-foreground transition-colors">{t('landing.contact')}</a>
+            <div className="flex items-center gap-8 text-sm text-slate-400">
+              <a href="#" className="hover:text-white transition-colors">{t('landing.terms')}</a>
+              <a href="#" className="hover:text-white transition-colors">{t('landing.privacy')}</a>
+              <a href="#" className="hover:text-white transition-colors">{t('landing.contact')}</a>
             </div>
 
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-slate-400">
               © 2025 Lil PM. All rights reserved.
             </p>
           </div>
@@ -322,12 +322,12 @@ function FeatureCard({ icon, title, description }: {
   description: string;
 }) {
   return (
-    <div className="group rounded-xl border border-border/50 bg-card/50 p-5 hover:border-violet-500/30 hover:bg-card/80 transition-all duration-200 cursor-default">
+    <div className="group rounded-xl border border-white/10 bg-[#1a1a1f]/50 p-5 hover:border-violet-500/30 hover:bg-[#1a1a1f] transition-all duration-200 cursor-default">
       <div className="h-10 w-10 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-500 group-hover:bg-violet-500 group-hover:text-white transition-colors mb-4">
         {icon}
       </div>
       <h3 className="text-base font-semibold mb-1.5">{title}</h3>
-      <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
+      <p className="text-slate-400 text-sm leading-relaxed">{description}</p>
     </div>
   );
 }

@@ -198,37 +198,37 @@ const TemplateButtonComponent: React.FC<NodeViewProps> = ({
     if (isEditing) {
         return (
             <NodeViewWrapper>
-                <div className={`p-4 rounded-lg border-2 border-dashed ${selected ? 'border-primary' : 'border-border'} bg-muted/30`}>
+                <div className={`p-4 rounded-lg border-2 border-dashed ${selected ? 'border-primary' : 'border-white/10'} bg-white/5`}>
                     <div className="space-y-3">
                         <div>
-                            <label className="text-xs font-medium text-muted-foreground">Button Label</label>
+                            <label className="text-xs font-medium text-slate-400">Button Label</label>
                             <input
                                 type="text"
                                 value={label || ''}
                                 onChange={(e) => updateAttributes({ label: e.target.value })}
                                 placeholder="Insert Template"
-                                className="w-full mt-1 px-3 py-2 text-sm border rounded-md bg-background"
+                                className="w-full mt-1 px-3 py-2 text-sm border rounded-xl bg-[#0d0d0f]"
                             />
                         </div>
 
                         <div>
-                            <label className="text-xs font-medium text-muted-foreground">Template</label>
+                            <label className="text-xs font-medium text-slate-400">Template</label>
                             <div className="mt-2 space-y-2 max-h-48 overflow-y-auto">
                                 {allTemplates.map((template) => (
                                     <button
                                         key={template.id}
                                         onClick={() => updateAttributes({ selectedTemplateId: template.id })}
-                                        className={`w-full flex items-center gap-3 p-2 rounded-md text-left transition-colors ${selectedTemplateId === template.id
+                                        className={`w-full flex items-center gap-3 p-2 rounded-xl text-left transition-colors ${selectedTemplateId === template.id
                                                 ? 'bg-primary/10 border border-primary'
-                                                : 'hover:bg-accent border border-transparent'
+                                                : 'hover:bg-white/5 border border-transparent'
                                             }`}
                                     >
-                                        <div className="p-1.5 rounded bg-muted">
+                                        <div className="p-1.5 rounded bg-[#121215]">
                                             {getIcon(template.icon)}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="text-sm font-medium truncate">{template.name}</div>
-                                            <div className="text-xs text-muted-foreground truncate">{template.description}</div>
+                                            <div className="text-xs text-slate-400 truncate">{template.description}</div>
                                         </div>
                                     </button>
                                 ))}
@@ -238,14 +238,14 @@ const TemplateButtonComponent: React.FC<NodeViewProps> = ({
                         <div className="flex gap-2 pt-2">
                             <button
                                 onClick={() => setIsEditing(false)}
-                                className="flex-1 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md"
+                                className="flex-1 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-xl"
                                 disabled={!selectedTemplateId}
                             >
                                 Done
                             </button>
                             <button
                                 onClick={deleteNode}
-                                className="px-4 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-md"
+                                className="px-4 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-xl"
                             >
                                 <Trash2 className="h-4 w-4" />
                             </button>
@@ -262,7 +262,7 @@ const TemplateButtonComponent: React.FC<NodeViewProps> = ({
                 <button
                     onClick={insertTemplate}
                     disabled={isInserting || !selectedTemplate}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-[#1a1a1f] text-slate-300 hover:bg-[#1a1a1f]/80 transition-colors disabled:opacity-50"
                 >
                     {isInserting ? (
                         <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -277,9 +277,9 @@ const TemplateButtonComponent: React.FC<NodeViewProps> = ({
 
                 <button
                     onClick={() => setIsEditing(true)}
-                    className="p-1.5 hover:bg-accent rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="p-1.5 hover:bg-white/5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                    <Settings className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Settings className="h-3.5 w-3.5 text-slate-400" />
                 </button>
             </div>
         </NodeViewWrapper>

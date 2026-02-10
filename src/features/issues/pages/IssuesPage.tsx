@@ -177,7 +177,7 @@ export function IssuesPage() {
     <AppLayout>
       <div className="flex flex-col h-full">
         {/* Toolbar - Mobile Responsive */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-3 sm:px-4 py-2 border-b border-border bg-background gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-3 sm:px-4 py-2 border-b border-white/10 bg-[#0d0d0f] gap-2">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
             {/* View Toggle */}
             <Tabs
@@ -198,12 +198,12 @@ export function IssuesPage() {
             </Tabs>
 
             {/* Sprint View Toggle - Jira-style Active Sprint / Backlog */}
-            <div className="flex items-center border border-border rounded-lg p-0.5 bg-muted/30">
+            <div className="flex items-center border border-white/10 rounded-lg p-0.5 bg-white/5">
               <button
                 onClick={() => setSprintView('all')}
                 className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors ${sprintView === 'all'
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-[#0d0d0f] text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
                   }`}
               >
                 {t('issues.allIssues', 'All')}
@@ -215,7 +215,7 @@ export function IssuesPage() {
                 onClick={() => setSprintView('active')}
                 className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors ${sprintView === 'active'
                   ? 'bg-green-500/10 text-green-600 shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                  : 'text-slate-400 hover:text-white'
                   }`}
               >
                 <Zap className="h-3 w-3" />
@@ -228,7 +228,7 @@ export function IssuesPage() {
                 onClick={() => setSprintView('backlog')}
                 className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors ${sprintView === 'backlog'
                   ? 'bg-slate-500/10 text-slate-600 shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                  : 'text-slate-400 hover:text-white'
                   }`}
               >
                 <Archive className="h-3 w-3" />

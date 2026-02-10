@@ -26,22 +26,24 @@
     /* #1a1a1f */
     --secondary-foreground: 215 16% 62%;
 
-    --muted: 240 6% 10%;
-    --muted-foreground: 215 16% 47%;
-    /* slate-500 */
+    --muted: 240 7% 7%;
+    /* #121215 - deeper muted */
+    --muted-foreground: 215 16% 57%;
+    /* slate-400 */
 
-    --accent: 240 6% 10%;
+    --accent: 240 7% 9%;
+    /* subtle hover bg */
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 100% / 5%;
-    /* white/5 */
+    --border: 0 0% 100% / 10%;
+    /* white/10 - more visible borders */
     --input: 0 0% 100% / 10%;
     /* white/10 */
-    --ring: 263 70% 56% / 20%;
-    /* violet-500/20 */
+    --ring: 263 70% 56% / 30%;
+    /* violet-500/30 - stronger focus ring */
 
     --radius: 0.75rem;
 
@@ -96,18 +98,18 @@
     --secondary: 240 6% 10%;
     --secondary-foreground: 215 16% 62%;
 
-    --muted: 240 6% 10%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 240 7% 7%;
+    --muted-foreground: 215 16% 57%;
 
-    --accent: 240 6% 10%;
+    --accent: 240 7% 9%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 100% / 5%;
+    --border: 0 0% 100% / 10%;
     --input: 0 0% 100% / 10%;
-    --ring: 263 70% 56% / 20%;
+    --ring: 263 70% 56% / 30%;
 
     --sidebar-background: 240 6% 10%;
     --sidebar-foreground: 0 0% 100%;

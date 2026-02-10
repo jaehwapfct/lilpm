@@ -208,7 +208,7 @@ export function TeamSettingsPage() {
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
         </div>
       </AppLayout>
     );
@@ -224,7 +224,7 @@ export function TeamSettingsPage() {
               <Settings className="h-5 w-5 sm:h-6 sm:w-6" />
               {t('teamSettings.title', 'Team Settings')}
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-slate-400 mt-1">
               {t('teamSettings.description', 'Manage your team settings and preferences')}
             </p>
           </div>
@@ -232,7 +232,7 @@ export function TeamSettingsPage() {
           {/* Team Selector */}
           {teams.length > 1 && (
             <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <Building2 className="h-4 w-4 text-slate-400" />
               <Select
                 value={currentTeam?.id}
                 onValueChange={(teamId) => {
@@ -282,7 +282,7 @@ export function TeamSettingsPage() {
                 placeholder="e.g. ACME"
                 disabled={!canEdit}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-slate-400">
                 {t('teamSettings.issuePrefixDesc', 'Used for issue identifiers like ACME-123')}
               </p>
             </div>
@@ -395,7 +395,7 @@ export function TeamSettingsPage() {
                         {t('teamSettings.leaveTeamConfirmDesc', 'You will lose access to all projects, issues, and data in this team. You can rejoin if invited again.')}
                       </p>
                       <div className="space-y-2">
-                        <p className="text-sm font-medium text-foreground">
+                        <p className="text-sm font-medium text-white">
                           {t('teamSettings.typeLeaveToConfirm', 'Type LEAVE to confirm')}
                         </p>
                         <Input
@@ -459,7 +459,7 @@ export function TeamSettingsPage() {
                         {t('teamSettings.deleteTeamDesc', 'This action cannot be undone. All projects, issues, and data associated with this team will be permanently deleted.')}
                       </p>
                       <div className="space-y-2">
-                        <p className="text-sm font-medium text-foreground">
+                        <p className="text-sm font-medium text-white">
                           {t('teamSettings.typeToConfirm', 'Type the team name to confirm:')} <strong>{currentTeam.name}</strong>
                         </p>
                         <Input

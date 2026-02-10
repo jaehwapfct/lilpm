@@ -133,10 +133,10 @@ export function SharedConversationPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-background">
+            <div className="min-h-screen flex items-center justify-center bg-[#0d0d0f]">
                 <div className="text-center">
                     <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-                    <p className="text-muted-foreground">{t('common.loading', 'Loading...')}</p>
+                    <p className="text-slate-400">{t('common.loading', 'Loading...')}</p>
                 </div>
             </div>
         );
@@ -144,7 +144,7 @@ export function SharedConversationPage() {
 
     if (error || !sharedConv) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-background p-4">
+            <div className="min-h-screen flex items-center justify-center bg-[#0d0d0f] p-4">
                 <Card className="w-full max-w-md">
                     <CardHeader className="text-center">
                         <div className="mx-auto h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
@@ -168,7 +168,7 @@ export function SharedConversationPage() {
     // Need to request access for private conversations
     if (!sharedConv.isPublic && !isAuthenticated) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-background p-4">
+            <div className="min-h-screen flex items-center justify-center bg-[#0d0d0f] p-4">
                 <Card className="w-full max-w-md">
                     <CardHeader className="text-center">
                         <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
@@ -185,7 +185,7 @@ export function SharedConversationPage() {
                                 <p className="text-green-600 font-medium">
                                     {t('lily.accessRequested', 'Access request sent!')}
                                 </p>
-                                <p className="text-sm text-muted-foreground mt-1">
+                                <p className="text-sm text-slate-400 mt-1">
                                     {t('lily.waitingForApproval', 'Waiting for approval from the owner.')}
                                 </p>
                             </div>
@@ -217,14 +217,14 @@ export function SharedConversationPage() {
     }
 
     return (
-        <div className="min-h-screen bg-background flex flex-col">
+        <div className="min-h-screen bg-[#0d0d0f] flex flex-col">
             {/* Header */}
             <div className="border-b px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <MessageSquare className="h-5 w-5 text-primary" />
                     <div>
                         <h1 className="font-medium">{sharedConv.title || t('lily.untitledConversation', 'Untitled')}</h1>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-slate-400">
                             {t('lily.sharedBy', 'Shared by')} {sharedConv.sharedByName}
                         </p>
                     </div>
@@ -251,8 +251,8 @@ export function SharedConversationPage() {
                             )}
                             <div
                                 className={`rounded-lg px-4 py-2 max-w-[80%] ${message.role === 'user'
-                                        ? 'bg-primary text-primary-foreground'
-                                        : 'bg-muted'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-[#1a1a1f]'
                                     }`}
                             >
                                 <p className="text-sm whitespace-pre-wrap">{message.content}</p>

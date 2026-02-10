@@ -87,7 +87,7 @@ export function DatabasePage() {
                         {selectedDatabase?.properties.map(prop => (
                             <TableHead key={prop.id} className="min-w-[150px]">
                                 <div className="flex items-center gap-2">
-                                    {React.createElement(PROPERTY_ICONS[prop.type] || Type, { className: 'h-4 w-4 text-muted-foreground' })}
+                                    {React.createElement(PROPERTY_ICONS[prop.type] || Type, { className: 'h-4 w-4 text-slate-400' })}
                                     {prop.name}
                                 </div>
                             </TableHead>
@@ -125,7 +125,7 @@ export function DatabasePage() {
                 </TableHeader>
                 <TableBody>
                     {filteredRows.map(row => (
-                        <TableRow key={row.id} className="hover:bg-muted/50 cursor-pointer">
+                        <TableRow key={row.id} className="hover:bg-white/5 cursor-pointer">
                             {selectedDatabase?.properties.map(prop => (
                                 <TableCell key={prop.id}>
                                     {getCellValue(row, prop)}
@@ -155,9 +155,9 @@ export function DatabasePage() {
                         </TableRow>
                     ))}
                     {/* New row button */}
-                    <TableRow className="hover:bg-muted/50 cursor-pointer" onClick={handleAddRow}>
+                    <TableRow className="hover:bg-white/5 cursor-pointer" onClick={handleAddRow}>
                         <TableCell colSpan={(selectedDatabase?.properties.length || 0) + 1}>
-                            <div className="flex items-center gap-2 text-muted-foreground">
+                            <div className="flex items-center gap-2 text-slate-400">
                                 <Plus className="h-4 w-4" />
                                 {t('database.newRow')}
                             </div>
@@ -172,7 +172,7 @@ export function DatabasePage() {
         const groupByProperty = selectedDatabase?.properties.find(p => p.type === 'select' || p.type === 'status');
 
         if (!groupByProperty?.options) {
-            return <div className="text-center text-muted-foreground p-8">{t('database.noGroupProperty')}</div>;
+            return <div className="text-center text-slate-400 p-8">{t('database.noGroupProperty')}</div>;
         }
 
         return (
@@ -193,7 +193,7 @@ export function DatabasePage() {
                                 <span className="font-medium">{option.name}</span>
                                 <Badge variant="secondary" className="ml-auto">{columnRows.length}</Badge>
                             </div>
-                            <div className="bg-muted/30 rounded-b-lg p-2 min-h-[200px] space-y-2">
+                            <div className="bg-[#121215] rounded-b-lg p-2 min-h-[200px] space-y-2">
                                 {columnRows.map(row => (
                                     <Card key={row.id} className="cursor-pointer hover:shadow-md transition-shadow">
                                         <CardContent className="p-3">
@@ -203,7 +203,7 @@ export function DatabasePage() {
                                                     .filter(p => p.id !== 'title' && p.id !== groupByProperty.id)
                                                     .slice(0, 2)
                                                     .map(prop => (
-                                                        <span key={prop.id} className="text-xs text-muted-foreground">
+                                                        <span key={prop.id} className="text-xs text-slate-400">
                                                             {getCellValue(row, prop)}
                                                         </span>
                                                     ))
@@ -242,7 +242,7 @@ export function DatabasePage() {
         <AppLayout>
             <div className="h-full flex">
                 {/* Database Sidebar */}
-                <aside className="w-64 border-r bg-muted/20 p-4 flex-shrink-0">
+                <aside className="w-64 border-r border-white/10 bg-[#121215] p-4 flex-shrink-0">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="font-semibold text-lg">{t('database.title')}</h2>
                         <Dialog open={showNewDatabaseDialog} onOpenChange={setShowNewDatabaseDialog}>
@@ -278,7 +278,7 @@ export function DatabasePage() {
                                     onClick={() => setSelectedDatabase(db)}
                                     className={`w-full flex items-center gap-2 p-2 rounded-lg text-left text-sm transition-colors ${selectedDatabase?.id === db.id
                                         ? 'bg-primary/10 text-primary'
-                                        : 'hover:bg-muted'
+                                        : 'hover:bg-white/5'
                                         }`}
                                 >
                                     <span className="text-lg">{db.icon || '📊'}</span>
@@ -300,7 +300,7 @@ export function DatabasePage() {
                                     <div>
                                         <h1 className="text-2xl font-bold">{selectedDatabase.name}</h1>
                                         {selectedDatabase.description && (
-                                            <p className="text-muted-foreground text-sm">{selectedDatabase.description}</p>
+                                            <p className="text-slate-400 text-sm">{selectedDatabase.description}</p>
                                         )}
                                     </div>
                                 </div>
@@ -340,7 +340,7 @@ export function DatabasePage() {
                                 </Tabs>
 
                                 <div className="relative w-64">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                                     <Input
                                         placeholder={t('database.search')}
                                         value={searchQuery}
@@ -355,7 +355,7 @@ export function DatabasePage() {
                                 {currentView === 'table' && <TableView />}
                                 {currentView === 'board' && <BoardView />}
                                 {currentView === 'calendar' && (
-                                    <div className="text-center text-muted-foreground p-8">
+                                    <div className="text-center text-slate-400 p-8">
                                         {t('database.calendarComingSoon')}
                                     </div>
                                 )}
@@ -370,7 +370,7 @@ export function DatabasePage() {
                                                             .filter(p => p.id !== 'title')
                                                             .slice(0, 3)
                                                             .map(prop => (
-                                                                <span key={prop.id} className="text-sm text-muted-foreground">
+                                                                <span key={prop.id} className="text-sm text-slate-400">
                                                                     {getCellValue(row, prop)}
                                                                 </span>
                                                             ))
@@ -390,7 +390,7 @@ export function DatabasePage() {
                         <div className="flex flex-col items-center justify-center h-full text-center">
                             <div className="text-6xl mb-4">📊</div>
                             <h2 className="text-2xl font-bold mb-2">{t('database.noDatabase')}</h2>
-                            <p className="text-muted-foreground mb-4">{t('database.noDatabaseDesc')}</p>
+                            <p className="text-slate-400 mb-4">{t('database.noDatabaseDesc')}</p>
                             <Button onClick={() => setShowNewDatabaseDialog(true)}>
                                 <Plus className="h-4 w-4 mr-2" /> {t('database.createFirst')}
                             </Button>

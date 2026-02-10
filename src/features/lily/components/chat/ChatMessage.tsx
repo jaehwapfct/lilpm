@@ -83,7 +83,7 @@ export const ChatMessage = memo(function ChatMessage({
                 <Avatar className="h-6 w-6 flex-shrink-0">
                     <AvatarFallback className={cn(
                         "text-xs",
-                        message.role === 'assistant' && "bg-primary text-primary-foreground"
+                        message.role === 'assistant' && "bg-violet-500 text-white"
                     )}>
                         {message.role === 'assistant' ? (
                             <Bot className="h-3 w-3" />
@@ -98,8 +98,8 @@ export const ChatMessage = memo(function ChatMessage({
                         className={cn(
                             "rounded-lg px-3 py-1.5",
                             message.role === 'user'
-                                ? "bg-primary text-primary-foreground text-[13px]"
-                                : "bg-muted"
+                                ? "bg-violet-500 text-white text-[13px]"
+                                : "bg-[#1a1a1f]"
                         )}
                     >
                         {message.role === 'assistant' ? (
@@ -110,30 +110,30 @@ export const ChatMessage = memo(function ChatMessage({
               [&_ol]:my-3 [&_ol]:pl-6 [&_ol]:list-decimal [&_ol]:space-y-1
               [&_li]:leading-7 [&_li]:pl-1
               [&_li_p]:my-1
-              [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mt-6 [&_h1]:mb-3 [&_h1]:border-b [&_h1]:border-border [&_h1]:pb-2
-              [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-foreground
-              [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-foreground
+              [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mt-6 [&_h1]:mb-3 [&_h1]:border-b [&_h1]:border-white/10 [&_h1]:pb-2
+              [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-white
+              [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-white
               [&_h4]:text-sm [&_h4]:font-medium [&_h4]:mt-3 [&_h4]:mb-1
-              [&_code]:text-xs [&_code]:bg-muted/70 [&_code]:text-primary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:font-mono
-              [&_pre]:my-4 [&_pre]:bg-zinc-900 [&_pre]:dark:bg-zinc-950 [&_pre]:text-zinc-100 [&_pre]:p-4 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:border [&_pre]:border-border
+              [&_code]:text-xs [&_code]:bg-white/10 [&_code]:text-primary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-xl [&_code]:font-mono
+              [&_pre]:my-4 [&_pre]:bg-zinc-900 [&_pre]:dark:bg-zinc-950 [&_pre]:text-zinc-100 [&_pre]:p-4 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:border [&_pre]:border-white/10
               [&_pre_code]:bg-transparent [&_pre_code]:text-inherit [&_pre_code]:p-0 [&_pre_code]:text-xs
-              [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:pl-4 [&_blockquote]:my-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground [&_blockquote]:bg-muted/30 [&_blockquote]:py-2 [&_blockquote]:pr-4 [&_blockquote]:rounded-r-lg
-              [&_strong]:font-semibold [&_strong]:text-foreground
-              [&_em]:italic [&_em]:text-foreground/90
-              [&_hr]:my-6 [&_hr]:border-border
-              [&_table]:my-4 [&_table]:w-full [&_table]:text-xs [&_table]:border-collapse [&_table]:border [&_table]:border-border [&_table]:rounded-lg [&_table]:overflow-hidden
-              [&_thead]:bg-muted/70
-              [&_th]:border [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_th]:text-left [&_th]:text-foreground [&_th]:bg-muted/50
+              [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:pl-4 [&_blockquote]:my-4 [&_blockquote]:italic [&_blockquote]:text-slate-400 [&_blockquote]:bg-white/5 [&_blockquote]:py-2 [&_blockquote]:pr-4 [&_blockquote]:rounded-r-lg
+              [&_strong]:font-semibold [&_strong]:text-white
+              [&_em]:italic [&_em]:text-white/90
+              [&_hr]:my-6 [&_hr]:border-white/10
+              [&_table]:my-4 [&_table]:w-full [&_table]:text-xs [&_table]:border-collapse [&_table]:border [&_table]:border-white/10 [&_table]:rounded-lg [&_table]:overflow-hidden
+              [&_thead]:bg-white/10
+              [&_th]:border [&_th]:border-white/10 [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_th]:text-left [&_th]:text-white [&_th]:bg-white/5
               [&_tbody]:divide-y [&_tbody]:divide-border
-              [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_td]:text-muted-foreground
+              [&_td]:border [&_td]:border-white/10 [&_td]:px-3 [&_td]:py-2 [&_td]:text-slate-400
               [&_tr]:transition-colors
-              [&_tbody_tr:hover]:bg-muted/30
+              [&_tbody_tr:hover]:bg-white/5
               [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_a]:font-medium hover:[&_a]:text-primary/80
               [&_img]:rounded-lg [&_img]:my-4
-              [&_del]:line-through [&_del]:text-muted-foreground
+              [&_del]:line-through [&_del]:text-slate-400
             ">
                                 {isLoading && isLastMessage && thinkingContent && !cleanContent ? (
-                                    <span className="text-muted-foreground italic">{t('lily.thinking', 'Thinking...')}</span>
+                                    <span className="text-slate-400 italic">{t('lily.thinking', 'Thinking...')}</span>
                                 ) : (
                                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanContent || t('lily.generating', 'Generating...')}</ReactMarkdown>
                                 )}
@@ -152,7 +152,7 @@ export const ChatMessage = memo(function ChatMessage({
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                                className="h-6 w-6 p-0 text-slate-400 hover:text-white"
                                 onClick={() => onEditMessage(cleanContent, message.id)}
                                 title={t('lily.edit', '수정')}
                             >
@@ -161,7 +161,7 @@ export const ChatMessage = memo(function ChatMessage({
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                                className="h-6 w-6 p-0 text-slate-400 hover:text-white"
                                 onClick={() => onCopyMessage(cleanContent)}
                                 title={t('lily.copy', '복사')}
                             >
@@ -170,7 +170,7 @@ export const ChatMessage = memo(function ChatMessage({
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                                className="h-6 w-6 p-0 text-slate-400 hover:text-white"
                                 onClick={() => onRetryMessage(cleanContent, messageIndex)}
                                 title={t('lily.retry', '다시 시도')}
                             >
@@ -218,7 +218,7 @@ export const ChatMessage = memo(function ChatMessage({
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 });
 

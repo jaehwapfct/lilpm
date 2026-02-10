@@ -134,7 +134,7 @@ export function AISetupPage() {
               <Brain className="h-5 w-5 text-violet-500 mt-0.5" />
               <div>
                 <h3 className="font-medium">What Lil PM AI can do:</h3>
-                <ul className="text-sm text-muted-foreground mt-2 space-y-1">
+                <ul className="text-sm text-slate-400 mt-2 space-y-1">
                   <li>• Generate PRDs and feature specifications</li>
                   <li>• Auto-create development tickets from discussions</li>
                   <li>• Analyze project progress and suggest improvements</li>
@@ -142,7 +142,7 @@ export function AISetupPage() {
                 </ul>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 text-sm text-slate-400">
               <Zap className="h-4 w-4 text-amber-500" />
               <span>Uses your own API keys - you control the costs</span>
             </div>
@@ -174,7 +174,7 @@ export function AISetupPage() {
                     href={config.docsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
+                    className="text-xs text-slate-400 hover:text-primary flex items-center gap-1"
                   >
                     Get API key
                     <ExternalLink className="h-3 w-3" />
@@ -196,9 +196,9 @@ export function AISetupPage() {
                     onClick={() => toggleShowKey(provider)}
                   >
                     {showKeys[provider] ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      <EyeOff className="h-4 w-4 text-slate-400" />
                     ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
+                      <Eye className="h-4 w-4 text-slate-400" />
                     )}
                   </Button>
                 </div>
@@ -206,7 +206,7 @@ export function AISetupPage() {
             );
           })}
 
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-slate-400">
             Your API keys are stored locally and never sent to our servers.
             You can add more providers later in Settings → LLM Models.
           </p>
@@ -214,7 +214,7 @@ export function AISetupPage() {
 
         {/* Error Message */}
         {error && (
-          <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+          <div className="p-3 rounded-xl bg-destructive/10 text-destructive text-sm">
             {error}
           </div>
         )}
@@ -244,7 +244,7 @@ export function AISetupPage() {
         <div className="text-center">
           <Button
             variant="ghost"
-            className="text-muted-foreground"
+            className="text-slate-400"
             onClick={handleSkip}
           >
             I'll set this up later

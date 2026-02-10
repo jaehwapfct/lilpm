@@ -109,17 +109,17 @@ export function IssueBoard({
             "flex-shrink-0 w-[280px] sm:w-72 flex flex-col rounded-lg transition-colors duration-200",
             dragOverColumn === status
               ? "bg-primary/10 ring-2 ring-primary/50"
-              : "bg-muted/30"
+              : "bg-white/5"
           )}
           onDragOver={(e) => handleDragOver(e, status)}
           onDragLeave={handleDragLeave}
           onDrop={(e) => handleDrop(e, status)}
         >
           {/* Column Header */}
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-border sticky top-0 bg-inherit backdrop-blur-sm z-10 rounded-t-lg">
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-white/10 sticky top-0 bg-inherit backdrop-blur-sm z-10 rounded-t-lg">
             <StatusIcon status={status} />
             <span className="font-medium text-sm">{statusLabels[status]}</span>
-            <span className="text-xs text-muted-foreground ml-1">
+            <span className="text-xs text-slate-400 ml-1">
               {columns[status].length}
             </span>
             <Button
@@ -146,7 +146,7 @@ export function IssueBoard({
             ))}
             {columns[status].length === 0 && (
               <div className={cn(
-                "py-8 text-center text-muted-foreground text-xs rounded-md transition-colors",
+                "py-8 text-center text-slate-400 text-xs rounded-xl transition-colors",
                 dragOverColumn === status && "bg-primary/5"
               )}>
                 {dragOverColumn === status

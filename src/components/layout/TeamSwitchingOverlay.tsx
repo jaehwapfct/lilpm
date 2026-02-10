@@ -13,7 +13,7 @@ export function TeamSwitchingOverlay({ isVisible, teamName }: TeamSwitchingOverl
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0d0d0f]/80 backdrop-blur-sm">
       <div className="flex flex-col items-center gap-6 p-8">
         {/* Team icon animation */}
         <div className="relative">
@@ -36,7 +36,7 @@ export function TeamSwitchingOverlay({ isVisible, teamName }: TeamSwitchingOverl
           <h3 className="text-lg font-semibold">
             {t('teams.switchingTo', 'Switching to')} {teamName}...
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-slate-400">
             {t('teams.loadingTeamData', 'Loading team data')}
           </p>
         </div>
@@ -44,21 +44,21 @@ export function TeamSwitchingOverlay({ isVisible, teamName }: TeamSwitchingOverl
         {/* Skeleton content preview */}
         <div className="w-full max-w-md space-y-4 mt-4">
           <div className="flex gap-3">
-            <Skeleton className="h-10 w-10 rounded-md" />
+            <Skeleton className="h-10 w-10 rounded-xl" />
             <div className="flex-1 space-y-2">
               <Skeleton className="h-4 w-3/4" />
               <Skeleton className="h-3 w-1/2" />
             </div>
           </div>
           <div className="flex gap-3">
-            <Skeleton className="h-10 w-10 rounded-md" />
+            <Skeleton className="h-10 w-10 rounded-xl" />
             <div className="flex-1 space-y-2">
               <Skeleton className="h-4 w-2/3" />
               <Skeleton className="h-3 w-1/3" />
             </div>
           </div>
           <div className="flex gap-3">
-            <Skeleton className="h-10 w-10 rounded-md" />
+            <Skeleton className="h-10 w-10 rounded-xl" />
             <div className="flex-1 space-y-2">
               <Skeleton className="h-4 w-4/5" />
               <Skeleton className="h-3 w-2/5" />

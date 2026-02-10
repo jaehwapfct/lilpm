@@ -224,10 +224,10 @@ export function BlockEditor({
 
           const renderComponent = () => {
             root?.render(
-              <div className="bg-popover border border-border rounded-md shadow-lg overflow-hidden max-w-[280px]">
+              <div className="bg-[#1a1a1f] border border-white/10 rounded-xl shadow-lg overflow-hidden max-w-[280px]">
                 <div className="max-h-32 overflow-y-auto p-1">
                   {items.length === 0 ? (
-                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                    <div className="px-2 py-1.5 text-sm text-slate-400">
                       No members found
                     </div>
                   ) : (
@@ -235,7 +235,7 @@ export function BlockEditor({
                       <button
                         key={item.id}
                         type="button"
-                        className={`w-full flex items-center gap-2 px-2 py-1 rounded text-xs text-left ${index === selectedIndex ? 'bg-accent' : 'hover:bg-accent/50'
+                        className={`w-full flex items-center gap-2 px-2 py-1 rounded text-xs text-left ${index === selectedIndex ? 'bg-white/5' : 'hover:bg-white/5/50'
                           }`}
                         onClick={() => {
                           props.command({ id: item.id, label: item.name || item.email || 'User' });
@@ -245,8 +245,8 @@ export function BlockEditor({
                           {item.name?.charAt(0) || item.email?.charAt(0) || '?'}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate text-foreground">{item.name || 'User'}</p>
-                          <p className="text-xs text-muted-foreground truncate">{item.email}</p>
+                          <p className="font-medium truncate text-white">{item.name || 'User'}</p>
+                          <p className="text-xs text-slate-400 truncate">{item.email}</p>
                         </div>
                       </button>
                     ))
@@ -274,10 +274,10 @@ export function BlockEditor({
 
           if (root && component) {
             root.render(
-              <div className="bg-popover border border-border rounded-md shadow-lg overflow-hidden">
+              <div className="bg-[#1a1a1f] border border-white/10 rounded-xl shadow-lg overflow-hidden">
                 <div className="max-h-48 overflow-y-auto p-1">
                   {items.length === 0 ? (
-                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                    <div className="px-2 py-1.5 text-sm text-slate-400">
                       No members found
                     </div>
                   ) : (
@@ -285,7 +285,7 @@ export function BlockEditor({
                       <button
                         key={item.id}
                         type="button"
-                        className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm text-left ${index === selectedIndex ? 'bg-accent' : 'hover:bg-accent/50'
+                        className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm text-left ${index === selectedIndex ? 'bg-white/5' : 'hover:bg-white/5/50'
                           }`}
                         onClick={() => {
                           props.command({ id: item.id, label: item.name || item.email || 'User' });
@@ -295,8 +295,8 @@ export function BlockEditor({
                           {item.name?.charAt(0) || item.email?.charAt(0) || '?'}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate text-foreground">{item.name || 'User'}</p>
-                          <p className="text-xs text-muted-foreground truncate">{item.email}</p>
+                          <p className="font-medium truncate text-white">{item.name || 'User'}</p>
+                          <p className="text-xs text-slate-400 truncate">{item.email}</p>
                         </div>
                       </button>
                     ))
@@ -314,10 +314,10 @@ export function BlockEditor({
           const renderUpdate = () => {
             if (root && component) {
               root.render(
-                <div className="bg-popover border border-border rounded-md shadow-lg overflow-hidden max-w-[280px]">
+                <div className="bg-[#1a1a1f] border border-white/10 rounded-xl shadow-lg overflow-hidden max-w-[280px]">
                   <div className="max-h-32 overflow-y-auto p-1">
                     {items.length === 0 ? (
-                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                      <div className="px-2 py-1.5 text-sm text-slate-400">
                         No members found
                       </div>
                     ) : (
@@ -325,7 +325,7 @@ export function BlockEditor({
                         <button
                           key={item.id}
                           type="button"
-                          className={`w-full flex items-center gap-2 px-2 py-1 rounded text-xs text-left ${index === selectedIndex ? 'bg-accent' : 'hover:bg-accent/50'
+                          className={`w-full flex items-center gap-2 px-2 py-1 rounded text-xs text-left ${index === selectedIndex ? 'bg-white/5' : 'hover:bg-white/5/50'
                             }`}
                           onClick={() => {
                             props.command({ id: item.id, label: item.name || item.email || 'User' });
@@ -335,8 +335,8 @@ export function BlockEditor({
                             {item.name?.charAt(0) || item.email?.charAt(0) || '?'}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate text-foreground">{item.name || 'User'}</p>
-                            <p className="text-xs text-muted-foreground truncate">{item.email}</p>
+                            <p className="font-medium truncate text-white">{item.name || 'User'}</p>
+                            <p className="text-xs text-slate-400 truncate">{item.email}</p>
                           </div>
                         </button>
                       ))
@@ -414,7 +414,7 @@ export function BlockEditor({
       CodeBlockLowlight.configure({
         lowlight,
         HTMLAttributes: {
-          class: 'rounded-lg bg-muted p-4 font-mono text-sm',
+          class: 'rounded-lg bg-[#121215] p-4 font-mono text-sm',
         },
       }),
       // Mention extension for @mentions
@@ -511,12 +511,12 @@ export function BlockEditor({
           'prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg',
           'prose-p:leading-7 prose-p:my-2',
           'prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5',
-          'prose-blockquote:border-l-primary prose-blockquote:bg-muted/50 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:not-italic',
-          'prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none',
-          'prose-pre:bg-muted prose-pre:p-0',
+          'prose-blockquote:border-l-primary prose-blockquote:bg-white/5 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:not-italic',
+          'prose-code:bg-[#121215] prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none',
+          'prose-pre:bg-[#121215] prose-pre:p-0',
           'prose-img:rounded-lg',
-          'prose-table:border-collapse prose-th:border prose-th:border-border prose-th:p-2 prose-th:bg-muted',
-          'prose-td:border prose-td:border-border prose-td:p-2',
+          'prose-table:border-collapse prose-th:border prose-th:border-white/10 prose-th:p-2 prose-th:bg-[#121215]',
+          'prose-td:border prose-td:border-white/10 prose-td:p-2',
         ),
       },
     },
@@ -693,7 +693,7 @@ export function BlockEditor({
       )}
       {/* Toolbar */}
       {editable && (
-        <div className="flex flex-wrap items-center gap-1 p-2 border-b border-border mb-4 sticky top-0 bg-background z-[5]">
+        <div className="flex flex-wrap items-center gap-1 p-2 border-b border-white/10 mb-4 sticky top-0 bg-[#0d0d0f] z-[5]">
           {/* Text formatting */}
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}
@@ -816,7 +816,7 @@ export function BlockEditor({
                 size="sm"
                 className={cn(
                   "h-8 w-8 p-0",
-                  editor.isActive('table') && "bg-muted"
+                  editor.isActive('table') && "bg-[#121215]"
                 )}
                 title="Table"
               >
@@ -905,7 +905,7 @@ export function BlockEditor({
                   <DropdownMenuItem
                     onClick={() => editor.chain().focus().setCellAttribute('backgroundColor', null).run()}
                   >
-                    <div className="w-4 h-4 mr-2 border border-border rounded" />
+                    <div className="w-4 h-4 mr-2 border border-white/10 rounded" />
                     None
                   </DropdownMenuItem>
                   {[
@@ -971,7 +971,7 @@ export function BlockEditor({
                 size="sm"
                 className={cn(
                   "h-8 w-8 p-0",
-                  editor.isActive('link') && "bg-accent text-accent-foreground"
+                  editor.isActive('link') && "bg-white/5 text-white"
                 )}
                 title="Add Link"
               >
@@ -1027,7 +1027,7 @@ export function BlockEditor({
             editor={editor}
           >
             <div
-              className="flex items-center gap-0.5 rounded-lg border border-border bg-popover p-1.5 shadow-xl"
+              className="flex items-center gap-0.5 rounded-lg border border-white/10 bg-[#1a1a1f] p-1.5 shadow-xl"
               style={{ zIndex: 99999, position: 'relative' }}
             >
               <ToolbarButton
@@ -1115,7 +1115,7 @@ export function BlockEditor({
             >
               <Bold className="h-4 w-4 mr-2" />
               Bold
-              <span className="ml-auto text-xs text-muted-foreground">⌘B</span>
+              <span className="ml-auto text-xs text-slate-400">⌘B</span>
             </ContextMenuItem>
             <ContextMenuItem
               onClick={() => editor?.chain().focus().toggleItalic().run()}
@@ -1123,7 +1123,7 @@ export function BlockEditor({
             >
               <Italic className="h-4 w-4 mr-2" />
               Italic
-              <span className="ml-auto text-xs text-muted-foreground">⌘I</span>
+              <span className="ml-auto text-xs text-slate-400">⌘I</span>
             </ContextMenuItem>
             <ContextMenuItem
               onClick={() => editor?.chain().focus().toggleStrike().run()}
@@ -1138,7 +1138,7 @@ export function BlockEditor({
             >
               <Code className="h-4 w-4 mr-2" />
               Inline Code
-              <span className="ml-auto text-xs text-muted-foreground">⌘E</span>
+              <span className="ml-auto text-xs text-slate-400">⌘E</span>
             </ContextMenuItem>
             <ContextMenuSeparator />
 
@@ -1257,7 +1257,7 @@ export function BlockEditor({
             >
               <Copy className="h-4 w-4 mr-2" />
               Copy
-              <span className="ml-auto text-xs text-muted-foreground">⌘C</span>
+              <span className="ml-auto text-xs text-slate-400">⌘C</span>
             </ContextMenuItem>
             <ContextMenuItem
               onClick={() => {
@@ -1275,14 +1275,14 @@ export function BlockEditor({
             >
               <Copy className="h-4 w-4 mr-2" />
               Duplicate
-              <span className="ml-auto text-xs text-muted-foreground">⌘D</span>
+              <span className="ml-auto text-xs text-slate-400">⌘D</span>
             </ContextMenuItem>
             <ContextMenuItem
               onClick={() => editor?.chain().focus().deleteSelection().run()}
               className="text-red-500"
             >
               Delete
-              <span className="ml-auto text-xs text-muted-foreground">⌫</span>
+              <span className="ml-auto text-xs text-slate-400">⌫</span>
             </ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>

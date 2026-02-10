@@ -78,10 +78,10 @@ const AudioComponent: React.FC<NodeViewProps> = ({ node, updateAttributes, selec
         return (
             <NodeViewWrapper>
                 <div
-                    className={`flex items-center gap-3 p-4 rounded-lg border-2 border-dashed ${selected ? 'border-primary bg-primary/5' : 'border-border bg-muted/30'
+                    className={`flex items-center gap-3 p-4 rounded-lg border-2 border-dashed ${selected ? 'border-primary bg-primary/5' : 'border-white/10 bg-white/5'
                         }`}
                 >
-                    <Music className="h-6 w-6 text-muted-foreground" />
+                    <Music className="h-6 w-6 text-slate-400" />
                     <div className="flex-1">
                         <input
                             type="text"
@@ -104,7 +104,7 @@ const AudioComponent: React.FC<NodeViewProps> = ({ node, updateAttributes, selec
         <NodeViewWrapper>
             <div
                 className={`rounded-lg border p-3 ${selected ? 'ring-2 ring-primary' : ''
-                    } bg-card`}
+                    } bg-[#1a1a1f]`}
             >
                 <audio ref={audioRef} src={src} preload="metadata" />
 
@@ -129,7 +129,7 @@ const AudioComponent: React.FC<NodeViewProps> = ({ node, updateAttributes, selec
 
                     {/* Progress */}
                     <div className="flex-1 flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground w-10">
+                        <span className="text-xs text-slate-400 w-10">
                             {formatTime(currentTime)}
                         </span>
                         <input
@@ -138,9 +138,9 @@ const AudioComponent: React.FC<NodeViewProps> = ({ node, updateAttributes, selec
                             max={duration || 100}
                             value={currentTime}
                             onChange={handleSeek}
-                            className="flex-1 h-1 rounded-full appearance-none bg-muted cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                            className="flex-1 h-1 rounded-full appearance-none bg-[#121215] cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
                         />
-                        <span className="text-xs text-muted-foreground w-10 text-right">
+                        <span className="text-xs text-slate-400 w-10 text-right">
                             {formatTime(duration)}
                         </span>
                     </div>
@@ -148,12 +148,12 @@ const AudioComponent: React.FC<NodeViewProps> = ({ node, updateAttributes, selec
                     {/* Volume */}
                     <button
                         onClick={toggleMute}
-                        className="h-8 w-8 rounded flex items-center justify-center hover:bg-accent transition-colors"
+                        className="h-8 w-8 rounded flex items-center justify-center hover:bg-white/5 transition-colors"
                     >
                         {isMuted ? (
-                            <VolumeX className="h-4 w-4 text-muted-foreground" />
+                            <VolumeX className="h-4 w-4 text-slate-400" />
                         ) : (
-                            <Volume2 className="h-4 w-4 text-muted-foreground" />
+                            <Volume2 className="h-4 w-4 text-slate-400" />
                         )}
                     </button>
 
@@ -161,9 +161,9 @@ const AudioComponent: React.FC<NodeViewProps> = ({ node, updateAttributes, selec
                     <a
                         href={src}
                         download
-                        className="h-8 w-8 rounded flex items-center justify-center hover:bg-accent transition-colors"
+                        className="h-8 w-8 rounded flex items-center justify-center hover:bg-white/5 transition-colors"
                     >
-                        <Download className="h-4 w-4 text-muted-foreground" />
+                        <Download className="h-4 w-4 text-slate-400" />
                     </a>
                 </div>
             </div>

@@ -175,14 +175,14 @@ export function ArchivePage() {
                         <Archive className="h-8 w-8 text-orange-500" />
                         <h1 className="text-2xl font-bold">{t('archive.title', 'Archive')}</h1>
                     </div>
-                    <p className="text-muted-foreground">
+                    <p className="text-slate-400">
                         {t('archive.description', 'Archived items are kept for 30 days before permanent deletion.')}
                     </p>
                 </div>
 
                 {/* Actions Bar */}
                 {selectedIds.size > 0 && (
-                    <div className="flex items-center gap-3 mb-4 p-3 bg-muted rounded-lg">
+                    <div className="flex items-center gap-3 mb-4 p-3 bg-[#121215] rounded-lg">
                         <span className="text-sm font-medium">
                             {t('archive.selected', { count: selectedIds.size })}
                         </span>
@@ -210,7 +210,7 @@ export function ArchivePage() {
                 {/* Content */}
                 {loading ? (
                     <div className="flex items-center justify-center py-12">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
                     </div>
                 ) : items.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -218,7 +218,7 @@ export function ArchivePage() {
                         <h2 className="text-xl font-medium mb-2">
                             {t('archive.empty', 'No archived items')}
                         </h2>
-                        <p className="text-muted-foreground">
+                        <p className="text-slate-400">
                             {t('archive.emptyDesc', 'Archived items will appear here.')}
                         </p>
                     </div>
@@ -261,7 +261,7 @@ export function ArchivePage() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="font-medium">{item.title}</TableCell>
-                                        <TableCell className="text-muted-foreground">
+                                        <TableCell className="text-slate-400">
                                             {format(new Date(item.archived_at), 'PPP', { locale: dateLocale })}
                                         </TableCell>
                                         <TableCell className="text-right">

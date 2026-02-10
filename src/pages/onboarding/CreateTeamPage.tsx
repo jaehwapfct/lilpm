@@ -168,7 +168,7 @@ export function CreateTeamPage() {
                   <FormLabel>Team URL</FormLabel>
                   <FormControl>
                     <div className="flex items-center">
-                      <span className="text-sm text-muted-foreground mr-2">
+                      <span className="text-sm text-slate-400 mr-2">
                         lilpm.app/
                       </span>
                       <Input

@@ -102,7 +102,7 @@ export function CommentPanel({
             {/* Comments List */}
             <div className="comment-panel-content">
                 {filteredComments.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-8">
+                    <div className="text-center text-slate-400 py-8">
                         <p className="text-sm">No comments yet</p>
                         <p className="text-xs mt-1">Be the first to add a comment</p>
                     </div>

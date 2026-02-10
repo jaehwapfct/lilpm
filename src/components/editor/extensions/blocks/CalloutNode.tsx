@@ -57,7 +57,7 @@ const CalloutComponent: React.FC<any> = ({ node, updateAttributes, selected }) =
                         type="button"
                         onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
                         className={cn(
-                            'p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors',
+                            'p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors',
                             config.iconClass
                         )}
                     >
@@ -66,7 +66,7 @@ const CalloutComponent: React.FC<any> = ({ node, updateAttributes, selected }) =
 
                     {/* Type dropdown */}
                     {isTypeDropdownOpen && (
-                        <div className="absolute top-full left-0 mt-1 bg-popover border rounded-lg shadow-lg z-50 p-1 min-w-[120px]">
+                        <div className="absolute top-full left-0 mt-1 bg-[#1a1a1f] border rounded-lg shadow-lg z-50 p-1 min-w-[120px]">
                             {(Object.keys(CALLOUT_CONFIGS) as CalloutType[]).map((type) => {
                                 const typeConfig = CALLOUT_CONFIGS[type];
                                 const TypeIcon = typeConfig.icon;
@@ -79,8 +79,8 @@ const CalloutComponent: React.FC<any> = ({ node, updateAttributes, selected }) =
                                             setIsTypeDropdownOpen(false);
                                         }}
                                         className={cn(
-                                            'flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm capitalize hover:bg-accent',
-                                            calloutType === type && 'bg-accent'
+                                            'flex items-center gap-2 w-full px-2 py-1.5 rounded-xl text-sm capitalize hover:bg-white/5',
+                                            calloutType === type && 'bg-white/5'
                                         )}
                                     >
                                         <TypeIcon className={cn('h-4 w-4', typeConfig.iconClass)} />

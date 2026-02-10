@@ -106,7 +106,7 @@ export function ProfileStats({ issues, userId }: ProfileStatsProps) {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <Icon className={`h-4 w-4 ${color}`} />
-              <span className="text-xs text-muted-foreground">{label}</span>
+              <span className="text-xs text-slate-400">{label}</span>
             </div>
             <div className="text-2xl font-bold">{value}</div>
           </CardContent>

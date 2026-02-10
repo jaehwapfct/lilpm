@@ -77,7 +77,7 @@ export function SuggestedIssueCard({
     high: 'border-orange-500 text-orange-500 bg-orange-500/10',
     medium: 'border-yellow-500 text-yellow-500 bg-yellow-500/10',
     low: 'border-blue-500 text-blue-500 bg-blue-500/10',
-    none: 'border-muted-foreground text-muted-foreground',
+    none: 'border-muted-foreground text-slate-400',
   };
 
   return (
@@ -196,12 +196,12 @@ export function SuggestedIssueCard({
                   rows={4}
                 />
               ) : (
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                <p className="text-sm text-slate-400 whitespace-pre-wrap">
                   {issue.description || t('issues.noDescription', 'No description provided')}
                 </p>
               )}
 
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/10">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -318,7 +318,7 @@ export function SuggestedIssuesList({
   if (issues.length === 0) return null;
 
   return (
-    <div className="border border-border rounded-lg p-4 space-y-3 bg-card">
+    <div className="border border-white/10 rounded-lg p-4 space-y-3 bg-[#1a1a1f]">
       <div className="flex items-center justify-between">
         <h4 className="font-medium text-sm flex items-center gap-2">
           <Ticket className="h-4 w-4 text-primary" />

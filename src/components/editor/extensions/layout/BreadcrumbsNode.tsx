@@ -63,20 +63,20 @@ const BreadcrumbsComponent: React.FC<NodeViewProps> = ({
     return (
         <NodeViewWrapper>
             <nav
-                className={`flex items-center gap-1 py-2 px-3 rounded-md text-sm ${selected ? 'bg-primary/10 ring-2 ring-primary' : 'bg-muted/50'
+                className={`flex items-center gap-1 py-2 px-3 rounded-xl text-sm ${selected ? 'bg-primary/10 ring-2 ring-primary' : 'bg-white/5'
                     }`}
                 aria-label="Breadcrumb"
             >
                 {breadcrumbs.map((item, index) => (
                     <React.Fragment key={item.id}>
                         {index > 0 && (
-                            <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                            <ChevronRight className="h-3 w-3 text-slate-400 flex-shrink-0" />
                         )}
                         <button
                             onClick={() => navigateTo(item.path)}
                             className={`flex items-center gap-1 hover:text-primary transition-colors ${index === breadcrumbs.length - 1
-                                ? 'text-foreground font-medium'
-                                : 'text-muted-foreground'
+                                ? 'text-white font-medium'
+                                : 'text-slate-400'
                                 }`}
                         >
                             {index === 0 && <Home className="h-3 w-3" />}

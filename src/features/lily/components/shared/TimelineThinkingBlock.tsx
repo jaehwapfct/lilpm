@@ -46,7 +46,7 @@ export function TimelineThinkingBlock({ content, t, isStreaming = false }: Timel
                     {isStreaming ? t('lily.thinking', 'Thinking...') : t('lily.thoughtProcess', 'Thought process')}
                 </span>
                 <ChevronDown className={cn(
-                    "h-2.5 w-2.5 sm:h-3 sm:w-3 text-muted-foreground transition-transform duration-200",
+                    "h-2.5 w-2.5 sm:h-3 sm:w-3 text-slate-400 transition-transform duration-200",
                     isExpanded ? "rotate-0" : "-rotate-90"
                 )} />
             </button>

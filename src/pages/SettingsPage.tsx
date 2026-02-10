@@ -90,7 +90,7 @@ export function SettingsPage() {
                     {/* Header */}
                     <div>
                         <h1 className="text-3xl font-bold">{t('settings.title')}</h1>
-                        <p className="text-muted-foreground mt-2">
+                        <p className="text-slate-400 mt-2">
                             {t('settings.description')}
                         </p>
                     </div>
@@ -140,7 +140,7 @@ export function SettingsPage() {
                                                 <Upload className="h-4 w-4" />
                                                 {t('settings.uploadPhoto')}
                                             </Button>
-                                            <p className="text-xs text-muted-foreground mt-2">
+                                            <p className="text-xs text-slate-400 mt-2">
                                                 {t('settings.avatarHint')}
                                             </p>
                                         </div>
@@ -169,7 +169,7 @@ export function SettingsPage() {
                                             onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
                                             disabled
                                         />
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="text-xs text-slate-400">
                                             {t('settings.emailHint')}
                                         </p>
                                     </div>
@@ -192,7 +192,7 @@ export function SettingsPage() {
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <Label>{t('settings.theme')}</Label>
-                                            <p className="text-sm text-muted-foreground">{t('settings.themeDescription')}</p>
+                                            <p className="text-sm text-slate-400">{t('settings.themeDescription')}</p>
                                         </div>
                                         <Select value={preferences.theme} onValueChange={handleThemeChange}>
                                             <SelectTrigger className="w-40">
@@ -227,7 +227,7 @@ export function SettingsPage() {
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <Label>{t('settings.language')}</Label>
-                                            <p className="text-sm text-muted-foreground">{t('settings.languageDescription')}</p>
+                                            <p className="text-sm text-slate-400">{t('settings.languageDescription')}</p>
                                         </div>
                                         <Select value={preferences.language} onValueChange={handleLanguageChange}>
                                             <SelectTrigger className="w-40">
@@ -247,7 +247,7 @@ export function SettingsPage() {
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <Label>{t('settings.compactMode')}</Label>
-                                            <p className="text-sm text-muted-foreground">{t('settings.compactModeDescription')}</p>
+                                            <p className="text-sm text-slate-400">{t('settings.compactModeDescription')}</p>
                                         </div>
                                         <Switch
                                             checked={preferences.compactMode}
@@ -259,7 +259,7 @@ export function SettingsPage() {
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <Label>{t('settings.animations')}</Label>
-                                            <p className="text-sm text-muted-foreground">{t('settings.animationsDescription')}</p>
+                                            <p className="text-sm text-slate-400">{t('settings.animationsDescription')}</p>
                                         </div>
                                         <Switch
                                             checked={preferences.animationsEnabled}
@@ -286,7 +286,7 @@ export function SettingsPage() {
                                     ].map((item) => (
                                         <div key={item.key} className="flex items-center justify-between py-2">
                                             <div className="flex items-center gap-3">
-                                                <item.icon className="h-4 w-4 text-muted-foreground" />
+                                                <item.icon className="h-4 w-4 text-slate-400" />
                                                 <Label>{item.label}</Label>
                                             </div>
                                             <Switch
@@ -371,7 +371,7 @@ export function SettingsPage() {
                                         <div className="flex items-center justify-between p-3 border rounded-lg">
                                             <div>
                                                 <p className="font-medium">{t('settings.currentSession')}</p>
-                                                <p className="text-sm text-muted-foreground">Chrome • macOS • Seoul, Korea</p>
+                                                <p className="text-sm text-slate-400">Chrome • macOS • Seoul, Korea</p>
                                             </div>
                                             <span className="text-xs bg-green-500/10 text-green-600 px-2 py-1 rounded">
                                                 {t('settings.active')}
@@ -400,7 +400,7 @@ export function SettingsPage() {
                                                 <span className="text-2xl">{integration.icon}</span>
                                                 <div>
                                                     <h3 className="font-medium">{integration.name}</h3>
-                                                    <p className="text-sm text-muted-foreground">{integration.description}</p>
+                                                    <p className="text-sm text-slate-400">{integration.description}</p>
                                                 </div>
                                             </div>
                                             <Button variant={integration.connected ? 'outline' : 'default'}>

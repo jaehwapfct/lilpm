@@ -56,7 +56,7 @@ export function HelpPage() {
                     {/* Header */}
                     <div>
                         <h1 className="text-3xl font-bold">{t('help.title')}</h1>
-                        <p className="text-muted-foreground mt-2">
+                        <p className="text-slate-400 mt-2">
                             {t('help.description')}
                         </p>
                     </div>
@@ -70,7 +70,7 @@ export function HelpPage() {
                                 </div>
                                 <div>
                                     <h3 className="font-semibold">{t('help.liveChat')}</h3>
-                                    <p className="text-sm text-muted-foreground">{t('help.chatDescription')}</p>
+                                    <p className="text-sm text-slate-400">{t('help.chatDescription')}</p>
                                 </div>
                             </CardContent>
                         </Card>
@@ -82,7 +82,7 @@ export function HelpPage() {
                                 </div>
                                 <div>
                                     <h3 className="font-semibold">{t('help.emailSupport')}</h3>
-                                    <p className="text-sm text-muted-foreground">support@lilpm.io</p>
+                                    <p className="text-sm text-slate-400">support@lilpm.io</p>
                                 </div>
                             </CardContent>
                         </Card>
@@ -94,7 +94,7 @@ export function HelpPage() {
                                 </div>
                                 <div>
                                     <h3 className="font-semibold">{t('help.reportBug')}</h3>
-                                    <p className="text-sm text-muted-foreground">{t('help.reportDescription')}</p>
+                                    <p className="text-sm text-slate-400">{t('help.reportDescription')}</p>
                                 </div>
                             </CardContent>
                         </Card>
@@ -115,10 +115,10 @@ export function HelpPage() {
                                         <button
                                             key={item.href}
                                             onClick={() => navigate(item.href)}
-                                            className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-accent text-left"
+                                            className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-white/5 text-left"
                                         >
                                             <span className="text-sm">{item.label}</span>
-                                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                            <ChevronRight className="h-4 w-4 text-slate-400" />
                                         </button>
                                     ))}
                                 </CardContent>
@@ -138,15 +138,15 @@ export function HelpPage() {
                         <CardContent>
                             <div className="grid gap-3 md:grid-cols-2">
                                 {keyboardShortcuts.map((shortcut, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                                    <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-[#121215]">
                                         <span className="text-sm">{shortcut.action}</span>
                                         <div className="flex gap-1">
                                             {shortcut.keys.map((key, i) => (
                                                 <React.Fragment key={i}>
-                                                    <kbd className="px-2 py-1 text-xs font-semibold bg-background border rounded shadow-sm">
+                                                    <kbd className="px-2 py-1 text-xs font-semibold bg-[#0d0d0f] border rounded shadow-sm">
                                                         {key}
                                                     </kbd>
-                                                    {i < shortcut.keys.length - 1 && <span className="text-muted-foreground">+</span>}
+                                                    {i < shortcut.keys.length - 1 && <span className="text-slate-400">+</span>}
                                                 </React.Fragment>
                                             ))}
                                         </div>
@@ -172,12 +172,12 @@ export function HelpPage() {
                                     { title: t('help.teamCollab'), duration: '6:20' },
                                 ].map((video, idx) => (
                                     <div key={idx} className="relative group cursor-pointer rounded-lg overflow-hidden border">
-                                        <div className="aspect-video bg-muted flex items-center justify-center">
-                                            <Video className="h-12 w-12 text-muted-foreground group-hover:text-primary transition-colors" />
+                                        <div className="aspect-video bg-white/10 flex items-center justify-center">
+                                            <Video className="h-12 w-12 text-slate-400 group-hover:text-primary transition-colors" />
                                         </div>
                                         <div className="p-3">
                                             <p className="font-medium text-sm">{video.title}</p>
-                                            <p className="text-xs text-muted-foreground">{video.duration}</p>
+                                            <p className="text-xs text-slate-400">{video.duration}</p>
                                         </div>
                                     </div>
                                 ))}

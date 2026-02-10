@@ -111,7 +111,7 @@ export function VersionHistoryPanel({
                                 <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
                             </div>
                         ) : versions.length === 0 ? (
-                            <div className="text-center py-12 text-muted-foreground">
+                            <div className="text-center py-12 text-slate-400">
                                 <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
                                 <p>No version history yet</p>
                                 <p className="text-sm mt-1">Versions are created automatically as you edit</p>
@@ -126,7 +126,7 @@ export function VersionHistoryPanel({
                                                 "p-3 rounded-lg border cursor-pointer transition-colors",
                                                 selectedVersion?.id === version.id
                                                     ? "border-primary bg-primary/5"
-                                                    : "border-border hover:border-primary/50 hover:bg-accent/50"
+                                                    : "border-white/10 hover:border-primary/50 hover:bg-white/5/50"
                                             )}
                                             onClick={() => setSelectedVersion(version)}
                                         >
@@ -142,10 +142,10 @@ export function VersionHistoryPanel({
                                                             </Badge>
                                                         )}
                                                     </div>
-                                                    <p className="text-sm text-muted-foreground truncate mt-0.5">
+                                                    <p className="text-sm text-slate-400 truncate mt-0.5">
                                                         {version.change_summary || version.title}
                                                     </p>
-                                                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                                                    <div className="flex items-center gap-2 mt-2 text-xs text-slate-400">
                                                         {version.creator && (
                                                             <>
                                                                 <Avatar className="h-4 w-4">
@@ -163,7 +163,7 @@ export function VersionHistoryPanel({
                                                         </span>
                                                     </div>
                                                 </div>
-                                                <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                                <ChevronRight className="h-4 w-4 text-slate-400 flex-shrink-0" />
                                             </div>
                                         </div>
                                     ))}
@@ -173,7 +173,7 @@ export function VersionHistoryPanel({
                     </div>
 
                     {selectedVersion && (
-                        <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-background">
+                        <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-[#0d0d0f]">
                             <div className="flex items-center gap-2">
                                 <Button
                                     variant="outline"

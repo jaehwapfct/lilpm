@@ -12,7 +12,7 @@ const ToggleComponent: React.FC<any> = ({ node, updateAttributes, selected }) =>
         <NodeViewWrapper>
             <div
                 className={cn(
-                    'my-2 rounded-lg border border-border/50 overflow-hidden',
+                    'my-2 rounded-lg border border-white/10/50 overflow-hidden',
                     selected && 'ring-2 ring-primary/50'
                 )}
             >
@@ -20,13 +20,13 @@ const ToggleComponent: React.FC<any> = ({ node, updateAttributes, selected }) =>
                 <div
                     onClick={() => setIsOpen(!isOpen)}
                     className={cn(
-                        'flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-accent/50 transition-colors',
-                        isOpen && 'border-b border-border/50'
+                        'flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-white/5/50 transition-colors',
+                        isOpen && 'border-b border-white/10/50'
                     )}
                 >
                     <ChevronRight
                         className={cn(
-                            'h-4 w-4 text-muted-foreground transition-transform duration-200',
+                            'h-4 w-4 text-slate-400 transition-transform duration-200',
                             isOpen && 'rotate-90'
                         )}
                     />
@@ -36,7 +36,7 @@ const ToggleComponent: React.FC<any> = ({ node, updateAttributes, selected }) =>
                         onChange={(e) => updateAttributes({ title: e.target.value })}
                         placeholder="Toggle title..."
                         onClick={(e) => e.stopPropagation()}
-                        className="flex-1 bg-transparent border-none outline-none text-sm font-medium placeholder:text-muted-foreground"
+                        className="flex-1 bg-transparent border-none outline-none text-sm font-medium placeholder:text-slate-400"
                     />
                 </div>
 

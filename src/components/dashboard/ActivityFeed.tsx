@@ -37,7 +37,7 @@ export function ActivityFeed({ activities, isLoading }: ActivityFeedProps) {
       label_added: { icon: <Tag className="h-3 w-3" />, labelKey: 'activity.label_added', color: 'bg-pink-500' },
       label_removed: { icon: <Tag className="h-3 w-3" />, labelKey: 'activity.label_removed', color: 'bg-gray-500' },
     };
-    return configs[type] || { icon: <Circle className="h-3 w-3" />, labelKey: type, color: 'bg-muted' };
+    return configs[type] || { icon: <Circle className="h-3 w-3" />, labelKey: type, color: 'bg-[#121215]' };
   };
 
   if (isLoading) {
@@ -70,7 +70,7 @@ export function ActivityFeed({ activities, isLoading }: ActivityFeedProps) {
       </CardHeader>
       <CardContent>
         {activities.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">
+          <p className="text-sm text-slate-400 text-center py-8">
             {t('dashboard.noActivity')}
           </p>
         ) : (
@@ -94,9 +94,9 @@ export function ActivityFeed({ activities, isLoading }: ActivityFeedProps) {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm">
                       <span className="font-medium">{activity.user?.name || t('common.user')}</span>
-                      <span className="text-muted-foreground ml-1">{t(config.labelKey)}</span>
+                      <span className="text-slate-400 ml-1">{t(config.labelKey)}</span>
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-slate-400">
                       {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true, locale })}
                     </p>
                   </div>

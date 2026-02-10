@@ -190,7 +190,7 @@ export function NotificationDropdown() {
 
         <ScrollArea className="h-[300px]">
           {notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+            <div className="flex flex-col items-center justify-center py-8 text-slate-400">
               <Bell className="h-8 w-8 mb-2 opacity-50" />
               <p className="text-sm">{t('notifications.empty')}</p>
             </div>
@@ -233,10 +233,10 @@ export function NotificationDropdown() {
                           <Trash2 className="h-3 w-3" />
                         </button>
                       </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                      <p className="text-xs text-slate-400 line-clamp-2 mt-0.5">
                         {notification.body}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs text-slate-400 mt-1">
                         {formatDistanceToNow(new Date(notification.created_at), {
                           addSuffix: true,
                           locale

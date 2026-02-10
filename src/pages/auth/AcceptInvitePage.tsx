@@ -224,11 +224,11 @@ export function AcceptInvitePage() {
   // Loading state
   if (authLoading || status === 'loading') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-[#0d0d0f] flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-            <p className="text-muted-foreground">{t('team.loadingInvite', 'Loading invitation...')}</p>
+            <p className="text-slate-400">{t('team.loadingInvite', 'Loading invitation...')}</p>
           </CardContent>
         </Card>
       </div>
@@ -238,12 +238,12 @@ export function AcceptInvitePage() {
   // Error state
   if (status === 'error') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#0d0d0f] flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <XCircle className="h-12 w-12 text-destructive mb-4" />
             <h2 className="text-xl font-semibold mb-2">{t('team.inviteError', 'Invitation Error')}</h2>
-            <p className="text-muted-foreground text-center mb-6">{error}</p>
+            <p className="text-slate-400 text-center mb-6">{error}</p>
             <Button onClick={() => navigate('/')} variant="outline">
               {t('common.goHome', 'Go to Home')}
             </Button>
@@ -256,15 +256,15 @@ export function AcceptInvitePage() {
   // Success state
   if (status === 'success') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#0d0d0f] flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <CheckCircle2 className="h-12 w-12 text-green-500 mb-4" />
             <h2 className="text-xl font-semibold mb-2">{t('team.welcomeToTeam', 'Welcome to the team!')}</h2>
-            <p className="text-muted-foreground text-center mb-6">
+            <p className="text-slate-400 text-center mb-6">
               {t('team.redirectingToDashboard', 'Redirecting to dashboard...')}
             </p>
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
           </CardContent>
         </Card>
       </div>
@@ -274,7 +274,7 @@ export function AcceptInvitePage() {
   // Magic Link sent state
   if (status === 'magic_link_sent') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#0d0d0f] flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
@@ -286,7 +286,7 @@ export function AcceptInvitePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-center text-muted-foreground">
+            <p className="text-sm text-center text-slate-400">
               {invitePreview.email && (
                 <span>Sent to: <strong>{invitePreview.email}</strong></span>
               )}
@@ -306,11 +306,11 @@ export function AcceptInvitePage() {
   // Processing state
   if (status === 'processing') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-[#0d0d0f] flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-            <p className="text-muted-foreground">{t('team.processingInvite', 'Processing invitation...')}</p>
+            <p className="text-slate-400">{t('team.processingInvite', 'Processing invitation...')}</p>
           </CardContent>
         </Card>
       </div>
@@ -319,7 +319,7 @@ export function AcceptInvitePage() {
 
   // Pending state - show invite details and accept button
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#0d0d0f] flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
@@ -332,7 +332,7 @@ export function AcceptInvitePage() {
               : t('team.youveBeenInvited', "You've been invited to join")}
           </CardDescription>
           {invitePreview.teamName && (
-            <div className="mt-4 px-4 py-3 bg-muted rounded-lg">
+            <div className="mt-4 px-4 py-3 bg-[#121215] rounded-xl">
               <p className="font-semibold text-lg">{invitePreview.teamName}</p>
             </div>
           )}
@@ -364,7 +364,7 @@ export function AcceptInvitePage() {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
+              <span className="bg-[#0d0d0f] px-2 text-slate-400">
                 {t('common.or', 'Or')}
               </span>
             </div>
@@ -383,7 +383,7 @@ export function AcceptInvitePage() {
 
           <Button
             variant="ghost"
-            className="w-full text-muted-foreground"
+            className="w-full text-slate-400"
             onClick={() => navigate('/')}
           >
             <XCircle className="h-4 w-4 mr-2" />

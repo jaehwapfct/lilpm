@@ -733,9 +733,9 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
   }, []);
 
   return (
-    <div className="flex flex-col h-full bg-background text-foreground select-none">
+    <div className="flex flex-col h-full bg-[#0d0d0f] text-white select-none">
       {/* Header Controls */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-background">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-[#0d0d0f]">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
@@ -743,7 +743,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
             </Button>
             <h1 className="text-lg font-semibold">{t('gantt.title', 'Gantt Chart')}</h1>
           </div>
-          <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">
+          <div className="flex items-center gap-2 bg-white/5 rounded-lg p-1">
             <Button
               variant="ghost"
               size="sm"
@@ -791,13 +791,13 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
             };
 
             return (
-              <div className="flex items-center gap-1 border border-border rounded-lg p-1">
+              <div className="flex items-center gap-1 border border-white/10 rounded-lg p-1">
                 {uniqueAssignees.slice(0, 8).map(assignee => (
                   <Tooltip key={assignee.id}>
                     <TooltipTrigger asChild>
                       <button
                         className={cn(
-                          "rounded-full transition-all ring-offset-background",
+                          "rounded-full transition-all ring-offset-[#0d0d0f]",
                           selectedAssignees.has(assignee.id)
                             ? "ring-2 ring-primary ring-offset-1 opacity-100"
                             : "opacity-60 hover:opacity-100"
@@ -815,7 +815,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                     <TooltipContent>
                       <p>{assignee.name}</p>
                       {selectedAssignees.has(assignee.id) && (
-                        <p className="text-xs text-muted-foreground">Click to remove filter</p>
+                        <p className="text-xs text-slate-400">Click to remove filter</p>
                       )}
                     </TooltipContent>
                   </Tooltip>
@@ -824,7 +824,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 px-2 text-xs text-muted-foreground"
+                    className="h-7 px-2 text-xs text-slate-400"
                     onClick={() => setSelectedAssignees(new Set())}
                   >
                     Clear
@@ -858,7 +858,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
           </DropdownMenu>
 
           {/* Zoom Level */}
-          <div className="flex items-center border border-border rounded-md">
+          <div className="flex items-center border border-white/10 rounded-xl">
             <Button
               variant="ghost"
               size="icon"
@@ -871,7 +871,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
             >
               <ZoomIn className="h-3.5 w-3.5" />
             </Button>
-            <span className="px-2 text-xs font-medium min-w-[60px] text-center border-x border-border">
+            <span className="px-2 text-xs font-medium min-w-[60px] text-center border-x border-white/10">
               {t(`gantt.${viewMode}`, viewMode)}
             </span>
             <Button
@@ -893,10 +893,10 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
       {/* Main Content */}
       <div className="flex-1 overflow-hidden flex">
         {/* Fixed Issue Column */}
-        <div className="w-72 flex-shrink-0 border-r border-border flex flex-col bg-background z-10 shadow-sm relative">
+        <div className="w-72 flex-shrink-0 border-r border-white/10 flex flex-col bg-[#0d0d0f] z-10 shadow-sm relative">
           {/* Column Header */}
-          <div className="h-16 border-b border-border px-3 flex items-end pb-2 bg-background z-20">
-            <span className="text-sm font-medium text-muted-foreground">
+          <div className="h-16 border-b border-white/10 px-3 flex items-end pb-2 bg-[#0d0d0f] z-20">
+            <span className="text-sm font-medium text-slate-400">
               {t('gantt.issues', 'Issues')} ({totalIssuesWithDates})
             </span>
           </div>
@@ -908,11 +908,11 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {totalIssuesWithDates === 0 ? (
-              <div className="flex items-center justify-center py-16 text-muted-foreground">
+              <div className="flex items-center justify-center py-16 text-slate-400">
                 <div className="text-center px-4">
                   <Calendar className="h-10 w-10 mx-auto mb-3 opacity-50" />
                   <p className="text-sm font-medium">{t('gantt.noIssues', 'No issues with dates')}</p>
-                  <p className="text-xs mt-1 text-muted-foreground">
+                  <p className="text-xs mt-1 text-slate-400">
                     {t('gantt.addDueDates', 'Add due dates to see issues here')}
                   </p>
                 </div>
@@ -923,7 +923,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                   {/* Group Header */}
                   {groupBy !== 'none' && (
                     <div
-                      className="h-8 px-3 flex items-center gap-2 bg-muted/50 border-b border-border cursor-pointer hover:bg-muted/70 sticky top-0 z-10"
+                      className="h-8 px-3 flex items-center gap-2 bg-white/5 border-b border-white/10 cursor-pointer hover:bg-white/10 sticky top-0 z-10"
                       onClick={() => toggleGroup(group.key)}
                     >
                       <ChevronRight className={cn(
@@ -931,7 +931,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                         !group.isCollapsed && "rotate-90"
                       )} />
                       <span className="text-xs font-medium truncate">{group.label}</span>
-                      <span className="text-xs text-muted-foreground">({group.issues.length})</span>
+                      <span className="text-xs text-slate-400">({group.issues.length})</span>
                     </div>
                   )}
 
@@ -964,7 +964,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                         data-issue-index={globalIndex}
                         onMouseDown={(e) => handleRowMouseDown(e, issue)}
                         className={cn(
-                          "h-10 px-3 flex items-center gap-2 border-b border-border/50 cursor-grab hover:bg-muted/30 relative",
+                          "h-10 px-3 flex items-center gap-2 border-b border-white/10/50 cursor-grab hover:bg-white/5 relative",
                           "transition-transform duration-150 ease-out",
                           isDragging && "bg-primary/30 opacity-80 pointer-events-none z-50 shadow-xl ring-2 ring-primary/50",
                           // Removed border-t/b indicators in favor of Ghost Row below
@@ -986,12 +986,12 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                           handleIssueClick(issue);
                         }}
                       >
-                        <GripVertical className="h-4 w-4 text-muted-foreground hover:text-foreground flex-shrink-0 cursor-grab" />
+                        <GripVertical className="h-4 w-4 text-slate-400 hover:text-white flex-shrink-0 cursor-grab" />
                         <DropdownMenu>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <DropdownMenuTrigger asChild>
-                                <div className="cursor-pointer hover:bg-muted rounded p-0.5" role="button" aria-label="Change issue type">
+                                <div className="cursor-pointer hover:bg-white/5 rounded p-0.5" role="button" aria-label="Change issue type">
                                   <IssueTypeIcon type={(issue as any).type || 'task'} size="sm" />
                                 </div>
                               </DropdownMenuTrigger>
@@ -1022,7 +1022,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                             {issue.title}
                           </p>
                         </div>
-                        <span className="text-[10px] text-muted-foreground font-mono flex-shrink-0">
+                        <span className="text-[10px] text-slate-400 font-mono flex-shrink-0">
                           {issue.identifier}
                         </span>
                       </div>
@@ -1338,13 +1338,13 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
               )}
             </svg>
             {/* Timeline Header */}
-            <div className="sticky top-0 z-10 bg-background border-b border-border">
+            <div className="sticky top-0 z-10 bg-[#0d0d0f] border-b border-white/10">
               {/* Month Row */}
-              <div className="h-8 flex border-b border-border/50">
+              <div className="h-8 flex border-b border-white/10/50">
                 {getHeaderMarkers().map((marker, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-center text-xs font-medium border-r border-border/30"
+                    className="flex items-center justify-center text-xs font-medium border-r border-white/10/30"
                     style={{ width: `${marker.span * cellWidth}px` }}
                   >
                     {marker.label}
@@ -1358,9 +1358,9 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                   <div
                     key={index}
                     className={cn(
-                      "flex flex-col items-center justify-center border-r border-border/30",
+                      "flex flex-col items-center justify-center border-r border-white/10/30",
                       isToday(day) && "bg-primary/10",
-                      !isSameMonth(day, currentDate) && "text-muted-foreground/50"
+                      !isSameMonth(day, currentDate) && "text-slate-400/50"
                     )}
                     style={{ width: `${cellWidth}px`, minWidth: `${cellWidth}px` }}
                   >
@@ -1371,7 +1371,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                       {format(day, 'd')}
                     </span>
                     {viewMode !== 'quarter' && (
-                      <span className="text-[9px] text-muted-foreground">
+                      <span className="text-[9px] text-slate-400">
                         {format(day, 'EEE', { locale: dateLocale })}
                       </span>
                     )}
@@ -1381,11 +1381,11 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
 
               {/* Cycles Row - Jira-style sprint/cycle markers */}
               {cycles.length > 0 && (
-                <div className="h-6 flex relative bg-muted/20 border-t border-border/30">
+                <div className="h-6 flex relative bg-white/[3%] border-t border-white/10/30">
                   {dateRange.days.map((day, index) => (
                     <div
                       key={index}
-                      className="border-r border-border/10"
+                      className="border-r border-white/10/10"
                       style={{ width: `${cellWidth}px`, minWidth: `${cellWidth}px` }}
                     />
                   ))}
@@ -1438,13 +1438,13 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                 <div key={group.key}>
                   {/* Group Header Row */}
                   {groupBy !== 'none' && (
-                    <div className="h-8 bg-muted/50 border-b border-border relative">
+                    <div className="h-8 bg-white/5 border-b border-white/10 relative">
                       <div className="absolute inset-0 flex">
                         {dateRange.days.map((day, index) => (
                           <div
                             key={index}
                             className={cn(
-                              "border-r border-border/20",
+                              "border-r border-white/10/20",
                               isToday(day) && "bg-primary/5"
                             )}
                             style={{ width: `${cellWidth}px`, minWidth: `${cellWidth}px` }}
@@ -1490,8 +1490,8 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                       <div
                         key={issue.id}
                         className={cn(
-                          "h-10 relative border-b border-border/30 transition-all duration-150 ease-out", // Match sidebar transition
-                          isRowDragging && "z-50 bg-background/80 shadow-xl opacity-80 pointer-events-none", // Match sidebar dragging style
+                          "h-10 relative border-b border-white/10/30 transition-all duration-150 ease-out", // Match sidebar transition
+                          isRowDragging && "z-50 bg-[#0d0d0f]/80 shadow-xl opacity-80 pointer-events-none", // Match sidebar dragging style
                           // Removed border-t/b indicators
                         )}
                         style={{
@@ -1512,7 +1512,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                             <div
                               key={index}
                               className={cn(
-                                "border-r border-border/20",
+                                "border-r border-white/10/20",
                                 isToday(day) && "bg-primary/5"
                               )}
                               style={{ width: `${cellWidth}px`, minWidth: `${cellWidth}px` }}
@@ -1681,7 +1681,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                                 <TooltipContent side="top" className="max-w-xs">
                                   <div className="space-y-1">
                                     <p className="font-medium text-sm">{issue.title}</p>
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <div className="flex items-center gap-2 text-xs text-slate-400">
                                       <span>{issue.identifier}</span>
                                       <span>•</span>
                                       <span>{t(`status.${issue.status}`)}</span>
@@ -1691,7 +1691,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                                         {t('issues.dueDate')}: {format(parseISO(issue.dueDate), 'PPP', { locale: dateLocale })}
                                       </p>
                                     )}
-                                    <p className="text-[10px] text-muted-foreground mt-1">
+                                    <p className="text-[10px] text-slate-400 mt-1">
                                       {t('gantt.dragToMove', 'Drag to move • Double-click to view')}
                                     </p>
                                   </div>
@@ -1703,7 +1703,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
                         {/* Ghost Row for Timeline - shows where bar will land */}
                         {shiftY !== 0 && (
                           <div
-                            className="absolute left-0 right-0 h-10 bg-muted/50 border-y border-dashed border-primary/30 pointer-events-none z-10"
+                            className="absolute left-0 right-0 h-10 bg-white/5 border-y border-dashed border-primary/30 pointer-events-none z-10"
                             style={{
                               top: shiftY > 0 ? '-40px' : 'auto',
                               bottom: shiftY < 0 ? '-40px' : 'auto',
@@ -1737,9 +1737,9 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
 
 
       {/* Footer Legend */}
-      <div className="border-t border-border px-4 py-2 bg-muted/30">
+      <div className="border-t border-white/10 px-4 py-2 bg-white/5">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-4 text-xs text-slate-400">
             <span className="font-medium">{t('gantt.legend', 'Legend')}:</span>
             <div className="flex items-center gap-1">
               <div className="w-3 h-3 rounded bg-slate-400" />
@@ -1762,7 +1762,7 @@ export function GanttChart({ issues, cycles = [], onIssueClick, onIssueUpdate, o
               <span>{t('status.done')}</span>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 text-xs text-slate-400">
             <div className="w-8 h-3 rounded bg-slate-400/60 border-2 border-dashed border-white/30" />
             <span>{t('gantt.noDueDate', 'No due date')}</span>
           </div>

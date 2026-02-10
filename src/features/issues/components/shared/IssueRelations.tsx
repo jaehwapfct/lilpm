@@ -126,7 +126,7 @@ export function IssueRelations({ issueId, issues, currentUserId }: IssueRelation
       </div>
 
       {issueRelations.length === 0 ? (
-        <p className="text-sm text-muted-foreground">관계된 이슈가 없습니다</p>
+        <p className="text-sm text-slate-400">관계된 이슈가 없습니다</p>
       ) : (
         <div className="space-y-2">
           {issueRelations.map((relation) => {
@@ -139,13 +139,13 @@ export function IssueRelations({ issueId, issues, currentUserId }: IssueRelation
             return (
               <div 
                 key={relation.id} 
-                className="flex items-center gap-2 p-2 bg-muted/50 rounded-md group"
+                className="flex items-center gap-2 p-2 bg-white/5 rounded-xl group"
               >
                 <Badge variant="outline" className={`text-xs ${typeInfo.color}`}>
                   {typeInfo.icon}
                   <span className="ml-1">{typeInfo.label}</span>
                 </Badge>
-                <span className="text-sm font-mono text-muted-foreground">
+                <span className="text-sm font-mono text-slate-400">
                   {relatedIssue.identifier}
                 </span>
                 <span className="text-sm truncate flex-1">
@@ -202,7 +202,7 @@ export function IssueRelations({ issueId, issues, currentUserId }: IssueRelation
                   {availableIssues.map((issue) => (
                     <SelectItem key={issue.id} value={issue.id}>
                       <span className="flex items-center gap-2">
-                        <span className="font-mono text-muted-foreground">{issue.identifier}</span>
+                        <span className="font-mono text-slate-400">{issue.identifier}</span>
                         <span className="truncate">{issue.title}</span>
                       </span>
                     </SelectItem>

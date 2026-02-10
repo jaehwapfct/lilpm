@@ -47,7 +47,7 @@ export function OnlineUsersPanel({ trigger }: OnlineUsersPanelProps) {
         <div className="mt-6 space-y-4">
           {/* Current user */}
           <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase">
+            <p className="text-xs font-medium text-slate-400 uppercase">
               {t('collaboration.you')}
             </p>
             <UserItem
@@ -61,7 +61,7 @@ export function OnlineUsersPanel({ trigger }: OnlineUsersPanelProps) {
           {/* Other users */}
           {users.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase">
+              <p className="text-xs font-medium text-slate-400 uppercase">
                 {t('collaboration.teamMembers')}
               </p>
               <AnimatePresence>
@@ -87,7 +87,7 @@ export function OnlineUsersPanel({ trigger }: OnlineUsersPanelProps) {
           )}
 
           {users.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8 text-slate-400">
               <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">{t('collaboration.noOtherUsers')}</p>
             </div>
@@ -120,7 +120,7 @@ function UserItem({
   const { t } = useTranslation();
 
   return (
-    <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+    <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
       <div className="relative">
         <Avatar className="h-9 w-9 border-2" style={{ borderColor: color }}>
           <AvatarImage src={avatarUrl} alt={name} />
@@ -145,7 +145,7 @@ function UserItem({
         </div>
         
         {focusedIssueId && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+          <div className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">
             {isEditing ? (
               <>
                 <Pencil className="h-3 w-3 text-amber-500" />

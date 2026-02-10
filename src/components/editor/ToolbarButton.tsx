@@ -31,7 +31,7 @@ export function ToolbarButton({
             title={title}
             className={cn(
                 "h-8 w-8 p-0",
-                active && "bg-accent text-accent-foreground"
+                active && "bg-white/5 text-white"
             )}
         >
             {children}

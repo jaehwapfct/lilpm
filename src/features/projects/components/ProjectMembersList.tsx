@@ -29,8 +29,8 @@ const ROLE_ICONS: Record<string, React.ElementType> = {
 const ROLE_COLORS: Record<string, string> = {
   owner: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
   admin: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  member: 'bg-muted text-muted-foreground',
-  guest: 'bg-muted text-muted-foreground',
+  member: 'bg-[#121215] text-slate-400',
+  guest: 'bg-[#121215] text-slate-400',
 };
 
 export function ProjectMembersList({ members, onInvite, className }: ProjectMembersListProps) {
@@ -54,7 +54,7 @@ export function ProjectMembersList({ members, onInvite, className }: ProjectMemb
       </CardHeader>
       <CardContent className="space-y-2">
         {members.length === 0 ? (
-          <div className="text-center py-6 text-muted-foreground">
+          <div className="text-center py-6 text-slate-400">
             <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">{t('team.noMembers')}</p>
           </div>
@@ -65,7 +65,7 @@ export function ProjectMembersList({ members, onInvite, className }: ProjectMemb
             return (
               <div 
                 key={member.profile.id} 
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors"
               >
                 <Avatar className="h-9 w-9">
                   <AvatarImage src={member.profile.avatar_url || undefined} alt={member.profile.name || ''} />
@@ -84,7 +84,7 @@ export function ProjectMembersList({ members, onInvite, className }: ProjectMemb
                       {t(`team.${member.role}`)}
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="text-xs text-slate-400 truncate">
                     {member.profile.email}
                   </p>
                 </div>
@@ -92,7 +92,7 @@ export function ProjectMembersList({ members, onInvite, className }: ProjectMemb
                 {member.issueCount !== undefined && (
                   <div className="text-right">
                     <p className="text-sm font-medium">{member.issueCount}</p>
-                    <p className="text-xs text-muted-foreground">{t('issues.title')}</p>
+                    <p className="text-xs text-slate-400">{t('issues.title')}</p>
                   </div>
                 )}
               </div>

@@ -367,14 +367,14 @@ function SlashCommandMenu({
     let currentIndex = 0;
 
     return (
-        <div className="slash-command-menu bg-popover border border-border rounded-lg shadow-lg overflow-hidden max-h-[400px] overflow-y-auto w-[280px]">
+        <div className="slash-command-menu bg-[#1a1a1f] border border-white/10 rounded-lg shadow-lg overflow-hidden max-h-[400px] overflow-y-auto w-[280px]">
             {categories.map((category) => {
                 const categoryItems = items.filter((item) => item.category === category);
                 if (categoryItems.length === 0) return null;
 
                 return (
                     <div key={category}>
-                        <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50">
+                        <div className="px-3 py-1.5 text-xs font-semibold text-slate-400 bg-white/5">
                             {categoryLabels[category]}
                         </div>
                         {categoryItems.map((item) => {
@@ -385,16 +385,16 @@ function SlashCommandMenu({
                             return (
                                 <button
                                     key={item.title}
-                                    className={`w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-accent transition-colors ${isSelected ? 'bg-accent' : ''
+                                    className={`w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-white/5 transition-colors ${isSelected ? 'bg-white/5' : ''
                                         }`}
                                     onClick={() => onSelect(itemIndex)}
                                 >
-                                    <div className="flex items-center justify-center w-8 h-8 rounded bg-muted">
-                                        <Icon className="h-4 w-4 text-muted-foreground" />
+                                    <div className="flex items-center justify-center w-8 h-8 rounded bg-[#121215]">
+                                        <Icon className="h-4 w-4 text-slate-400" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="text-sm font-medium truncate">{item.title}</div>
-                                        <div className="text-xs text-muted-foreground truncate">
+                                        <div className="text-xs text-slate-400 truncate">
                                             {item.description}
                                         </div>
                                     </div>
@@ -405,7 +405,7 @@ function SlashCommandMenu({
                 );
             })}
             {items.length === 0 && (
-                <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                <div className="px-3 py-6 text-center text-sm text-slate-400">
                     No commands found
                 </div>
             )}

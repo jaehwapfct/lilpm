@@ -82,7 +82,7 @@ import { extractOverview, type VersionEntry, type AISuggestion, type AIMessage, 
 
 
 const statusConfig: Record<PRDStatus, { label: string; color: string; icon: React.ReactNode }> = {
-  draft: { label: 'Draft', color: 'bg-muted text-muted-foreground', icon: <Pencil className="h-3 w-3" /> },
+  draft: { label: 'Draft', color: 'bg-[#121215] text-slate-400', icon: <Pencil className="h-3 w-3" /> },
   review: { label: 'In Review', color: 'bg-yellow-500/20 text-yellow-600', icon: <Eye className="h-3 w-3" /> },
   approved: { label: 'Approved', color: 'bg-green-500/20 text-green-600', icon: <Check className="h-3 w-3" /> },
   archived: { label: 'Archived', color: 'bg-gray-500/20 text-gray-600', icon: <Clock className="h-3 w-3" /> },
@@ -831,7 +831,7 @@ Respond in the same language as the user's message.`
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
         </div>
       </AppLayout>
     );
@@ -841,7 +841,7 @@ Respond in the same language as the user's message.`
     return (
       <AppLayout>
         <div className="flex flex-col items-center justify-center h-full gap-4">
-          <FileText className="h-12 w-12 text-muted-foreground" />
+          <FileText className="h-12 w-12 text-slate-400" />
           <p className="text-lg font-medium">{t('prd.notFound', 'PRD not found')}</p>
           <Button onClick={() => navigate('/prd')}>{t('prd.backToList', 'Back to PRDs')}</Button>
         </div>
@@ -853,7 +853,7 @@ Respond in the same language as the user's message.`
     <AppLayout>
       <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border">
+        <div className="sticky top-0 bg-[#0d0d0f]/95 backdrop-blur z-10 border-b border-white/10">
           <div className="flex items-center justify-between px-4 sm:px-6 py-3">
             <div className="flex items-center gap-3">
               <Button
@@ -866,13 +866,13 @@ Respond in the same language as the user's message.`
 
               {/* Breadcrumb with Project Selector */}
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">PRDs</span>
-                <span className="text-muted-foreground">/</span>
+                <span className="text-slate-400">PRDs</span>
+                <span className="text-slate-400">/</span>
 
                 {/* Project Multi-Select Dropdown */}
                 <DropdownMenu open={showProjectSelector} onOpenChange={setShowProjectSelector}>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-6 px-2 gap-1 text-muted-foreground hover:text-foreground">
+                    <Button variant="ghost" size="sm" className="h-6 px-2 gap-1 text-slate-400 hover:text-white">
                       <Folder className="h-3 w-3" />
                       {linkedProjects.length === 0 ? (
                         <span className="text-xs">{t('prd.addProject', 'Add project')}</span>
@@ -886,7 +886,7 @@ Respond in the same language as the user's message.`
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-56">
                     {allProjects.length === 0 ? (
-                      <div className="px-2 py-3 text-sm text-muted-foreground text-center">
+                      <div className="px-2 py-3 text-sm text-slate-400 text-center">
                         {t('projects.noProjects', 'No projects')}
                       </div>
                     ) : (
@@ -910,7 +910,7 @@ Respond in the same language as the user's message.`
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                <span className="text-muted-foreground">/</span>
+                <span className="text-slate-400">/</span>
                 <span className="font-medium truncate max-w-[200px]">{title}</span>
               </div>
             </div>
@@ -919,7 +919,7 @@ Respond in the same language as the user's message.`
               {/* Save Status Indicator (Google Docs style - matching Issue pattern) */}
               <div className="hidden sm:flex items-center gap-1.5 text-xs">
                 {(isSavingTitle || isSavingContent) ? (
-                  <div className="flex items-center gap-1 text-muted-foreground">
+                  <div className="flex items-center gap-1 text-slate-400">
                     <Loader2 className="h-3 w-3 animate-spin" />
                     <span>Saving...</span>
                   </div>
@@ -929,7 +929,7 @@ Respond in the same language as the user's message.`
                     <span>Saved</span>
                   </div>
                 ) : lastSaved ? (
-                  <span className="text-muted-foreground">
+                  <span className="text-slate-400">
                     Saved {formatDistanceToNow(lastSaved, { addSuffix: true })}
                   </span>
                 ) : null}
@@ -1046,7 +1046,7 @@ Respond in the same language as the user's message.`
                   />
                 ) : (
                   <h1
-                    className="text-3xl sm:text-4xl font-bold cursor-text hover:bg-muted/30 rounded px-2 py-2 -mx-2 transition-colors group flex items-center gap-3"
+                    className="text-3xl sm:text-4xl font-bold cursor-text hover:bg-white/5 rounded px-2 py-2 -mx-2 transition-colors group flex items-center gap-3"
                     onClick={() => setIsEditingTitle(true)}
                   >
                     {title || t('prd.titlePlaceholder', 'Untitled PRD')}
@@ -1055,7 +1055,7 @@ Respond in the same language as the user's message.`
                 )}
 
                 {/* Meta info */}
-                <div className="flex items-center gap-4 mt-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-4 mt-4 text-sm text-slate-400">
                   <div className="flex items-center gap-1.5">
                     <Clock className="h-4 w-4" />
                     <span>Created {format(new Date(prd.created_at), 'MMM d, yyyy')}</span>
@@ -1092,8 +1092,8 @@ Respond in the same language as the user's message.`
               </div>
 
               {/* Footer actions */}
-              <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="mt-12 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-2 text-sm text-slate-400">
                   <Clock className="h-4 w-4" />
                   <span>Last updated {format(new Date(prd.updated_at), 'MMM d, yyyy h:mm a')}</span>
                 </div>
@@ -1119,9 +1119,9 @@ Respond in the same language as the user's message.`
 
           {/* AI Panel */}
           {showAIPanel && (
-            <div className="w-[40%] border-l border-border flex flex-col bg-muted/30">
+            <div className="w-[40%] border-l border-white/10 flex flex-col bg-white/5">
               {/* AI Panel Header */}
-              <div className="p-3 border-b border-border flex items-center justify-between bg-background">
+              <div className="p-3 border-b border-white/10 flex items-center justify-between bg-[#0d0d0f]">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-primary" />
                   <span className="font-medium text-sm">AI Assistant</span>
@@ -1187,7 +1187,7 @@ Respond in the same language as the user's message.`
               {/* Messages */}
               <ScrollArea className="flex-1 p-3">
                 {aiMessages.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="text-center py-8 text-slate-400">
                     <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-30" />
                     <p className="text-sm font-medium">Ask AI to edit your PRD</p>
                     <p className="text-xs mt-1">Try: "Add a section about security requirements"</p>
@@ -1227,7 +1227,7 @@ Respond in the same language as the user's message.`
                               "rounded-lg px-2.5 py-1.5 max-w-[85%]",
                               msg.role === 'user'
                                 ? "bg-primary text-primary-foreground text-xs"
-                                : "bg-background border"
+                                : "bg-[#0d0d0f] border"
                             )}>
                               {msg.role === 'assistant' ? (
                                 <div className="prose prose-sm dark:prose-invert max-w-none text-xs leading-relaxed
@@ -1239,12 +1239,12 @@ Respond in the same language as the user's message.`
                                   [&_h1]:text-sm [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2
                                   [&_h2]:text-xs [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1
                                   [&_h3]:text-xs [&_h3]:font-medium [&_h3]:mt-2 [&_h3]:mb-1
-                                  [&_code]:text-[10px] [&_code]:bg-muted/70 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded
+                                  [&_code]:text-[10px] [&_code]:bg-white/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded
                                   [&_pre]:my-2 [&_pre]:bg-zinc-900 [&_pre]:p-2 [&_pre]:rounded [&_pre]:text-[10px]
                                   [&_blockquote]:border-l-2 [&_blockquote]:border-primary/40 [&_blockquote]:pl-2 [&_blockquote]:my-2 [&_blockquote]:italic
                                   [&_table]:my-2 [&_table]:text-[10px] [&_table]:border-collapse
-                                  [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1 [&_th]:bg-muted/50
-                                  [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1
+                                  [&_th]:border [&_th]:border-white/10 [&_th]:px-2 [&_th]:py-1 [&_th]:bg-white/5
+                                  [&_td]:border [&_td]:border-white/10 [&_td]:px-2 [&_td]:py-1
                                 ">
                                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                     {cleanContent || 'Thinking...'}
@@ -1254,7 +1254,7 @@ Respond in the same language as the user's message.`
                                 <p className="whitespace-pre-wrap text-xs">{cleanContent}</p>
                               )}
                               {msg.suggestion && (
-                                <div className="mt-2 pt-2 border-t border-border/50">
+                                <div className="mt-2 pt-2 border-t border-white/10/50">
                                   {msg.suggestion.status === 'pending' ? (
                                     <div className="flex gap-1.5">
                                       <Button
@@ -1298,10 +1298,10 @@ Respond in the same language as the user's message.`
                             <Bot className="h-3 w-3" />
                           </AvatarFallback>
                         </Avatar>
-                        <div className="bg-background border rounded-lg px-2.5 py-1.5">
+                        <div className="bg-[#0d0d0f] border rounded-lg px-2.5 py-1.5">
                           <div className="flex items-center gap-1.5">
                             <Loader2 className="h-3 w-3 animate-spin" />
-                            <span className="text-xs text-muted-foreground">Thinking...</span>
+                            <span className="text-xs text-slate-400">Thinking...</span>
                           </div>
                         </div>
                       </div>
@@ -1312,7 +1312,7 @@ Respond in the same language as the user's message.`
               </ScrollArea>
 
               {/* Input */}
-              <div className="p-3 border-t border-border bg-background">
+              <div className="p-3 border-t border-white/10 bg-[#0d0d0f]">
                 <div className="flex gap-2">
                   <Textarea
                     value={aiInput}
@@ -1335,7 +1335,7 @@ Respond in the same language as the user's message.`
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-1.5">
+                <p className="text-[10px] text-slate-400 mt-1.5">
                   Press Enter to send • Shift+Enter for new line
                 </p>
               </div>
@@ -1344,8 +1344,8 @@ Respond in the same language as the user's message.`
 
           {/* Version History Panel */}
           {showVersionHistory && (
-            <div className="absolute right-0 top-0 bottom-0 w-80 bg-background border-l border-border shadow-lg z-20">
-              <div className="p-3 border-b border-border flex items-center justify-between">
+            <div className="absolute right-0 top-0 bottom-0 w-80 bg-[#0d0d0f] border-l border-white/10 shadow-lg z-20">
+              <div className="p-3 border-b border-white/10 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <History className="h-4 w-4" />
                   <span className="font-medium text-sm">Version History</span>
@@ -1362,7 +1362,7 @@ Respond in the same language as the user's message.`
               <ScrollArea className="h-[calc(100%-48px)]">
                 <div className="p-2 space-y-1">
                   {versionHistory.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">
+                    <p className="text-xs text-slate-400 text-center py-4">
                       No history yet. Changes will appear here.
                     </p>
                   ) : (
@@ -1377,12 +1377,12 @@ Respond in the same language as the user's message.`
                             toast.success(`Restored: ${version.description}`);
                           }}
                           className={cn(
-                            "w-full text-left p-2 rounded text-xs hover:bg-muted transition-colors",
+                            "w-full text-left p-2 rounded text-xs hover:bg-white/5 transition-colors",
                             actualIdx === currentVersionIndex && "bg-primary/10 border border-primary/30"
                           )}
                         >
                           <p className="font-medium truncate">{version.description}</p>
-                          <p className="text-muted-foreground text-[10px] mt-0.5">
+                          <p className="text-slate-400 text-[10px] mt-0.5">
                             {format(version.timestamp, 'MMM d, h:mm a')}
                           </p>
                         </button>

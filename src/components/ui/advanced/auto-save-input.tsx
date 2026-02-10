@@ -45,14 +45,14 @@ export function AutoSaveInput({
         value={value}
         onChange={handleChange}
         className={cn(
-          "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-10 w-full rounded-xl border border-white/10 bg-[#0d0d0f] px-3 py-2 text-sm ring-offset-[#0d0d0f] placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
           inputClassName
         )}
       />
       {showSaveIndicator && (
         <div className="absolute right-2 top-1/2 -translate-y-1/2">
           {isSaving ? (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
           ) : lastSaved && !hasUnsavedChanges ? (
             <Check className="h-4 w-4 text-green-500" />
           ) : null}
@@ -104,14 +104,14 @@ export function AutoSaveTextarea({
         value={value}
         onChange={handleChange}
         className={cn(
-          "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+          "flex min-h-[80px] w-full rounded-xl border border-white/10 bg-[#0d0d0f] px-3 py-2 text-sm ring-offset-[#0d0d0f] placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
           textareaClassName
         )}
       />
       {showSaveIndicator && (
         <div className="absolute right-2 top-2">
           {isSaving ? (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
           ) : lastSaved && !hasUnsavedChanges ? (
             <Check className="h-4 w-4 text-green-500" />
           ) : null}

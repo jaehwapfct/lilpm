@@ -53,13 +53,13 @@ const BookmarkComponent: React.FC<any> = ({ node, updateAttributes, selected }) 
             >
                 {!url ? (
                     // URL Input
-                    <div className="p-6 bg-muted/50 text-center">
-                        <Link2 className="h-10 w-10 mx-auto mb-4 text-muted-foreground/50" />
+                    <div className="p-6 bg-white/5 text-center">
+                        <Link2 className="h-10 w-10 mx-auto mb-4 text-slate-400/50" />
                         <div className="max-w-md mx-auto">
                             <input
                                 type="url"
                                 placeholder="Paste a link to create bookmark..."
-                                className="w-full px-4 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                className="w-full px-4 py-2 rounded-lg border bg-[#0d0d0f] text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                         const target = e.target as HTMLInputElement;
@@ -83,7 +83,7 @@ const BookmarkComponent: React.FC<any> = ({ node, updateAttributes, selected }) 
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex hover:bg-muted/30 transition-colors"
+                        className="flex hover:bg-white/5 transition-colors"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Content */}
@@ -92,21 +92,21 @@ const BookmarkComponent: React.FC<any> = ({ node, updateAttributes, selected }) 
                                 {favicon ? (
                                     <img src={favicon} alt="" className="h-4 w-4" />
                                 ) : (
-                                    <Globe className="h-4 w-4 text-muted-foreground" />
+                                    <Globe className="h-4 w-4 text-slate-400" />
                                 )}
-                                <span className="text-xs text-muted-foreground truncate">
+                                <span className="text-xs text-slate-400 truncate">
                                     {new URL(url).hostname}
                                 </span>
                             </div>
                             <h4 className="font-medium text-sm truncate">{title || 'Untitled'}</h4>
                             {description && (
-                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{description}</p>
+                                <p className="text-xs text-slate-400 mt-1 line-clamp-2">{description}</p>
                             )}
                         </div>
 
                         {/* Image Preview */}
                         {image && (
-                            <div className="w-32 h-24 flex-shrink-0 bg-muted">
+                            <div className="w-32 h-24 flex-shrink-0 bg-[#121215]">
                                 <img
                                     src={image}
                                     alt=""
@@ -118,14 +118,14 @@ const BookmarkComponent: React.FC<any> = ({ node, updateAttributes, selected }) 
 
                         {/* External Link Icon */}
                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                            <ExternalLink className="h-4 w-4 text-slate-400" />
                         </div>
                     </a>
                 )}
 
                 {isLoading && (
-                    <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    <div className="absolute inset-0 bg-[#0d0d0f]/80 flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
                     </div>
                 )}
             </div>

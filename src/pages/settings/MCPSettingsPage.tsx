@@ -423,7 +423,7 @@ export function MCPSettingsPage() {
               <Plug className="h-5 w-5 md:h-6 md:w-6" />
               MCP Connection Management
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-slate-400">
               Manage external service connections for Lil PM AI
             </p>
           </div>
@@ -435,7 +435,7 @@ export function MCPSettingsPage() {
         {/* Toolbar */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
               placeholder="Search connectors..."
               value={searchQuery}
@@ -545,7 +545,7 @@ export function MCPSettingsPage() {
                   <div className="space-y-2">
                     <Label>MCP Configuration (JSON)</Label>
                     <textarea
-                      className="w-full h-48 p-3 font-mono text-xs bg-muted rounded-md border resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="w-full h-48 p-3 font-mono text-xs bg-[#121215] rounded-xl border border-white/10 resize-none focus:outline-none focus:ring-2 focus:ring-violet-500"
                       placeholder={`{
   "mcpServers": {
     "lily-workspace": {
@@ -562,7 +562,7 @@ export function MCPSettingsPage() {
                       value={jsonConfig}
                       onChange={(e) => setJsonConfig(e.target.value)}
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-slate-400">
                       Paste your MCP server configuration in JSON format.
                       The mcpServers object will be parsed to create connectors.
                     </p>
@@ -646,7 +646,7 @@ export function MCPSettingsPage() {
                   {filteredConnectors.map((connector) => (
                     <div
                       key={connector.id}
-                      className="flex items-center justify-between p-4 hover:bg-muted/50"
+                      className="flex items-center justify-between p-4 hover:bg-white/5"
                     >
                       <div className="flex items-center gap-3">
                         <span className="text-xl">{connector.icon}</span>
@@ -657,7 +657,7 @@ export function MCPSettingsPage() {
                               {CATEGORY_LABELS[connector.category]}
                             </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground">{connector.description}</p>
+                          <p className="text-sm text-slate-400">{connector.description}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -686,9 +686,9 @@ export function MCPSettingsPage() {
         {/* Empty state */}
         {filteredConnectors.length === 0 && (
           <div className="text-center py-12">
-            <Plug className="h-12 w-12 mx-auto text-muted-foreground/50" />
+            <Plug className="h-12 w-12 mx-auto text-slate-400/50" />
             <h3 className="mt-4 text-lg font-medium">No connectors found</h3>
-            <p className="text-muted-foreground text-sm mt-1">
+            <p className="text-slate-400 text-sm mt-1">
               Try a different search or add a new connector
             </p>
           </div>
@@ -749,7 +749,7 @@ export function MCPSettingsPage() {
                     <div className="space-y-2">
                       <Label>MCP Server Configuration (JSON)</Label>
                       <textarea
-                        className="w-full h-48 p-3 font-mono text-xs bg-muted rounded-md border resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                        className="w-full h-48 p-3 font-mono text-xs bg-[#121215] rounded-xl border border-white/10 resize-none focus:outline-none focus:ring-2 focus:ring-violet-500"
                         placeholder={`{
   "command": "npx",
   "args": [
@@ -774,11 +774,11 @@ export function MCPSettingsPage() {
                           }
                         }}
                       />
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-slate-400">
                         Configure MCP server with command, args, and environment variables.
                       </p>
                       {editingConnector.mcpConfig && !(editingConnector.mcpConfig as any)._raw && (
-                        <div className="p-3 bg-muted/50 rounded-md text-xs space-y-1">
+                        <div className="p-3 bg-[#121215] rounded-xl text-xs space-y-1">
                           <p><strong>Command:</strong> {(editingConnector.mcpConfig as any).command || 'N/A'}</p>
                           <p><strong>Args:</strong> {(editingConnector.mcpConfig as any).args?.join(' ') || 'N/A'}</p>
                         </div>
@@ -808,12 +808,12 @@ export function MCPSettingsPage() {
                         </>
                       )}
                     </Button>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-slate-400">
                       Test if the MCP server is reachable
                     </span>
                   </div>
                   {testResult && (
-                    <div className={`p-3 rounded-md text-xs font-mono whitespace-pre-wrap ${testResult.success ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                    <div className={`p-3 rounded-xl text-xs font-mono whitespace-pre-wrap ${testResult.success ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
                       }`}>
                       {testResult.message}
                     </div>

@@ -379,13 +379,13 @@ export function CreateIssueModal({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="__none__">
-                          <span className="text-muted-foreground">{t('issues.noProject')}</span>
+                          <span className="text-slate-400">{t('issues.noProject')}</span>
                         </SelectItem>
                         {projects.map((project) => (
                           <SelectItem key={project.id} value={project.id}>
                             <div className="flex items-center gap-2">
                               <div
-                                className="h-3 w-3 rounded-sm"
+                                className="h-3 w-3 rounded-lg"
                                 style={{ backgroundColor: project.color }}
                               />
                               <span>{project.name}</span>
@@ -419,7 +419,7 @@ export function CreateIssueModal({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="__none__">
-                          <span className="text-muted-foreground">{t('cycles.noCycles')}</span>
+                          <span className="text-slate-400">{t('cycles.noCycles')}</span>
                         </SelectItem>
                         {cycles.map((cycle) => (
                           <SelectItem key={cycle.id} value={cycle.id}>
@@ -461,7 +461,7 @@ export function CreateIssueModal({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="__none__">
-                          <span className="text-muted-foreground">{t('issues.unassigned')}</span>
+                          <span className="text-slate-400">{t('issues.unassigned')}</span>
                         </SelectItem>
                         {members.map((member) => (
                           <SelectItem key={member.id} value={member.id}>
@@ -499,7 +499,7 @@ export function CreateIssueModal({
                             variant="outline"
                             className={cn(
                               "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
+                              !field.value && "text-slate-400"
                             )}
                           >
                             {field.value ? (
@@ -552,7 +552,7 @@ export function CreateIssueModal({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="__none__">
-                        <span className="text-muted-foreground">{t('issues.noEstimate')}</span>
+                        <span className="text-slate-400">{t('issues.noEstimate')}</span>
                       </SelectItem>
                       {[1, 2, 3, 5, 8, 13, 21].map((points) => (
                         <SelectItem key={points} value={points.toString()}>

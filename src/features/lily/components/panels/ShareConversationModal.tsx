@@ -170,7 +170,7 @@ export function ShareConversationModal({
                             <div className="flex items-center justify-between">
                                 <div className="space-y-0.5">
                                     <Label>{t('lily.publicAccess', 'Public Access')}</Label>
-                                    <p className="text-xs text-muted-foreground">
+                                    <p className="text-xs text-slate-400">
                                         {t('lily.publicAccessDescription', 'Anyone with the link can access')}
                                     </p>
                                 </div>
@@ -217,7 +217,7 @@ export function ShareConversationModal({
                             </div>
 
                             {/* Share Info */}
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-4 text-sm text-slate-400">
                                 <div className="flex items-center gap-1">
                                     {shareInfo.isPublic ? (
                                         <Globe className="h-4 w-4" />

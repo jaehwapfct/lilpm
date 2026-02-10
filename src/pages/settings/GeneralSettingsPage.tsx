@@ -71,7 +71,7 @@ export function GeneralSettingsPage() {
               <Settings className="h-6 w-6" />
               {t('settings.title')}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-slate-400">
               {t('settings.general')}
             </p>
           </div>
@@ -143,7 +143,7 @@ export function GeneralSettingsPage() {
                   >
                     <Icon className={cn(
                       "h-6 w-6",
-                      theme === themeOption.code ? "text-primary" : "text-muted-foreground"
+                      theme === themeOption.code ? "text-primary" : "text-slate-400"
                     )} />
                     <span className="text-sm font-medium text-white">
                       {t(`settings.${themeOption.name}`)}
@@ -165,10 +165,10 @@ export function GeneralSettingsPage() {
             className="flex items-center justify-between w-full p-4 rounded-xl border border-white/10 bg-[#1a1a1f] hover:bg-white/5 hover:border-violet-500/30 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <Bell className="h-5 w-5 text-muted-foreground" />
+              <Bell className="h-5 w-5 text-slate-400" />
               <div className="text-left">
                 <p className="font-medium">{t('settings.notifications')}</p>
-                <p className="text-sm text-muted-foreground">{t('settings.notificationsShortDesc')}</p>
+                <p className="text-sm text-slate-400">{t('settings.notificationsShortDesc')}</p>
               </div>
             </div>
             <ArrowLeft className="h-4 w-4 rotate-180" />
@@ -179,10 +179,10 @@ export function GeneralSettingsPage() {
             className="flex items-center justify-between w-full p-4 rounded-xl border border-white/10 bg-[#1a1a1f] hover:bg-white/5 hover:border-violet-500/30 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <Shield className="h-5 w-5 text-muted-foreground" />
+              <Shield className="h-5 w-5 text-slate-400" />
               <div className="text-left">
                 <p className="font-medium">{t('settings.security')}</p>
-                <p className="text-sm text-muted-foreground">{t('settings.securityShortDesc')}</p>
+                <p className="text-sm text-slate-400">{t('settings.securityShortDesc')}</p>
               </div>
             </div>
             <ArrowLeft className="h-4 w-4 rotate-180" />
@@ -193,10 +193,10 @@ export function GeneralSettingsPage() {
             className="flex items-center justify-between w-full p-4 rounded-xl border border-white/10 bg-[#1a1a1f] hover:bg-white/5 hover:border-violet-500/30 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <Bot className="h-5 w-5 text-muted-foreground" />
+              <Bot className="h-5 w-5 text-slate-400" />
               <div className="text-left">
                 <p className="font-medium">{t('settings.ai')}</p>
-                <p className="text-sm text-muted-foreground">{t('settings.apiKeys')}</p>
+                <p className="text-sm text-slate-400">{t('settings.apiKeys')}</p>
               </div>
             </div>
             <ArrowLeft className="h-4 w-4 rotate-180" />
@@ -207,10 +207,10 @@ export function GeneralSettingsPage() {
             className="flex items-center justify-between w-full p-4 rounded-xl border border-white/10 bg-[#1a1a1f] hover:bg-white/5 hover:border-violet-500/30 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <Plug className="h-5 w-5 text-muted-foreground" />
+              <Plug className="h-5 w-5 text-slate-400" />
               <div className="text-left">
                 <p className="font-medium">{t('settings.mcp', 'MCP Connections')}</p>
-                <p className="text-sm text-muted-foreground">{t('settings.mcpShortDesc', 'Manage external service connections')}</p>
+                <p className="text-sm text-slate-400">{t('settings.mcpShortDesc', 'Manage external service connections')}</p>
               </div>
             </div>
             <ArrowLeft className="h-4 w-4 rotate-180" />
@@ -221,10 +221,10 @@ export function GeneralSettingsPage() {
             className="flex items-center justify-between w-full p-4 rounded-xl border border-white/10 bg-[#1a1a1f] hover:bg-white/5 hover:border-violet-500/30 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <Brain className="h-5 w-5 text-muted-foreground" />
+              <Brain className="h-5 w-5 text-slate-400" />
               <div className="text-left">
                 <p className="font-medium">{t('settings.llm', 'LLM Models')}</p>
-                <p className="text-sm text-muted-foreground">{t('settings.llmShortDesc', 'Register AI models and auto-mixing')}</p>
+                <p className="text-sm text-slate-400">{t('settings.llmShortDesc', 'Register AI models and auto-mixing')}</p>
               </div>
             </div>
             <ArrowLeft className="h-4 w-4 rotate-180" />
@@ -235,10 +235,10 @@ export function GeneralSettingsPage() {
             className="flex items-center justify-between w-full p-4 rounded-xl border border-white/10 bg-[#1a1a1f] hover:bg-white/5 hover:border-violet-500/30 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <Github className="h-5 w-5 text-muted-foreground" />
+              <Github className="h-5 w-5 text-slate-400" />
               <div className="text-left">
                 <p className="font-medium">{t('settings.github', 'GitHub Integration')}</p>
-                <p className="text-sm text-muted-foreground">{t('settings.githubShortDesc', 'Auto-link commits/PRs with issues')}</p>
+                <p className="text-sm text-slate-400">{t('settings.githubShortDesc', 'Auto-link commits/PRs with issues')}</p>
               </div>
             </div>
             <ArrowLeft className="h-4 w-4 rotate-180" />
@@ -249,10 +249,10 @@ export function GeneralSettingsPage() {
             className="flex items-center justify-between w-full p-4 rounded-xl border border-white/10 bg-[#1a1a1f] hover:bg-white/5 hover:border-violet-500/30 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <MessageSquare className="h-5 w-5 text-muted-foreground" />
+              <MessageSquare className="h-5 w-5 text-slate-400" />
               <div className="text-left">
                 <p className="font-medium">{t('settings.slack', 'Slack Integration')}</p>
-                <p className="text-sm text-muted-foreground">{t('settings.slackShortDesc', 'Notifications and MCP connection')}</p>
+                <p className="text-sm text-slate-400">{t('settings.slackShortDesc', 'Notifications and MCP connection')}</p>
               </div>
             </div>
             <ArrowLeft className="h-4 w-4 rotate-180" />

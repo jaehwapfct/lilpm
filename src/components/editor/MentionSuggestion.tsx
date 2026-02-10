@@ -82,14 +82,14 @@ export const MentionSuggestion = forwardRef<MentionSuggestionRef, MentionSuggest
 
         if (items.length === 0) {
             return (
-                <div className="bg-popover border border-border rounded-md shadow-lg p-3 text-sm text-muted-foreground">
+                <div className="bg-[#1a1a1f] border border-white/10 rounded-xl shadow-lg p-3 text-sm text-slate-400">
                     No members found
                 </div>
             );
         }
 
         return (
-            <div className="bg-popover border border-border rounded-md shadow-lg overflow-hidden max-w-[280px]">
+            <div className="bg-[#1a1a1f] border border-white/10 rounded-xl shadow-lg overflow-hidden max-w-[280px]">
                 <ScrollArea className="max-h-32">
                     <div className="p-1">
                         {items.map((item, index) => (
@@ -99,8 +99,8 @@ export const MentionSuggestion = forwardRef<MentionSuggestionRef, MentionSuggest
                                 className={cn(
                                     'w-full flex items-center gap-2 px-2 py-1 rounded text-xs text-left',
                                     index === selectedIndex
-                                        ? 'bg-accent text-accent-foreground'
-                                        : 'hover:bg-accent/50'
+                                        ? 'bg-white/5 text-white'
+                                        : 'hover:bg-white/5/50'
                                 )}
                                 onClick={() => selectItem(index)}
                                 onMouseEnter={() => setSelectedIndex(index)}
@@ -115,7 +115,7 @@ export const MentionSuggestion = forwardRef<MentionSuggestionRef, MentionSuggest
                                     <p className="font-medium truncate">
                                         {item.name || 'User'}
                                     </p>
-                                    <p className="text-xs text-muted-foreground truncate">
+                                    <p className="text-xs text-slate-400 truncate">
                                         {item.email}
                                     </p>
                                 </div>

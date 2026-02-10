@@ -542,7 +542,7 @@ Respond in the same language as the user's message.`
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
         </div>
       </AppLayout>
     );
@@ -552,7 +552,7 @@ Respond in the same language as the user's message.`
     return (
       <AppLayout>
         <div className="flex flex-col items-center justify-center h-full gap-4">
-          <AlertCircle className="h-12 w-12 text-muted-foreground" />
+          <AlertCircle className="h-12 w-12 text-slate-400" />
           <p className="text-lg font-medium">{t('issues.notFound')}</p>
           <Button onClick={() => navigate('/issues')}>{t('issues.backToList')}</Button>
         </div>
@@ -568,7 +568,7 @@ Respond in the same language as the user's message.`
         {/* Main Content */}
         <div className="flex-1 overflow-y-auto">
           {/* Header */}
-          <div className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border px-3 sm:px-6 py-3">
+          <div className="sticky top-0 bg-[#0d0d0f]/95 backdrop-blur z-10 border-b border-white/10 px-3 sm:px-6 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 sm:gap-3">
                 <Button
@@ -609,13 +609,13 @@ Respond in the same language as the user's message.`
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <span className="text-xs sm:text-sm text-muted-foreground font-mono">
+                <span className="text-xs sm:text-sm text-slate-400 font-mono">
                   {issue.identifier}
                 </span>
                 {/* Save Status Indicator (Google Docs style) */}
                 <div className="hidden sm:flex items-center gap-1.5 text-xs ml-2">
                   {(isSavingTitle || isSavingDescription) ? (
-                    <div className="flex items-center gap-1 text-muted-foreground">
+                    <div className="flex items-center gap-1 text-slate-400">
                       <Loader2 className="h-3 w-3 animate-spin" />
                       <span>Saving...</span>
                     </div>
@@ -680,9 +680,9 @@ Respond in the same language as the user's message.`
 
           {/* Mobile Properties Panel */}
           {showMobileProperties && (
-            <div className="lg:hidden p-4 border-b border-border bg-muted/30 grid grid-cols-2 gap-3">
+            <div className="lg:hidden p-4 border-b border-white/10 bg-white/5 grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-muted-foreground">{t('issues.status')}</label>
+                <label className="text-xs font-medium text-slate-400">{t('issues.status')}</label>
                 <Select
                   value={issue.status}
                   onValueChange={(v) => handleUpdateIssue({ status: v as IssueStatus })}
@@ -708,7 +708,7 @@ Respond in the same language as the user's message.`
                 </Select>
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground">{t('issues.priority')}</label>
+                <label className="text-xs font-medium text-slate-400">{t('issues.priority')}</label>
                 <Select
                   value={issue.priority}
                   onValueChange={(v) => handleUpdateIssue({ priority: v as IssuePriority })}
@@ -751,13 +751,13 @@ Respond in the same language as the user's message.`
                     placeholder={t('issues.issueTitle')}
                   />
                   <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    {isSavingTitle && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                    {isSavingTitle && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
                     {titleSaved && <Check className="h-4 w-4 text-green-500" />}
                   </div>
                 </div>
               ) : (
                 <h1
-                  className="text-2xl font-semibold cursor-text hover:bg-muted/50 rounded px-1 py-1 -mx-1 transition-colors"
+                  className="text-2xl font-semibold cursor-text hover:bg-white/5 rounded px-1 py-1 -mx-1 transition-colors"
                   onClick={() => {
                     setIsEditingTitle(true);
                     setCollabIsEditing(true);
@@ -773,7 +773,7 @@ Respond in the same language as the user's message.`
               {isEditingDescription ? (
                 <div className="relative">
                   <div className="absolute right-0 top-0 flex items-center gap-2 z-10">
-                    {isSavingDescription && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                    {isSavingDescription && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
                     {descriptionSaved && <Check className="h-4 w-4 text-green-500" />}
                     <Button
                       variant="outline"
@@ -801,17 +801,17 @@ Respond in the same language as the user's message.`
                 </div>
               ) : issue.description ? (
                 <div
-                  className="cursor-text hover:bg-muted/30 rounded-lg px-3 py-3 -mx-2 transition-colors border border-transparent hover:border-border"
+                  className="cursor-text hover:bg-white/5 rounded-lg px-3 py-3 -mx-2 transition-colors border border-transparent hover:border-white/10"
                   onClick={() => {
                     setIsEditingDescription(true);
                     setCollabIsEditing(true);
                   }}
                 >
-                  <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground
+                  <div className="prose prose-sm dark:prose-invert max-w-none text-slate-400
                     [&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-1
                     [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm
-                    [&_code]:text-xs [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded
-                    [&_pre]:bg-muted [&_pre]:p-3 [&_pre]:rounded-lg
+                    [&_code]:text-xs [&_code]:bg-[#121215] [&_code]:px-1 [&_code]:rounded
+                    [&_pre]:bg-[#121215] [&_pre]:p-3 [&_pre]:rounded-lg
                     [&_blockquote]:border-l-2 [&_blockquote]:border-primary/50 [&_blockquote]:pl-3
                   ">
                     <div dangerouslySetInnerHTML={{ __html: issue.description }} />
@@ -823,7 +823,7 @@ Respond in the same language as the user's message.`
                     setIsEditingDescription(true);
                     setCollabIsEditing(true);
                   }}
-                  className="text-muted-foreground hover:text-foreground hover:bg-muted/30 rounded-lg px-3 py-4 -mx-2 transition-colors w-full text-left border border-dashed border-border/50 hover:border-border"
+                  className="text-slate-400 hover:text-white hover:bg-white/5 rounded-lg px-3 py-4 -mx-2 transition-colors w-full text-left border border-dashed border-white/10/50 hover:border-white/10"
                 >
                   <Pencil className="h-4 w-4 inline-block mr-2 opacity-50" />
                   {t('issues.addDescription', 'Add a description...')}
@@ -835,7 +835,7 @@ Respond in the same language as the user's message.`
             {issueType === 'user_story' && (
               <div className="mt-6">
                 <h3 className="text-sm font-medium mb-2">{t('issues.acceptanceCriteria', 'Acceptance Criteria')}</h3>
-                <div className="bg-muted/30 rounded-lg p-4 text-sm text-muted-foreground">
+                <div className="bg-white/5 rounded-lg p-4 text-sm text-slate-400">
                   {(issue as any).acceptance_criteria ? (
                     <ul className="list-disc list-inside space-y-1">
                       {((issue as any).acceptance_criteria as string[]).map((criteria, idx) => (
@@ -910,7 +910,7 @@ Respond in the same language as the user's message.`
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-sm">{comment.user?.name || t('common.user')}</span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-slate-400">
                           {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true, locale: dateLocale })}
                         </span>
                         {comment.user_id === user?.id && (
@@ -930,7 +930,7 @@ Respond in the same language as the user's message.`
                 ))}
 
                 {comments.length === 0 && (
-                  <p className="text-center text-muted-foreground py-8">
+                  <p className="text-center text-slate-400 py-8">
                     {t('issues.noComments')}
                   </p>
                 )}
@@ -947,10 +947,10 @@ Respond in the same language as the user's message.`
                     </Avatar>
                     <div className="flex-1">
                       <span className="font-medium">{activity.user?.name || t('common.system')}</span>
-                      <span className="text-muted-foreground ml-1">
+                      <span className="text-slate-400 ml-1">
                         {t(`activity.${activity.type}`, activity.type)}
                       </span>
-                      <span className="text-xs text-muted-foreground ml-2">
+                      <span className="text-xs text-slate-400 ml-2">
                         {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true, locale: dateLocale })}
                       </span>
                     </div>
@@ -958,7 +958,7 @@ Respond in the same language as the user's message.`
                 ))}
 
                 {activities.length === 0 && (
-                  <p className="text-center text-muted-foreground py-8">
+                  <p className="text-center text-slate-400 py-8">
                     {t('issues.noActivityLog')}
                   </p>
                 )}
@@ -968,10 +968,10 @@ Respond in the same language as the user's message.`
         </div>
 
         {/* Sidebar - Properties (Desktop only) */}
-        <div className="hidden lg:block w-72 border-l border-border p-4 space-y-6 overflow-y-auto">
+        <div className="hidden lg:block w-72 border-l border-white/10 p-4 space-y-6 overflow-y-auto">
           {/* Issue Type */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground uppercase">{t('issues.type', 'Type')}</label>
+            <label className="text-xs font-medium text-slate-400 uppercase">{t('issues.type', 'Type')}</label>
             <Select
               value={issueType}
               onValueChange={async (v) => {
@@ -1006,7 +1006,7 @@ Respond in the same language as the user's message.`
 
           {/* Status */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground uppercase">{t('issues.status')}</label>
+            <label className="text-xs font-medium text-slate-400 uppercase">{t('issues.status')}</label>
             <Select
               value={issue.status}
               onValueChange={(v) => handleUpdateIssue({ status: v as IssueStatus })}
@@ -1034,7 +1034,7 @@ Respond in the same language as the user's message.`
 
           {/* Priority */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground uppercase">{t('issues.priority')}</label>
+            <label className="text-xs font-medium text-slate-400 uppercase">{t('issues.priority')}</label>
             <Select
               value={issue.priority}
               onValueChange={(v) => handleUpdateIssue({ priority: v as IssuePriority })}
@@ -1062,7 +1062,7 @@ Respond in the same language as the user's message.`
 
           {/* Assignee */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground uppercase">{t('issues.assignee')}</label>
+            <label className="text-xs font-medium text-slate-400 uppercase">{t('issues.assignee')}</label>
             <Select
               value={issue.assignee_id || 'unassigned'}
               onValueChange={(v) => handleUpdateIssue({ assignee_id: v === 'unassigned' ? null : v })}
@@ -1079,13 +1079,13 @@ Respond in the same language as the user's message.`
                       {members.find(m => m.id === issue.assignee_id)?.name || 'Unknown'}
                     </div>
                   ) : (
-                    <span className="text-muted-foreground">{t('issues.unassigned')}</span>
+                    <span className="text-slate-400">{t('issues.unassigned')}</span>
                   )}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="unassigned">
-                  <span className="text-muted-foreground">{t('issues.unassigned')}</span>
+                  <span className="text-slate-400">{t('issues.unassigned')}</span>
                 </SelectItem>
                 {/* Assign to myself */}
                 {user && (
@@ -1117,7 +1117,7 @@ Respond in the same language as the user's message.`
 
           {/* Reporter */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground uppercase">{t('issues.reporter', 'Reporter')}</label>
+            <label className="text-xs font-medium text-slate-400 uppercase">{t('issues.reporter', 'Reporter')}</label>
             <Select
               value={(issue as any).reporter_id || issue.created_by || 'unassigned'}
               onValueChange={(v) => handleUpdateIssue({ reporter_id: v === 'unassigned' ? null : v } as any)}
@@ -1138,14 +1138,14 @@ Respond in the same language as the user's message.`
                         {reporter?.name || 'Unknown'}
                       </div>
                     ) : (
-                      <span className="text-muted-foreground">{t('issues.unassigned')}</span>
+                      <span className="text-slate-400">{t('issues.unassigned')}</span>
                     );
                   })()}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="unassigned">
-                  <span className="text-muted-foreground">{t('issues.unassigned')}</span>
+                  <span className="text-slate-400">{t('issues.unassigned')}</span>
                 </SelectItem>
                 {/* Set myself as reporter */}
                 {user && (
@@ -1177,14 +1177,14 @@ Respond in the same language as the user's message.`
 
           {/* Start Date */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground uppercase">{t('issues.startDate', 'Start Date')}</label>
+            <label className="text-xs font-medium text-slate-400 uppercase">{t('issues.startDate', 'Start Date')}</label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
                     "w-full justify-start text-left font-normal",
-                    !(issue as any).start_date && "text-muted-foreground"
+                    !(issue as any).start_date && "text-slate-400"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
@@ -1211,14 +1211,14 @@ Respond in the same language as the user's message.`
 
           {/* Due Date */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground uppercase">{t('issues.dueDate')}</label>
+            <label className="text-xs font-medium text-slate-400 uppercase">{t('issues.dueDate')}</label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
                     "w-full justify-start text-left font-normal",
-                    !issue.due_date && "text-muted-foreground"
+                    !issue.due_date && "text-slate-400"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
@@ -1259,7 +1259,7 @@ Respond in the same language as the user's message.`
 
           {/* Estimate */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground uppercase">{t('issues.estimate')}</label>
+            <label className="text-xs font-medium text-slate-400 uppercase">{t('issues.estimate')}</label>
             <Select
               value={issue.estimate?.toString() || 'none'}
               onValueChange={(v) => handleUpdateIssue({ estimate: v === 'none' ? null : parseInt(v) })}
@@ -1272,7 +1272,7 @@ Respond in the same language as the user's message.`
                       {issue.estimate} {t('issues.points')}
                     </div>
                   ) : (
-                    <span className="text-muted-foreground">{t('issues.noEstimate')}</span>
+                    <span className="text-slate-400">{t('issues.noEstimate')}</span>
                   )}
                 </SelectValue>
               </SelectTrigger>
@@ -1289,7 +1289,7 @@ Respond in the same language as the user's message.`
 
           {/* Cycle/Sprint */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground uppercase">{t('issues.cycle', 'Sprint')}</label>
+            <label className="text-xs font-medium text-slate-400 uppercase">{t('issues.cycle', 'Sprint')}</label>
             <Select
               value={issue.cycle_id || 'none'}
               onValueChange={async (v) => {
@@ -1316,7 +1316,7 @@ Respond in the same language as the user's message.`
                       {cycles.find(c => c.id === issue.cycle_id)?.name || 'Sprint'}
                     </div>
                   ) : (
-                    <span className="text-muted-foreground">{t('issues.noCycle', 'No sprint')}</span>
+                    <span className="text-slate-400">{t('issues.noCycle', 'No sprint')}</span>
                   )}
                 </SelectValue>
               </SelectTrigger>
@@ -1326,7 +1326,7 @@ Respond in the same language as the user's message.`
                   <SelectItem key={cycle.id} value={cycle.id}>
                     <div className="flex flex-col">
                       <span>{cycle.name}</span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-slate-400">
                         {format(new Date(cycle.start_date), 'MMM d')} - {format(new Date(cycle.end_date), 'MMM d')}
                       </span>
                     </div>
@@ -1338,7 +1338,7 @@ Respond in the same language as the user's message.`
 
           {/* Linked PRD/Document */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground uppercase">{t('issues.linkedPrd', 'Linked PRD')}</label>
+            <label className="text-xs font-medium text-slate-400 uppercase">{t('issues.linkedPrd', 'Linked PRD')}</label>
             <Select
               value={issue.prd_id || 'none'}
               onValueChange={async (v) => {
@@ -1361,7 +1361,7 @@ Respond in the same language as the user's message.`
                       <span className="truncate">{prds.find(p => p.id === issue.prd_id)?.title || 'PRD'}</span>
                     </div>
                   ) : (
-                    <span className="text-muted-foreground">{t('issues.noPrd', 'No linked PRD')}</span>
+                    <span className="text-slate-400">{t('issues.noPrd', 'No linked PRD')}</span>
                   )}
                 </SelectValue>
               </SelectTrigger>
@@ -1384,11 +1384,11 @@ Respond in the same language as the user's message.`
           {/* Metadata */}
           <div className="space-y-3 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">{t('issues.created')}</span>
+              <span className="text-slate-400">{t('issues.created')}</span>
               <span>{format(new Date(issue.created_at), 'MMM d, yyyy', { locale: dateLocale })}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">{t('issues.updated')}</span>
+              <span className="text-slate-400">{t('issues.updated')}</span>
               <span>{formatDistanceToNow(new Date(issue.updated_at), { addSuffix: true, locale: dateLocale })}</span>
             </div>
           </div>
@@ -1396,9 +1396,9 @@ Respond in the same language as the user's message.`
 
         {/* AI Assistant Panel */}
         {showAIPanel && (
-          <div className="w-80 border-l border-border flex flex-col bg-muted/30">
+          <div className="w-80 border-l border-white/10 flex flex-col bg-white/5">
             {/* AI Panel Header */}
-            <div className="p-3 border-b border-border flex items-center justify-between bg-background">
+            <div className="p-3 border-b border-white/10 flex items-center justify-between bg-[#0d0d0f]">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
                 <span className="font-medium text-sm">AI Assistant</span>
@@ -1434,7 +1434,7 @@ Respond in the same language as the user's message.`
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-3 space-y-3">
               {aiMessages.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8 text-slate-400">
                   <Bot className="h-10 w-10 mx-auto mb-3 opacity-30" />
                   <p className="text-sm font-medium">Ask AI about this issue</p>
                   <p className="text-xs mt-1">Get suggestions, improvements, or answers</p>
@@ -1473,7 +1473,7 @@ Respond in the same language as the user's message.`
                           "rounded-lg px-2.5 py-1.5 max-w-[85%]",
                           msg.role === 'user'
                             ? "bg-primary text-primary-foreground text-xs"
-                            : "bg-background border"
+                            : "bg-[#0d0d0f] border"
                         )}>
                           {msg.role === 'assistant' ? (
                             <div className="prose prose-sm dark:prose-invert max-w-none text-xs leading-relaxed
@@ -1485,12 +1485,12 @@ Respond in the same language as the user's message.`
                               [&_h1]:text-sm [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2
                               [&_h2]:text-xs [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1
                               [&_h3]:text-xs [&_h3]:font-medium [&_h3]:mt-2 [&_h3]:mb-1
-                              [&_code]:text-[10px] [&_code]:bg-muted/70 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded
+                              [&_code]:text-[10px] [&_code]:bg-white/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded
                               [&_pre]:my-2 [&_pre]:bg-zinc-900 [&_pre]:p-2 [&_pre]:rounded [&_pre]:text-[10px]
                               [&_blockquote]:border-l-2 [&_blockquote]:border-primary/40 [&_blockquote]:pl-2 [&_blockquote]:my-2 [&_blockquote]:italic
                               [&_table]:my-2 [&_table]:text-[10px] [&_table]:border-collapse
-                              [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1 [&_th]:bg-muted/50
-                              [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1
+                              [&_th]:border [&_th]:border-white/10 [&_th]:px-2 [&_th]:py-1 [&_th]:bg-white/5
+                              [&_td]:border [&_td]:border-white/10 [&_td]:px-2 [&_td]:py-1
                             ">
                               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                 {cleanContent || 'Thinking...'}
@@ -1512,10 +1512,10 @@ Respond in the same language as the user's message.`
                       <Bot className="h-3 w-3" />
                     </AvatarFallback>
                   </Avatar>
-                  <div className="bg-background border rounded-lg px-2.5 py-1.5">
+                  <div className="bg-[#0d0d0f] border rounded-lg px-2.5 py-1.5">
                     <div className="flex items-center gap-1.5">
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      <span className="text-xs text-muted-foreground">Thinking...</span>
+                      <span className="text-xs text-slate-400">Thinking...</span>
                     </div>
                   </div>
                 </div>
@@ -1523,7 +1523,7 @@ Respond in the same language as the user's message.`
             </div>
 
             {/* Input */}
-            <div className="p-3 border-t border-border bg-background">
+            <div className="p-3 border-t border-white/10 bg-[#0d0d0f]">
               <div className="flex gap-2">
                 <Textarea
                   value={aiInput}

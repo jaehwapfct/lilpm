@@ -126,7 +126,7 @@ export function CreateProjectPage() {
                         key={icon}
                         type="button"
                         onClick={() => setSelectedIcon(icon)}
-                        className={`w-8 h-8 rounded-md flex items-center justify-center text-lg hover:bg-accent transition-colors ${selectedIcon === icon ? 'bg-accent ring-2 ring-primary' : ''
+                        className={`w-8 h-8 rounded-xl flex items-center justify-center text-lg hover:bg-white/5 transition-colors ${selectedIcon === icon ? 'bg-white/5 ring-2 ring-primary' : ''
                           }`}
                       >
                         {icon}
@@ -139,7 +139,7 @@ export function CreateProjectPage() {
                         key={color}
                         type="button"
                         onClick={() => setSelectedColor(color)}
-                        className={`w-6 h-6 rounded-full transition-transform ${selectedColor === color ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-110' : ''
+                        className={`w-6 h-6 rounded-full transition-transform ${selectedColor === color ? 'ring-2 ring-primary ring-offset-2 ring-offset-[#0d0d0f] scale-110' : ''
                           }`}
                         style={{ backgroundColor: color }}
                       />
@@ -216,7 +216,7 @@ export function CreateProjectPage() {
         <div className="text-center">
           <Button
             variant="ghost"
-            className="text-muted-foreground"
+            className="text-slate-400"
             onClick={() => navigate('/onboarding/ai-setup')}
           >
             Skip for now

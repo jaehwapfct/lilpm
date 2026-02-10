@@ -47,7 +47,7 @@ export function IssueCard({ issue, onClick, onDragStart, onDragEnd, isDragging }
           </TooltipContent>
         </Tooltip>
         <PriorityIcon priority={issue.priority} className="flex-shrink-0" />
-        <span className="text-xs text-muted-foreground font-mono">
+        <span className="text-xs text-slate-400 font-mono">
           {issue.identifier}
         </span>
         {/* Show who's viewing this issue */}

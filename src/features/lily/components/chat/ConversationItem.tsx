@@ -82,8 +82,8 @@ export function ConversationItem({
             ref={setNodeRef}
             style={style}
             className={cn(
-                "group flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-accent",
-                isSelected && "bg-accent",
+                "group flex items-center gap-2 p-2 rounded-xl cursor-pointer hover:bg-white/5",
+                isSelected && "bg-violet-500/10",
                 isDragging && "z-50"
             )}
             onClick={onSelect}
@@ -92,14 +92,14 @@ export function ConversationItem({
                 <div
                     {...attributes}
                     {...listeners}
-                    className="cursor-grab opacity-0 group-hover:opacity-100 hover:bg-muted rounded p-0.5"
+                    className="cursor-grab opacity-0 group-hover:opacity-100 hover:bg-[#1a1a1f] rounded p-0.5"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <GripVertical className="h-3 w-3 text-muted-foreground" />
+                    <GripVertical className="h-3 w-3 text-slate-400" />
                 </div>
             )}
-            {isPinned && <Pin className="h-3 w-3 flex-shrink-0 text-primary" />}
-            {!isPinned && !isDraggable && <MessageSquare className="h-4 w-4 flex-shrink-0 text-muted-foreground" />}
+            {isPinned && <Pin className="h-3 w-3 flex-shrink-0 text-violet-500" />}
+            {!isPinned && !isDraggable && <MessageSquare className="h-4 w-4 flex-shrink-0 text-slate-400" />}
 
             <div className="flex-1 min-w-0">
                 {isEditing ? (
@@ -114,14 +114,14 @@ export function ConversationItem({
                         }}
                         onBlur={onSaveEdit}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-full text-sm bg-background border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary"
+                        className="w-full text-sm bg-[#121215] border border-white/10 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-violet-500"
                     />
                 ) : (
                     <p className="text-sm truncate">
                         {conv.title || t('lily.untitledConversation', 'Untitled')}
                     </p>
                 )}
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-400">
                     {formatDistanceToNow(new Date(conv.updatedAt), { addSuffix: true, locale: dateLocale })}
                 </p>
             </div>

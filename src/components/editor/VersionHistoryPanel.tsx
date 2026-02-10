@@ -70,14 +70,14 @@ export function VersionHistoryPanel({
             <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
             {/* Panel */}
-            <div className="relative ml-auto w-[400px] bg-background border-l flex flex-col h-full">
+            <div className="relative ml-auto w-[400px] bg-[#0d0d0f] border-l flex flex-col h-full">
                 {/* Header */}
                 <div className="p-4 border-b flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <History className="h-5 w-5" />
                         <h2 className="font-semibold">Version History</h2>
                     </div>
-                    <button onClick={onClose} className="p-1 hover:bg-accent rounded">
+                    <button onClick={onClose} className="p-1 hover:bg-white/5 rounded">
                         <X className="h-4 w-4" />
                     </button>
                 </div>
@@ -105,7 +105,7 @@ export function VersionHistoryPanel({
                             <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
                         </div>
                     ) : versions.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground">
+                        <div className="text-center py-12 text-slate-400">
                             <Clock className="h-8 w-8 mx-auto mb-3 opacity-50" />
                             <p className="text-sm">No version history yet</p>
                             <p className="text-xs mt-1">Changes will be saved automatically</p>
@@ -113,14 +113,14 @@ export function VersionHistoryPanel({
                     ) : (
                         Object.entries(groupedVersions).map(([date, dateVersions]) => (
                             <div key={date} className="mb-6">
-                                <h3 className="text-xs font-medium text-muted-foreground mb-2">{date}</h3>
+                                <h3 className="text-xs font-medium text-slate-400 mb-2">{date}</h3>
                                 <div className="space-y-2">
                                     {dateVersions.map((version) => (
                                         <div
                                             key={version.id}
                                             className={`p-3 rounded-lg border transition-colors ${viewingVersion?.id === version.id
                                                     ? 'border-primary bg-primary/5'
-                                                    : 'border-border hover:border-primary/50'
+                                                    : 'border-white/10 hover:border-primary/50'
                                                 }`}
                                         >
                                             <div className="flex items-start justify-between">
@@ -133,16 +133,16 @@ export function VersionHistoryPanel({
                                                             })}
                                                         </span>
                                                         {version.isAutoSave && (
-                                                            <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground">
+                                                            <span className="text-[10px] px-1.5 py-0.5 bg-[#121215] rounded text-slate-400">
                                                                 Auto-save
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                                    <p className="text-xs text-slate-400 mt-0.5">
                                                         {version.authorName} · {version.wordCount} words
                                                     </p>
                                                     {version.changeDescription && (
-                                                        <p className="text-xs mt-1 text-foreground/70">
+                                                        <p className="text-xs mt-1 text-white/70">
                                                             {version.changeDescription}
                                                         </p>
                                                     )}
@@ -150,7 +150,7 @@ export function VersionHistoryPanel({
                                                 <div className="flex gap-1">
                                                     <button
                                                         onClick={() => onViewVersion(version.id)}
-                                                        className="p-1.5 hover:bg-accent rounded text-muted-foreground hover:text-foreground"
+                                                        className="p-1.5 hover:bg-white/5 rounded text-slate-400 hover:text-white"
                                                         title="View this version"
                                                     >
                                                         <Eye className="h-3.5 w-3.5" />
@@ -158,7 +158,7 @@ export function VersionHistoryPanel({
                                                     <button
                                                         onClick={() => handleRestore(version.id)}
                                                         disabled={restoring === version.id}
-                                                        className="p-1.5 hover:bg-accent rounded text-muted-foreground hover:text-foreground disabled:opacity-50"
+                                                        className="p-1.5 hover:bg-white/5 rounded text-slate-400 hover:text-white disabled:opacity-50"
                                                         title="Restore this version"
                                                     >
                                                         <RotateCcw className={`h-3.5 w-3.5 ${restoring === version.id ? 'animate-spin' : ''}`} />
@@ -174,7 +174,7 @@ export function VersionHistoryPanel({
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t text-xs text-muted-foreground text-center">
+                <div className="p-4 border-t text-xs text-slate-400 text-center">
                     Versions are automatically saved every 5 minutes
                 </div>
             </div>

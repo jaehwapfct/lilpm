@@ -84,10 +84,10 @@ export function UpcomingDueIssues({ issues, isLoading }: UpcomingDueIssuesProps)
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
               <div key={i} className="flex gap-3 animate-pulse">
-                <div className="h-4 w-4 rounded-full bg-muted" />
+                <div className="h-4 w-4 rounded-full bg-[#121215]" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 w-3/4 bg-muted rounded" />
-                  <div className="h-3 w-1/2 bg-muted rounded" />
+                  <div className="h-4 w-3/4 bg-[#121215] rounded" />
+                  <div className="h-3 w-1/2 bg-[#121215] rounded" />
                 </div>
               </div>
             ))}
@@ -110,7 +110,7 @@ export function UpcomingDueIssues({ issues, isLoading }: UpcomingDueIssuesProps)
       </CardHeader>
       <CardContent>
         {issuesWithDueDate.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-8 text-slate-400">
             <CalendarClock className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">{t('dashboard.noUpcomingDue')}</p>
           </div>
@@ -122,7 +122,7 @@ export function UpcomingDueIssues({ issues, isLoading }: UpcomingDueIssuesProps)
               return (
                 <div 
                   key={issue.id}
-                  className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
+                  className="flex items-start gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group"
                   onClick={() => navigate(`/issue/${issue.id}`)}
                 >
                   <div className="mt-0.5">
@@ -131,7 +131,7 @@ export function UpcomingDueIssues({ issues, isLoading }: UpcomingDueIssuesProps)
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground font-mono">
+                      <span className="text-xs text-slate-400 font-mono">
                         {issue.identifier}
                       </span>
                       <PriorityIcon priority={issue.priority} />

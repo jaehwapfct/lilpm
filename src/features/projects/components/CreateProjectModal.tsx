@@ -150,7 +150,7 @@ export function CreateProjectModal({ open, onOpenChange, onSuccess }: CreateProj
                   onClick={() => setForm(f => ({ ...f, color: color.value }))}
                   className={`w-8 h-8 rounded-full transition-all ${
                     form.color === color.value 
-                      ? 'ring-2 ring-offset-2 ring-offset-background ring-primary scale-110' 
+                      ? 'ring-2 ring-offset-2 ring-offset-[#0d0d0f] ring-primary scale-110' 
                       : 'hover:scale-105'
                   }`}
                   style={{ backgroundColor: color.value }}

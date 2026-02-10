@@ -78,7 +78,7 @@ function Cursor({ user }: { user: Presence }) {
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
-        className="absolute left-4 top-4 px-2 py-1 rounded-md text-xs font-medium text-white whitespace-nowrap shadow-lg"
+        className="absolute left-4 top-4 px-2 py-1 rounded-xl text-xs font-medium text-white whitespace-nowrap shadow-lg"
         style={{ backgroundColor: user.color }}
       >
         {user.name}
@@ -108,7 +108,7 @@ export function IssueFocusIndicator({ issueId }: { issueId: string }) {
         </div>
       ))}
       {focusedUsers.length > 3 && (
-        <div className="w-5 h-5 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[10px] font-medium">
+        <div className="w-5 h-5 rounded-full border-2 border-background bg-[#121215] flex items-center justify-center text-[10px] font-medium">
           +{focusedUsers.length - 3}
         </div>
       )}

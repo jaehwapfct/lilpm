@@ -298,16 +298,16 @@ export function GlobalSearch() {
                     {result.type === 'issue' && (
                       <>
                         <div className={`h-2 w-2 rounded-full ${getStatusColor(result.status)}`} />
-                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <FileText className="h-4 w-4 text-slate-400" />
                       </>
                     )}
                     {result.type === 'project' && (
-                      <FolderKanban className="h-4 w-4 text-muted-foreground" />
+                      <FolderKanban className="h-4 w-4 text-slate-400" />
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm truncate">{result.title}</p>
                       {result.subtitle && (
-                        <p className="text-xs text-muted-foreground truncate">{result.subtitle}</p>
+                        <p className="text-xs text-slate-400 truncate">{result.subtitle}</p>
                       )}
                     </div>
                     {result.priority && (
@@ -359,7 +359,7 @@ export function GlobalSearch() {
                     <div className="flex items-center gap-2">
                       <Star className="h-4 w-4 text-yellow-500" />
                       <span>{filter.name}</span>
-                      <span className="text-xs text-muted-foreground">"{filter.query}"</span>
+                      <span className="text-xs text-slate-400">"{filter.query}"</span>
                     </div>
                     <button
                       onClick={(e) => {
@@ -368,7 +368,7 @@ export function GlobalSearch() {
                       }}
                       className="p-1 hover:bg-destructive/10 rounded"
                     >
-                      <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                      <Trash2 className="h-3 w-3 text-slate-400 hover:text-destructive" />
                     </button>
                   </CommandItem>
                 ))}
@@ -385,14 +385,14 @@ export function GlobalSearch() {
                   key={index}
                   onSelect={() => handleHistorySelect(historyItem)}
                 >
-                  <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <Clock className="h-4 w-4 mr-2 text-slate-400" />
                   {historyItem}
                 </CommandItem>
               ))}
               {searchHistory.length > 0 && (
                 <CommandItem
                   onSelect={clearHistory}
-                  className="text-muted-foreground"
+                  className="text-slate-400"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   {t('search.clearHistory')}

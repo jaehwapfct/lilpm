@@ -328,7 +328,7 @@ export function TeamMembersPage() {
             {/* Team Selector */}
             {teams.length > 1 ? (
               <div className="flex items-center gap-2 mt-1">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <Building2 className="h-4 w-4 text-slate-400" />
                 <Select
                   value={currentTeam?.id}
                   onValueChange={(teamId) => {
@@ -349,7 +349,7 @@ export function TeamMembersPage() {
                 </Select>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-slate-400 mt-1">
                 {currentTeam?.name}
               </p>
             )}
@@ -369,7 +369,7 @@ export function TeamMembersPage() {
 
           {/* Members Tab */}
           <TabsContent value="members">
-            <div className="border border-border rounded-lg overflow-hidden">
+            <div className="border border-white/10 rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -383,12 +383,12 @@ export function TeamMembersPage() {
                   {isLoading ? (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center py-8">
-                        <Loader2 className="h-6 w-6 mx-auto animate-spin text-muted-foreground" />
+                        <Loader2 className="h-6 w-6 mx-auto animate-spin text-slate-400" />
                       </TableCell>
                     </TableRow>
                   ) : members.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={4} className="text-center py-8 text-slate-400">
                         {t('team.noMembers')}
                       </TableCell>
                     </TableRow>
@@ -407,7 +407,7 @@ export function TeamMembersPage() {
                               <p className="font-medium text-sm">
                                 {member.profile?.name || 'User'}
                               </p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-slate-400">
                                 {member.profile?.email}
                               </p>
                             </div>
@@ -419,7 +419,7 @@ export function TeamMembersPage() {
                             {roleLabels[member.role]}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
+                        <TableCell className="text-slate-400 text-sm">
                           {new Date(member.joined_at).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
@@ -465,7 +465,7 @@ export function TeamMembersPage() {
 
           {/* Pending Invites Tab */}
           <TabsContent value="invites">
-            <div className="border border-border rounded-lg overflow-hidden">
+            <div className="border border-white/10 rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -479,7 +479,7 @@ export function TeamMembersPage() {
                 <TableBody>
                   {invites.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={5} className="text-center py-8 text-slate-400">
                         <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
                         {t('team.noInvitations')}
                       </TableCell>
@@ -489,7 +489,7 @@ export function TeamMembersPage() {
                       <TableRow key={invite.id}>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            <Mail className="h-4 w-4 text-slate-400" />
                             <span>{invite.email}</span>
                           </div>
                         </TableCell>
@@ -511,7 +511,7 @@ export function TeamMembersPage() {
                             </Badge>
                           )}
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
+                        <TableCell className="text-slate-400 text-sm">
                           {invite.expires_at ? (
                             isInviteExpired(invite) ? (
                               <span className="text-destructive">—</span>
@@ -630,7 +630,7 @@ export function TeamMembersPage() {
               <AlertDialogDescription>
                 {t('team.confirmRemove', { name: removeMember?.profile?.name || 'this member' })}
                 <br />
-                <span className="text-muted-foreground">{t('team.confirmRemoveDesc')}</span>
+                <span className="text-slate-400">{t('team.confirmRemoveDesc')}</span>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

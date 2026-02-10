@@ -60,7 +60,7 @@ export function QuickActionsCard() {
               >
                 <Icon className={`h-5 w-5 ${action.iconColor} mb-2`} />
                 <p className="font-medium text-sm">{action.label}</p>
-                <p className="text-xs text-muted-foreground mt-1">{action.description}</p>
+                <p className="text-xs text-slate-400 mt-1">{action.description}</p>
               </button>
             );
           })}

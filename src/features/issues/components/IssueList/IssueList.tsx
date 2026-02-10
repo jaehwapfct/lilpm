@@ -130,7 +130,7 @@ export function IssueList({
           />
         ))}
         {issues.length === 0 && (
-          <div className="py-12 text-center text-muted-foreground">
+          <div className="py-12 text-center text-slate-400">
             <p>{t('issues.noIssues')}</p>
             <Button
               variant="outline"
@@ -163,7 +163,7 @@ export function IssueList({
               "border rounded-lg overflow-hidden transition-colors",
               isDragOver
                 ? "border-primary bg-primary/5 ring-2 ring-primary/30"
-                : "border-border"
+                : "border-white/10"
             )}
             onDragOver={isDragEnabled ? (e) => handleDragOver(e, groupKey) : undefined}
             onDragLeave={isDragEnabled ? handleDragLeave : undefined}
@@ -173,14 +173,14 @@ export function IssueList({
             <button
               onClick={() => toggleGroup(groupKey)}
               className={cn(
-                "flex items-center gap-2 w-full px-4 py-2 hover:bg-muted transition-colors text-left group",
-                isDragOver ? "bg-primary/10" : "bg-muted/50"
+                "flex items-center gap-2 w-full px-4 py-2 hover:bg-white/5 transition-colors text-left group",
+                isDragOver ? "bg-primary/10" : "bg-white/5"
               )}
             >
               {isCollapsed ? (
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <ChevronRight className="h-4 w-4 text-slate-400" />
               ) : (
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                <ChevronDown className="h-4 w-4 text-slate-400" />
               )}
 
               {groupBy === 'status' && (
@@ -204,7 +204,7 @@ export function IssueList({
                 </span>
               )}
 
-              <span className="text-xs text-muted-foreground ml-1">
+              <span className="text-xs text-slate-400 ml-1">
                 {count}
               </span>
 
@@ -239,7 +239,7 @@ export function IssueList({
                 {groupIssues.length === 0 && (
                   <div className={cn(
                     "py-8 text-center text-sm transition-colors",
-                    isDragOver ? "text-primary font-medium" : "text-muted-foreground"
+                    isDragOver ? "text-primary font-medium" : "text-slate-400"
                   )}>
                     {isDragOver
                       ? t('issues.dropHere', 'Drop here')

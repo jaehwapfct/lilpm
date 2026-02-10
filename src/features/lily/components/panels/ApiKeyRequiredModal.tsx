@@ -124,7 +124,7 @@ export function ApiKeyRequiredModal({ open, onKeysSaved, onClose, saveApiKey }: 
                                     placeholder={`${PROVIDER_INFO[provider].keyPrefix}...`}
                                     className="font-mono text-sm"
                                 />
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-xs text-slate-400">
                                     {t(PROVIDER_INFO[provider].descKey, PROVIDER_INFO[provider].descFallback)}
                                 </p>
                             </div>

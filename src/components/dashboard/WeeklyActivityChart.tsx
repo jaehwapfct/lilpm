@@ -58,7 +58,7 @@ export function WeeklyActivityChart({ activities, isLoading }: WeeklyActivityCha
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[180px] animate-pulse bg-muted rounded" />
+          <div className="h-[180px] animate-pulse bg-[#121215] rounded" />
         </CardContent>
       </Card>
     );
@@ -83,7 +83,7 @@ export function WeeklyActivityChart({ activities, isLoading }: WeeklyActivityCha
               {trend}
             </span>
           ) : (
-            <span className="flex items-center text-muted-foreground">
+            <span className="flex items-center text-slate-400">
               <Minus className="h-4 w-4 mr-1" />
               0
             </span>
@@ -111,9 +111,9 @@ export function WeeklyActivityChart({ activities, isLoading }: WeeklyActivityCha
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
-                      <div className="bg-popover border border-border rounded-md shadow-md p-2 text-sm">
+                      <div className="bg-[#1a1a1f] border border-white/10 rounded-xl shadow-md p-2 text-sm">
                         <p className="font-medium">{data.fullDate}</p>
-                        <p className="text-muted-foreground">
+                        <p className="text-slate-400">
                           {data.count} {t('dashboard.activities')}
                         </p>
                       </div>
@@ -138,7 +138,7 @@ export function WeeklyActivityChart({ activities, isLoading }: WeeklyActivityCha
           </ResponsiveContainer>
         </div>
         
-        <div className="flex justify-between mt-4 text-sm text-muted-foreground">
+        <div className="flex justify-between mt-4 text-sm text-slate-400">
           <span>{t('dashboard.totalActivities')}: {totalActivities}</span>
           <span>{t('dashboard.avgPerDay')}: {avgActivities.toFixed(1)}</span>
         </div>

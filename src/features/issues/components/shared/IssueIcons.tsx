@@ -78,17 +78,17 @@ export function PriorityIcon({ priority, className }: PriorityIconProps) {
         <div className={cn('flex gap-0.5', className)}>
           <div className="w-0.5 h-3 bg-priority-medium rounded-full" />
           <div className="w-0.5 h-3 bg-priority-medium rounded-full" />
-          <div className="w-0.5 h-3 bg-muted rounded-full" />
-          <div className="w-0.5 h-3 bg-muted rounded-full" />
+          <div className="w-0.5 h-3 bg-[#121215] rounded-full" />
+          <div className="w-0.5 h-3 bg-[#121215] rounded-full" />
         </div>
       );
     case 'low':
       return (
         <div className={cn('flex gap-0.5', className)}>
           <div className="w-0.5 h-3 bg-priority-low rounded-full" />
-          <div className="w-0.5 h-3 bg-muted rounded-full" />
-          <div className="w-0.5 h-3 bg-muted rounded-full" />
-          <div className="w-0.5 h-3 bg-muted rounded-full" />
+          <div className="w-0.5 h-3 bg-[#121215] rounded-full" />
+          <div className="w-0.5 h-3 bg-[#121215] rounded-full" />
+          <div className="w-0.5 h-3 bg-[#121215] rounded-full" />
         </div>
       );
     case 'none':

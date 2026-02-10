@@ -82,12 +82,12 @@ const FileComponent: React.FC<any> = ({ node, updateAttributes, selected, delete
                 {!fileName ? (
                     // File Upload UI
                     <div
-                        className="p-6 bg-muted/50 text-center cursor-pointer hover:bg-muted/70 transition-colors"
+                        className="p-6 bg-white/5 text-center cursor-pointer hover:bg-white/10 transition-colors"
                         onClick={() => fileInputRef.current?.click()}
                     >
-                        <Upload className="h-10 w-10 mx-auto mb-4 text-muted-foreground/50" />
-                        <p className="text-sm text-muted-foreground">Click to upload a file</p>
-                        <p className="text-xs text-muted-foreground/70 mt-1">or drag and drop</p>
+                        <Upload className="h-10 w-10 mx-auto mb-4 text-slate-400/50" />
+                        <p className="text-sm text-slate-400">Click to upload a file</p>
+                        <p className="text-xs text-slate-400/70 mt-1">or drag and drop</p>
                         <input
                             ref={fileInputRef}
                             type="file"
@@ -97,7 +97,7 @@ const FileComponent: React.FC<any> = ({ node, updateAttributes, selected, delete
                     </div>
                 ) : (
                     // File Card
-                    <div className="flex items-center gap-3 p-4 bg-muted/30">
+                    <div className="flex items-center gap-3 p-4 bg-white/5">
                         {/* Icon */}
                         <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                             <IconComponent className="h-5 w-5 text-primary" />
@@ -106,7 +106,7 @@ const FileComponent: React.FC<any> = ({ node, updateAttributes, selected, delete
                         {/* File Info */}
                         <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm truncate">{fileName}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-slate-400">
                                 {formatFileSize(fileSize || 0)}
                                 {fileType && ` • ${fileType.split('/').pop()?.toUpperCase()}`}
                             </p>
@@ -118,17 +118,17 @@ const FileComponent: React.FC<any> = ({ node, updateAttributes, selected, delete
                                 <a
                                     href={fileUrl}
                                     download={fileName}
-                                    className="p-2 rounded-md hover:bg-muted transition-colors"
+                                    className="p-2 rounded-xl hover:bg-white/5 transition-colors"
                                     onClick={(e) => e.stopPropagation()}
                                 >
-                                    <Download className="h-4 w-4 text-muted-foreground" />
+                                    <Download className="h-4 w-4 text-slate-400" />
                                 </a>
                             )}
                             <button
                                 onClick={() => deleteNode()}
-                                className="p-2 rounded-md hover:bg-destructive/10 transition-colors"
+                                className="p-2 rounded-xl hover:bg-destructive/10 transition-colors"
                             >
-                                <X className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                                <X className="h-4 w-4 text-slate-400 hover:text-destructive" />
                             </button>
                         </div>
                     </div>

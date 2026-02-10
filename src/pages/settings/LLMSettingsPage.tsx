@@ -180,7 +180,7 @@ export function LLMSettingsPage() {
               <Brain className="h-5 w-5 md:h-6 md:w-6" />
               LLM Model Management
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-slate-400">
               Register AI providers and manage auto-mix settings
             </p>
           </div>
@@ -238,7 +238,7 @@ export function LLMSettingsPage() {
                               href={config.docsUrl} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
+                              className="text-xs text-slate-400 hover:text-primary flex items-center gap-1"
                             >
                               Get API key
                               <ExternalLink className="h-3 w-3" />
@@ -261,9 +261,9 @@ export function LLMSettingsPage() {
                             onClick={() => toggleShowKey(provider)}
                           >
                             {showKeys[provider] ? (
-                              <EyeOff className="h-4 w-4 text-muted-foreground" />
+                              <EyeOff className="h-4 w-4 text-slate-400" />
                             ) : (
-                              <Eye className="h-4 w-4 text-muted-foreground" />
+                              <Eye className="h-4 w-4 text-slate-400" />
                             )}
                           </Button>
                         </div>
@@ -291,7 +291,7 @@ export function LLMSettingsPage() {
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label className="text-base">Enable Auto Mix</Label>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-400">
                       Automatically rotate between enabled models
                     </p>
                   </div>
@@ -332,7 +332,7 @@ export function LLMSettingsPage() {
                         </SelectItem>
                       </SelectContent>
                     </Select>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-400">
                       {STRATEGY_DESCRIPTIONS[autoMixStrategy]}
                     </p>
                   </div>
@@ -489,7 +489,7 @@ export function LLMSettingsPage() {
                     <CardContent className="p-4">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                         <div className="flex items-center gap-3">
-                          <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab hidden sm:block" />
+                          <GripVertical className="h-5 w-5 text-slate-400 cursor-grab hidden sm:block" />
                           <span className="text-2xl">{LLM_PROVIDERS[model.provider].icon}</span>
                           <div className="flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
@@ -501,7 +501,7 @@ export function LLMSettingsPage() {
                                 Priority: {model.priority}
                               </Badge>
                             </div>
-                            <p className="text-sm text-muted-foreground mt-1">{model.description}</p>
+                            <p className="text-sm text-slate-400 mt-1">{model.description}</p>
                             <div className="flex flex-wrap gap-1 mt-2">
                               {model.capabilities.map((cap) => (
                                 <Badge key={cap} variant="outline" className="text-xs">
@@ -545,9 +545,9 @@ export function LLMSettingsPage() {
             {/* Empty state */}
             {models.length === 0 && (
               <div className="text-center py-12">
-                <Brain className="h-12 w-12 mx-auto text-muted-foreground/50" />
+                <Brain className="h-12 w-12 mx-auto text-slate-400/50" />
                 <h3 className="mt-4 text-lg font-medium">No models registered</h3>
-                <p className="text-muted-foreground text-sm mt-1">
+                <p className="text-slate-400 text-sm mt-1">
                   Add a new model to power up Lil PM AI
                 </p>
               </div>

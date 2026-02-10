@@ -35,12 +35,12 @@ export function NavItem({ icon: Icon, label, href, badge, isActive, shortcut, on
             to={href}
             onClick={onClick}
             className={cn(
-                "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors group",
-                "hover:bg-accent",
-                isActive && "bg-accent text-accent-foreground"
+                "flex items-center gap-2 px-2 py-1.5 rounded-xl text-sm transition-colors group",
+                "hover:bg-white/5",
+                isActive && "bg-white/5 text-white"
             )}
         >
-            <Icon className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+            <Icon className="h-4 w-4 text-slate-400 group-hover:text-white" />
             <span className="flex-1 truncate">{label}</span>
 
             {/* Presence avatars for users on this page */}
@@ -61,7 +61,7 @@ export function NavItem({ icon: Icon, label, href, badge, isActive, shortcut, on
                         </div>
                     ))}
                     {presenceUsers.length > 2 && (
-                        <div className="w-4 h-4 rounded-full border border-background bg-muted flex items-center justify-center text-[8px] font-medium">
+                        <div className="w-4 h-4 rounded-full border border-background bg-[#121215] flex items-center justify-center text-[8px] font-medium">
                             +{presenceUsers.length - 2}
                         </div>
                     )}
@@ -118,15 +118,15 @@ export function ConversationListItem({
     return (
         <div
             className={cn(
-                "group flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-accent",
-                isSelected && "bg-accent"
+                "group flex items-center gap-2 p-2 rounded-xl cursor-pointer hover:bg-white/5",
+                isSelected && "bg-white/5"
             )}
             onClick={onSelect}
         >
             {isPinned ? (
                 <Pin className="h-3 w-3 flex-shrink-0 text-primary" />
             ) : (
-                <MessageSquare className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                <MessageSquare className="h-4 w-4 flex-shrink-0 text-slate-400" />
             )}
 
             <div className="flex-1 min-w-0">
@@ -141,7 +141,7 @@ export function ConversationListItem({
                         }}
                         onBlur={onSaveEdit}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-full text-sm bg-background border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary"
+                        className="w-full text-sm bg-[#0d0d0f] border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary"
                         autoFocus
                     />
                 ) : (
@@ -149,7 +149,7 @@ export function ConversationListItem({
                         {conv.title || t('lily.untitledConversation', 'Untitled')}
                     </p>
                 )}
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-400">
                     {formatDistanceToNow(new Date(conv.updatedAt), { addSuffix: true, locale: dateLocale })}
                 </p>
             </div>

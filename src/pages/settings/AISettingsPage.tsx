@@ -174,7 +174,7 @@ export function AISettingsPage() {
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
         </div>
       </AppLayout>
     );
@@ -193,7 +193,7 @@ export function AISettingsPage() {
               <Settings className="h-6 w-6" />
               AI 설정
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-slate-400">
               AI 모델 API 키 및 설정을 관리합니다
             </p>
           </div>

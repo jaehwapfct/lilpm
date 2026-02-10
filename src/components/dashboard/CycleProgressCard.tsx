@@ -52,7 +52,7 @@ export function CycleProgressCard({ cycle, issues, isLoading }: CycleProgressCar
         </CardHeader>
         <CardContent>
           <div className="text-center py-4">
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm text-slate-400 mb-4">
               {t('dashboard.noActiveSprint')}
             </p>
             <Button variant="outline" size="sm" onClick={() => navigate('/cycles')}>
@@ -97,7 +97,7 @@ export function CycleProgressCard({ cycle, issues, isLoading }: CycleProgressCar
       <CardContent className="space-y-4">
         <div>
           <h3 className="font-medium">{cycle.name}</h3>
-          <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 mt-1 text-sm text-slate-400">
             <Calendar className="h-3 w-3" />
             {format(new Date(cycle.start_date), 'MMM d', { locale })}
             <ArrowRight className="h-3 w-3" />
@@ -107,7 +107,7 @@ export function CycleProgressCard({ cycle, issues, isLoading }: CycleProgressCar
 
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">{t('dashboard.progress')}</span>
+            <span className="text-slate-400">{t('dashboard.progress')}</span>
             <span className="font-medium">{Math.round(progress)}%</span>
           </div>
           <Progress value={progress} className="h-2" />
@@ -116,15 +116,15 @@ export function CycleProgressCard({ cycle, issues, isLoading }: CycleProgressCar
         <div className="grid grid-cols-3 gap-2 pt-2">
           <div className="text-center p-2 rounded-xl bg-[#1a1a1f]">
             <div className="text-lg font-semibold">{issuesByStatus.todo}</div>
-            <div className="text-xs text-muted-foreground">{t('dashboard.todo')}</div>
+            <div className="text-xs text-slate-400">{t('dashboard.todo')}</div>
           </div>
-          <div className="text-center p-2 rounded-md bg-blue-500/10">
+          <div className="text-center p-2 rounded-xl bg-blue-500/10">
             <div className="text-lg font-semibold text-blue-500">{issuesByStatus.inProgress}</div>
-            <div className="text-xs text-muted-foreground">{t('dashboard.inProgress')}</div>
+            <div className="text-xs text-slate-400">{t('dashboard.inProgress')}</div>
           </div>
-          <div className="text-center p-2 rounded-md bg-green-500/10">
+          <div className="text-center p-2 rounded-xl bg-green-500/10">
             <div className="text-lg font-semibold text-green-500">{issuesByStatus.done}</div>
-            <div className="text-xs text-muted-foreground">{t('dashboard.done')}</div>
+            <div className="text-xs text-slate-400">{t('dashboard.done')}</div>
           </div>
         </div>
 

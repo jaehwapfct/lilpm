@@ -52,8 +52,8 @@ const EquationComponent: React.FC<any> = ({ node, updateAttributes, selected }) 
                 )}
             >
                 {isEditing ? (
-                    <div className="p-3 bg-muted/50 border rounded-lg space-y-2">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="p-3 bg-white/5 border rounded-lg space-y-2">
+                        <div className="flex items-center gap-2 text-xs text-slate-400">
                             <Calculator className="h-3 w-3" />
                             <span>LaTeX Equation</span>
                             <label className="ml-auto flex items-center gap-1.5 cursor-pointer">
@@ -77,12 +77,12 @@ const EquationComponent: React.FC<any> = ({ node, updateAttributes, selected }) 
                             }}
                             placeholder="Enter LaTeX equation (e.g., E = mc^2)"
                             autoFocus
-                            className="w-full px-3 py-2 rounded border bg-background text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                            className="w-full px-3 py-2 rounded border bg-[#0d0d0f] text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                         <div className="flex gap-2">
                             <button
                                 onClick={handleSave}
-                                className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                                className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
                             >
                                 Save
                             </button>
@@ -92,7 +92,7 @@ const EquationComponent: React.FC<any> = ({ node, updateAttributes, selected }) 
                                         setInputValue(node.attrs.latex);
                                         setIsEditing(false);
                                     }}
-                                    className="px-3 py-1 text-xs bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90"
+                                    className="px-3 py-1 text-xs bg-[#1a1a1f] text-slate-300 rounded-xl hover:bg-[#1a1a1f]/90"
                                 >
                                     Cancel
                                 </button>
@@ -103,7 +103,7 @@ const EquationComponent: React.FC<any> = ({ node, updateAttributes, selected }) 
                     <div
                         onClick={() => setIsEditing(true)}
                         className={cn(
-                            'cursor-pointer hover:bg-muted/30 rounded transition-colors',
+                            'cursor-pointer hover:bg-white/5 rounded transition-colors',
                             node.attrs.display ? 'p-4 text-center' : 'px-1'
                         )}
                     >

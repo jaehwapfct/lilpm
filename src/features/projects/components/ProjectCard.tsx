@@ -60,7 +60,7 @@ export function ProjectCard({ project, onEdit, onDelete, onArchive, onClick }: P
               {icon}
             </div>
             <div>
-              <h3 className="font-semibold text-foreground">{project.name}</h3>
+              <h3 className="font-semibold text-white">{project.name}</h3>
               <Badge variant={statusInfo.variant} className="mt-1">
                 {statusInfo.label}
               </Badge>
@@ -101,13 +101,13 @@ export function ProjectCard({ project, onEdit, onDelete, onArchive, onClick }: P
       
       <CardContent>
         {project.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+          <p className="text-sm text-slate-400 line-clamp-2 mb-3">
             {project.description}
           </p>
         )}
         
         {(project.start_date || project.target_date) && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 text-xs text-slate-400">
             <Calendar className="h-3 w-3" />
             {project.start_date && (
               <span>
