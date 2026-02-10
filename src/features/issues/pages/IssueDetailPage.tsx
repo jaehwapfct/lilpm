@@ -13,9 +13,13 @@ import { teamMemberService } from '@/lib/services/teamService';
 import { cycleService } from '@/lib/services/cycleService';
 import { prdService } from '@/features/prd';
 import { BlockEditor } from '@/components/editor';
+import { CommentPanel } from '@/components/editor/CommentPanel';
+import { blockCommentService } from '@/lib/services/blockCommentService';
+import type { BlockComment as BlockCommentType } from '@/types/database';
 import { IssueFocusIndicator, EditingIndicator, TypingIndicator } from '@/components/collaboration';
 import { useIssueFocus, useRealtimeIssueUpdates } from '@/hooks/useRealtimeCollaboration';
 import { useSupabaseCollaboration } from '@/hooks/collaboration/useSupabaseCollaboration';
+import { useCloudflareCollaboration } from '@/hooks/collaboration/useCloudflareCollaboration';
 import type { RemoteCursor } from '@/hooks/collaboration/useCloudflareCollaboration';
 import { supabase } from '@/lib/supabase';
 import { useCollaborationStore } from '@/stores/collaborationStore';
@@ -138,6 +142,11 @@ export function IssueDetailPage() {
   const [cycles, setCycles] = useState<Cycle[]>([]);
   const [prds, setPrds] = useState<{ id: string; title: string; project_id?: string }[]>([]);
 
+  // Inline comments state
+  const [blockComments, setBlockComments] = useState<BlockCommentType[]>([]);
+  const [commentPanelOpen, setCommentPanelOpen] = useState(false);
+  const [activeCommentBlockId, setActiveCommentBlockId] = useState<string | null>(null);
+
   // AI Assistant Panel state
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [aiMessages, setAiMessages] = useState<{ id: string; role: 'user' | 'assistant'; content: string; timestamp: Date }[]>([]);
@@ -187,13 +196,29 @@ export function IssueDetailPage() {
     return colors[Math.abs(hash) % colors.length];
   };
 
-  // Supabase Realtime Collaboration for issues (real-time cursor + content sync)
+  // Yjs CRDT Real-time Collaboration for issue descriptions
+  const {
+    yjsDoc,
+    provider: yjsProvider,
+    isSynced: isYjsSynced,
+    remoteCursors: yjsRemoteCursors,
+    updateCursorPosition: yjsUpdateCursorPosition,
+  } = useCloudflareCollaboration({
+    documentId: issueId || '',
+    documentType: 'issue',
+    teamId: currentTeam?.id || '',
+    userId: user?.id || '',
+    userName: user?.name || user?.email?.split('@')[0] || 'Anonymous',
+    userColor: user?.id ? getUserColor(user.id) : undefined,
+    avatarUrl: user?.avatarUrl,
+    enabled: !!(issueId && currentTeam?.id && user?.id && !isLoading && isEditingDescription),
+  });
+
+  // Supabase Realtime for presence only (who's online on this issue)
   const {
     isConnected: isSupabaseCollabConnected,
     presenceUsers,
     updateCursorPosition: supabaseUpdateCursorPosition,
-    broadcastContentChange,
-    onRemoteContentChange,
   } = useSupabaseCollaboration({
     entityType: 'issue',
     entityId: issueId || '',
@@ -204,33 +229,25 @@ export function IssueDetailPage() {
     enabled: !!(issueId && user?.id && !isLoading),
   });
 
-  // Register remote content change handler for real-time sync
-  useEffect(() => {
-    if (isSupabaseCollabConnected) {
-      onRemoteContentChange((remoteContent: string, remoteUserId: string) => {
-        console.log('[IssueDetailPage] Received remote content change from:', remoteUserId);
-        setEditDescription(remoteContent);
-      });
-    }
-  }, [isSupabaseCollabConnected, onRemoteContentChange]);
-
-  // Convert presenceUsers to remoteCursors Map for BlockEditor
+  // Combine cursors from Cloudflare (CRDT) and Supabase (Presence)
   const remoteCursors = useMemo(() => {
-    const cursors = new Map<string, RemoteCursor>();
+    const combined = new Map<string, RemoteCursor>(yjsRemoteCursors || []);
     presenceUsers.forEach((u) => {
-      cursors.set(u.id, {
-        odId: u.id,
-        id: u.id,
-        name: u.name,
-        color: u.color,
-        avatar: u.avatar,
-        position: u.cursorPosition || 0,
-        blockId: u.blockId,
-        lastUpdate: u.lastSeen || Date.now(),
-      });
+      if (!combined.has(u.id)) {
+        combined.set(u.id, {
+          odId: u.id,
+          id: u.id,
+          name: u.name,
+          color: u.color,
+          avatar: u.avatar,
+          position: u.cursorPosition || 0,
+          blockId: u.blockId,
+          lastUpdate: u.lastSeen || Date.now(),
+        });
+      }
     });
-    return cursors;
-  }, [presenceUsers]);
+    return combined;
+  }, [yjsRemoteCursors, presenceUsers]);
 
   // Auto-save for title
   const { debouncedSave: debouncedSaveTitle, setInitialValue: setInitialTitle } = useAutoSave({
@@ -346,6 +363,50 @@ export function IssueDetailPage() {
     loadPrds();
   }, [loadIssue, loadCommentsAndActivities, loadMembers, loadCycles, loadPrds]);
 
+  // Inline block comments
+  const loadBlockComments = useCallback(async () => {
+    if (!issueId) return;
+    try {
+      const comments = await blockCommentService.getComments(issueId, 'issue');
+      setBlockComments(comments);
+    } catch (error) {
+      console.error('Failed to load block comments:', error);
+    }
+  }, [issueId]);
+
+  useEffect(() => { loadBlockComments(); }, [loadBlockComments]);
+
+  useEffect(() => {
+    if (!issueId) return;
+    return blockCommentService.subscribeToComments(issueId, 'issue', loadBlockComments);
+  }, [issueId, loadBlockComments]);
+
+  const handleCommentClick = useCallback((blockId: string) => {
+    setActiveCommentBlockId(blockId);
+    setCommentPanelOpen(true);
+  }, []);
+
+  const handleAddBlockComment = useCallback(async (blockId: string, content: string) => {
+    if (!issueId) return;
+    await blockCommentService.addComment(issueId, 'issue', blockId, content);
+    await loadBlockComments();
+  }, [issueId, loadBlockComments]);
+
+  const handleResolveBlockComment = useCallback(async (commentId: string) => {
+    await blockCommentService.resolveComment(commentId);
+    await loadBlockComments();
+  }, [loadBlockComments]);
+
+  const handleAddBlockReply = useCallback(async (commentId: string, content: string) => {
+    await blockCommentService.addReply(commentId, content);
+    await loadBlockComments();
+  }, [loadBlockComments]);
+
+  const handleToggleBlockReaction = useCallback(async (commentId: string, emoji: string) => {
+    await blockCommentService.toggleReaction(commentId, emoji);
+    await loadBlockComments();
+  }, [loadBlockComments]);
+
   // Listen for real-time updates
   useRealtimeIssueUpdates((updatedIssueId, changes) => {
     if (updatedIssueId === issueId) {
@@ -375,11 +436,8 @@ export function IssueDetailPage() {
 
   const handleDescriptionChange = (value: string) => {
     setEditDescription(value);
+    // Persist to DB - Yjs CRDT handles real-time sync between users
     debouncedSaveDescription(value);
-    // Broadcast to other collaborators in real-time
-    if (isSupabaseCollabConnected) {
-      broadcastContentChange(value);
-    }
   };
 
   const handleSendComment = async () => {
@@ -794,12 +852,19 @@ Respond in the same language as the user's message.`
                       placeholder={t('issues.addDescription', 'Add a description... Type "/" for commands')}
                       editable={true}
                       autoFocus={true}
-                      remoteCursors={remoteCursors}
-                      onCursorPositionChange={supabaseUpdateCursorPosition}
+                      yjsDoc={yjsDoc || undefined}
+                      yjsProvider={yjsProvider || undefined}
+                      remoteCursors={remoteCursors.size > 0 ? remoteCursors : undefined}
+                      onCursorPositionChange={(pos, blockId) => {
+                        yjsUpdateCursorPosition(pos, blockId);
+                        supabaseUpdateCursorPosition(pos, blockId);
+                      }}
+                      comments={blockComments}
+                      onCommentClick={handleCommentClick}
                     />
                   </div>
                 </div>
-              ) : issue.description ? (
+              ) : (editDescription || issue.description) ? (
                 <div
                   className="cursor-text hover:bg-white/5 rounded-lg px-3 py-3 -mx-2 transition-colors border border-transparent hover:border-white/10"
                   onClick={() => {
@@ -814,7 +879,7 @@ Respond in the same language as the user's message.`
                     [&_pre]:bg-[#121215] [&_pre]:p-3 [&_pre]:rounded-lg
                     [&_blockquote]:border-l-2 [&_blockquote]:border-primary/50 [&_blockquote]:pl-3
                   ">
-                    <div dangerouslySetInnerHTML={{ __html: issue.description }} />
+                    <div dangerouslySetInnerHTML={{ __html: editDescription || issue.description || '' }} />
                   </div>
                 </div>
               ) : (
@@ -1393,6 +1458,18 @@ Respond in the same language as the user's message.`
             </div>
           </div>
         </div>
+
+        {/* Inline Comment Panel */}
+        <CommentPanel
+          isOpen={commentPanelOpen}
+          onClose={() => setCommentPanelOpen(false)}
+          blockId={activeCommentBlockId}
+          comments={blockComments}
+          onAddComment={handleAddBlockComment}
+          onResolveComment={handleResolveBlockComment}
+          onAddReply={handleAddBlockReply}
+          onToggleReaction={handleToggleBlockReaction}
+        />
 
         {/* AI Assistant Panel */}
         {showAIPanel && (

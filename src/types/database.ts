@@ -80,6 +80,7 @@ export interface TeamInvite {
   token: string;
   expires_at: string;
   created_at: string;
+  project_ids?: string[] | null;
 }
 
 export interface Project {
@@ -172,6 +173,48 @@ export interface Comment {
   body: string;
   created_at: string;
   updated_at: string;
+}
+
+// Block-level inline comments (for PRDs and Issue descriptions)
+export type BlockCommentPageType = 'prd' | 'issue';
+
+export interface BlockComment {
+  id: string;
+  page_id: string;
+  page_type: BlockCommentPageType;
+  block_id: string;
+  user_id: string;
+  content: string;
+  resolved: boolean;
+  resolved_by: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  user?: Profile;
+  replies?: BlockCommentReply[];
+  reactions?: BlockCommentReaction[];
+}
+
+export interface BlockCommentReply {
+  id: string;
+  comment_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  user?: Profile;
+}
+
+export interface BlockCommentReaction {
+  id: string;
+  comment_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+  // Joined fields
+  user?: Profile;
 }
 
 export interface Activity {

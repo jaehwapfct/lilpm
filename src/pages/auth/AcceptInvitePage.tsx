@@ -19,6 +19,7 @@ interface InvitePreview {
   teamName?: string;
   inviterName?: string;
   email?: string;
+  projectNames?: string[];
 }
 
 interface AcceptInviteResponse {
@@ -69,6 +70,7 @@ export function AcceptInvitePage() {
         teamName: result.teamName,
         inviterName: result.inviterName,
         email: result.email,
+        projectNames: result.projectNames,
       });
 
       if (result.status === 'expired') {
@@ -198,6 +200,9 @@ export function AcceptInvitePage() {
             invite: 'true',
             ...(invitePreview.teamName ? { teamName: invitePreview.teamName } : {}),
             ...(invitePreview.inviterName ? { inviterName: invitePreview.inviterName } : {}),
+            ...(invitePreview.projectNames && invitePreview.projectNames.length > 0
+              ? { projectNames: invitePreview.projectNames.join(',') }
+              : {}),
           });
           navigate(`/signup?${params.toString()}`);
           break;
@@ -229,6 +234,9 @@ export function AcceptInvitePage() {
       invite: 'true',
       ...(invitePreview.teamName ? { teamName: invitePreview.teamName } : {}),
       ...(invitePreview.inviterName ? { inviterName: invitePreview.inviterName } : {}),
+      ...(invitePreview.projectNames && invitePreview.projectNames.length > 0
+        ? { projectNames: invitePreview.projectNames.join(',') }
+        : {}),
     });
     navigate(`/signup?${params.toString()}`);
   };

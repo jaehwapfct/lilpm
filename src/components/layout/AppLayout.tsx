@@ -8,9 +8,8 @@ import { useRealtimeCollaboration } from '@/hooks/useRealtimeCollaboration';
 import { useTeamStore } from '@/stores/teamStore';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { PanelLeftClose, PanelLeft } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -21,7 +20,7 @@ interface AppLayoutProps {
 const MIN_SIDEBAR_WIDTH = 200;
 const MAX_SIDEBAR_WIDTH = 400;
 const DEFAULT_SIDEBAR_WIDTH = 224;
-const COLLAPSED_SIDEBAR_WIDTH = 0;
+const COLLAPSED_SIDEBAR_WIDTH = 56;
 
 export function AppLayout({
   children,
@@ -96,14 +95,19 @@ export function AppLayout({
       {showSidebar && !isMobile && (
         <div
           className={cn(
-            "relative flex-shrink-0 bg-[#1a1a1f] flex transition-all duration-300 ease-in-out overflow-hidden",
-            isCollapsed && "w-0"
+            "relative flex-shrink-0 bg-[#1a1a1f] flex transition-all duration-300 ease-in-out overflow-hidden"
           )}
-          style={{ width: isCollapsed ? 0 : sidebarWidth }}
+          style={{ width: actualSidebarWidth }}
         >
-          <Sidebar style={{ width: sidebarWidth, minWidth: sidebarWidth }} />
+          <Sidebar
+            isCollapsed={isCollapsed}
+            style={{
+              width: isCollapsed ? COLLAPSED_SIDEBAR_WIDTH : sidebarWidth,
+              minWidth: isCollapsed ? COLLAPSED_SIDEBAR_WIDTH : sidebarWidth,
+            }}
+          />
 
-          {/* Resize Handle */}
+          {/* Resize Handle - only when expanded */}
           {!isCollapsed && (
             <div
               className={cn(
@@ -114,28 +118,23 @@ export function AppLayout({
               onMouseDown={handleMouseDown}
             />
           )}
-        </div>
-      )}
 
-      {/* Sidebar Toggle Button - Always visible on desktop */}
-      {showSidebar && !isMobile && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "absolute top-3 z-30 h-8 w-8 transition-all duration-300 text-slate-400 hover:text-white hover:bg-white/5",
-            isCollapsed ? "left-3" : "left-3"
-          )}
-          style={{ left: isCollapsed ? 12 : sidebarWidth - 36 }}
-          onClick={toggleSidebar}
-          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {isCollapsed ? (
-            <PanelLeft className="h-4 w-4" />
-          ) : (
-            <PanelLeftClose className="h-4 w-4" />
-          )}
-        </Button>
+          {/* Sidebar Toggle Button - inside sidebar at bottom */}
+          <button
+            className={cn(
+              "absolute bottom-3 z-30 h-8 w-8 flex items-center justify-center rounded-lg transition-all duration-300 text-slate-400 hover:text-white hover:bg-white/5",
+              isCollapsed ? "left-1/2 -translate-x-1/2" : "right-2"
+            )}
+            onClick={toggleSidebar}
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isCollapsed ? (
+              <ChevronsRight className="h-4 w-4" />
+            ) : (
+              <ChevronsLeft className="h-4 w-4" />
+            )}
+          </button>
+        </div>
       )}
 
       {/* Mobile Sidebar Sheet */}

@@ -58,6 +58,12 @@ import { Input } from '@/components/ui/input';
 
 import { NavItem, ConversationListItem } from './SidebarComponents';
 import { useSidebarKeyboardShortcuts } from './hooks';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from '@/components/ui/tooltip';
 
 // NavItem and ConversationListItem are now imported from ./SidebarComponents
 
@@ -68,9 +74,10 @@ const PROJECT_ICONS: Record<string, string> = {};
 interface SidebarProps {
   onNavigate?: () => void;
   style?: React.CSSProperties;
+  isCollapsed?: boolean;
 }
 
-export function Sidebar({ onNavigate, style }: SidebarProps) {
+export function Sidebar({ onNavigate, style, isCollapsed = false }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
@@ -196,6 +203,51 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
 
   // If in Lily mode, show conversation history sidebar
   if (isLilyMode) {
+    // Collapsed Lily mode - icon only
+    if (isCollapsed) {
+      return (
+        <aside className="flex-1 bg-[#1a1a1f] border-r border-white/5 flex flex-col items-center py-3" style={style}>
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setShowLilySidebar(false)}
+                  className="flex items-center justify-center w-10 h-10 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
+                >
+                  <ArrowLeft className="h-[18px] w-[18px]" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">{t('common.back', 'Back to menu')}</TooltipContent>
+            </Tooltip>
+
+            <div className="w-8 border-b border-white/5 my-2" />
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleNewConversation}
+                  className="flex items-center justify-center w-10 h-10 rounded-xl bg-violet-500 hover:bg-violet-400 text-white transition-colors"
+                >
+                  <Plus className="h-[18px] w-[18px]" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">{t('lily.newConversation', 'New Chat')}</TooltipContent>
+            </Tooltip>
+
+            <div className="flex-1" />
+
+            <NavItem
+              icon={Settings}
+              label={t('common.settings')}
+              href="/settings"
+              onClick={onNavigate}
+              isCollapsed
+            />
+          </TooltipProvider>
+        </aside>
+      );
+    }
+
     return (
       <aside className="flex-1 bg-[#1a1a1f] border-r border-white/5 flex flex-col" style={style}>
         {/* Back button header */}
@@ -308,6 +360,261 @@ export function Sidebar({ onNavigate, style }: SidebarProps) {
             onClick={onNavigate}
           />
         </div>
+      </aside>
+    );
+  }
+
+  // Collapsed mode - icons only
+  if (isCollapsed) {
+    return (
+      <aside className="flex-1 bg-[#1a1a1f] border-r border-white/5 flex flex-col items-center py-3" style={style}>
+        <TooltipProvider delayDuration={0}>
+          {/* Logo - icon only */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link to="/" onClick={onNavigate} className="flex items-center justify-center w-10 h-10 rounded-xl hover:opacity-80 transition-opacity mb-2">
+                <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+                  <span className="text-white font-bold text-xs">LP</span>
+                </div>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right">Lil PM</TooltipContent>
+          </Tooltip>
+
+          {/* Team Switcher - icon only */}
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center justify-center w-10 h-10 rounded-xl hover:bg-white/5 transition-colors mb-1">
+                    <div className="h-6 w-6 rounded flex items-center justify-center text-xs font-semibold bg-violet-500 text-white">
+                      {currentTeam?.name?.charAt(0) || 'T'}
+                    </div>
+                  </button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="right">{currentTeam?.name || t('nav.selectTeam')}</TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="start" side="right" className="w-56 bg-[#1a1a1f] border-white/10">
+              <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                {t('nav.teams')}
+              </div>
+              {teams.map((team) => (
+                <DropdownMenuItem
+                  key={team.id}
+                  onClick={() => {
+                    if (currentTeam?.id !== team.id) {
+                      selectTeam(team.id);
+                      navigate('/');
+                    }
+                  }}
+                  className={cn("text-slate-300 focus:text-white focus:bg-white/5", currentTeam?.id === team.id && "bg-white/5")}
+                >
+                  <div className="h-5 w-5 rounded flex items-center justify-center text-xs font-semibold mr-2 bg-violet-500/80 text-white">
+                    {team.name.charAt(0)}
+                  </div>
+                  {team.name}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              {currentTeam && (
+                <>
+                  <DropdownMenuItem onClick={() => { navigate('/team/settings'); onNavigate?.(); }}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    {t('nav.teamSettings')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { navigate('/team/members'); onNavigate?.(); }}>
+                    <Users className="h-4 w-4 mr-2" />
+                    {t('nav.teamMembers')}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              <DropdownMenuItem onClick={() => navigate('/onboarding/create-team')}>
+                <Plus className="h-4 w-4 mr-2" />
+                {t('nav.createTeam')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Search - icon only */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+              >
+                <Search className="h-[18px] w-[18px]" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="flex items-center gap-2">
+              {t('common.search')}
+              <span className="text-xs text-slate-400">⌘K</span>
+            </TooltipContent>
+          </Tooltip>
+
+          <div className="w-8 border-b border-white/5 my-2" />
+
+          {/* Main Navigation - icons only */}
+          <nav className="flex-1 overflow-y-auto flex flex-col items-center space-y-1 w-full px-2">
+            {mainNav.map((item) => (
+              <NavItem
+                key={item.href}
+                {...item}
+                isActive={location.pathname === item.href}
+                onClick={onNavigate}
+                isCollapsed
+              />
+            ))}
+
+            <div className="w-8 border-b border-white/5 my-2" />
+
+            {/* Lily - icon only */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  to="/lily"
+                  onClick={onNavigate}
+                  className={cn(
+                    "flex items-center justify-center w-10 h-10 rounded-xl transition-colors",
+                    "bg-gradient-to-r from-violet-500/10 to-purple-500/10 hover:from-violet-500/20 hover:to-purple-500/20",
+                    isOnLilyPage && "from-violet-500/20 to-purple-500/20"
+                  )}
+                >
+                  <Sparkles className="h-[18px] w-[18px] text-violet-500" />
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="flex items-center gap-2">
+                {t('lily.title')}
+                <span className="text-xs text-slate-400 kbd">L</span>
+              </TooltipContent>
+            </Tooltip>
+
+            <div className="w-8 border-b border-white/5 my-2" />
+
+            {/* Projects - first project icon as entry point */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  to="/projects"
+                  onClick={onNavigate}
+                  className={cn(
+                    "flex items-center justify-center w-10 h-10 rounded-xl transition-colors hover:bg-white/5",
+                    location.pathname === '/projects' && "bg-white/5"
+                  )}
+                >
+                  <Folder className="h-[18px] w-[18px] text-slate-400" />
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right">{t('nav.projects')}</TooltipContent>
+            </Tooltip>
+
+            <div className="w-8 border-b border-white/5 my-2" />
+
+            {/* Workspace Navigation - icons only */}
+            {workspaceNav.map((item) => (
+              <NavItem
+                key={item.href}
+                {...item}
+                isActive={location.pathname === item.href}
+                onClick={onNavigate}
+                isCollapsed
+              />
+            ))}
+          </nav>
+
+          {/* Bottom Section - icons only */}
+          <div className="border-t border-white/5 pt-3 space-y-1 w-full flex flex-col items-center">
+            <NavItem
+              icon={HelpCircle}
+              label={t('common.help')}
+              href="/help"
+              onClick={onNavigate}
+              isCollapsed
+            />
+            <NavItem
+              icon={Archive}
+              label={t('archive.title', 'Archive')}
+              href="/archive"
+              onClick={onNavigate}
+              isCollapsed
+            />
+            <NavItem
+              icon={Settings}
+              label={t('common.settings')}
+              href="/settings"
+              shortcut="G S"
+              onClick={onNavigate}
+              isCollapsed
+            />
+          </div>
+        </TooltipProvider>
+
+        {/* Search Dialog */}
+        <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+          <DialogContent className="sm:max-w-lg p-0">
+            <DialogHeader className="p-4 pb-0">
+              <DialogTitle className="sr-only">{t('common.search')}</DialogTitle>
+            </DialogHeader>
+            <div className="p-4 pt-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder={`${t('common.search')}...`}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                  autoFocus
+                />
+              </div>
+              <div className="mt-4 space-y-2">
+                <div className="text-xs font-medium text-slate-400 uppercase">Quick Actions</div>
+                <div className="space-y-1">
+                  <button
+                    onClick={() => { navigate('/issues'); setSearchOpen(false); }}
+                    className="flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-white/5 rounded-xl"
+                  >
+                    <Layers className="h-4 w-4" />
+                    {t('nav.allIssues')}
+                    <span className="ml-auto kbd text-xs">G I</span>
+                  </button>
+                  <button
+                    onClick={() => { navigate('/lily'); setSearchOpen(false); }}
+                    className="flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-white/5 rounded-xl"
+                  >
+                    <Sparkles className="h-4 w-4 text-violet-500" />
+                    {t('lily.title')}
+                    <span className="ml-auto kbd text-xs">L</span>
+                  </button>
+                  <button
+                    onClick={() => { navigate('/projects'); setSearchOpen(false); }}
+                    className="flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-white/5 rounded-xl"
+                  >
+                    <Folder className="h-4 w-4" />
+                    {t('nav.projects')}
+                  </button>
+                </div>
+                {filteredProjects.length > 0 && searchQuery && (
+                  <>
+                    <div className="text-xs font-medium text-slate-400 uppercase mt-4">{t('nav.projects')}</div>
+                    <div className="space-y-1">
+                      {filteredProjects.slice(0, 5).map((project) => (
+                        <button
+                          key={project.id}
+                          onClick={() => { navigate(`/project/${project.id}`); setSearchOpen(false); }}
+                          className="flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-white/5 rounded-xl"
+                        >
+                          <span>{PROJECT_ICONS[project.icon || 'folder'] || '📁'}</span>
+                          {project.name}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </aside>
     );
   }

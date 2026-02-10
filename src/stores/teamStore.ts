@@ -73,7 +73,13 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
   loadTeams: async () => {
     // Don't clear existing teams during refresh to prevent redirect flicker
     const existingTeams = get().teams;
-    set({ isLoading: true, error: null });
+    // Only show loading spinner if teams haven't been loaded yet
+    // For subsequent calls (navigation), do a background refresh
+    if (existingTeams.length === 0) {
+      set({ isLoading: true, error: null });
+    } else {
+      set({ error: null });
+    }
 
     try {
       // Use teamService directly (bypasses non-existent REST API)

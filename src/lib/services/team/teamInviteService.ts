@@ -24,7 +24,7 @@ export const teamInviteService = {
         return (data || []) as TeamInvite[];
     },
 
-    async createInvite(teamId: string, email: string, role: TeamRole = 'member'): Promise<TeamInvite & { isExistingUser?: boolean }> {
+    async createInvite(teamId: string, email: string, role: TeamRole = 'member', projectIds?: string[]): Promise<TeamInvite & { isExistingUser?: boolean }> {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Not authenticated');
 
@@ -57,6 +57,16 @@ export const teamInviteService = {
         // Set expiration to 24 hours from now
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
+        // Get project names for the selected projects
+        let projectNames: string[] = [];
+        if (projectIds && projectIds.length > 0) {
+            const { data: projects } = await supabase
+                .from('projects')
+                .select('name')
+                .in('id', projectIds);
+            projectNames = (projects || []).map(p => p.name);
+        }
+
         const { data, error } = await supabase
             .from('team_invites')
             .insert({
@@ -67,6 +77,7 @@ export const teamInviteService = {
                 token,
                 status: 'pending',
                 expires_at: expiresAt,
+                project_ids: projectIds && projectIds.length > 0 ? projectIds : null,
             } as any)
             .select()
             .single();
@@ -90,6 +101,8 @@ export const teamInviteService = {
                 token: token,
                 isExistingUser: isExistingUser,
                 targetUserId: existingProfile?.id,
+                projectIds: projectIds || [],
+                projectNames: projectNames,
             };
 
             const { error: funcError } = await supabase.functions.invoke('send-team-invite', {
@@ -180,6 +193,34 @@ export const teamInviteService = {
                 } as any);
 
             if (memberError) throw memberError;
+
+            // Handle project-specific assignments
+            // The auto-assign trigger adds ALL projects; if invite has specific project_ids, clean up
+            if (typedInvite.project_ids && Array.isArray(typedInvite.project_ids) && typedInvite.project_ids.length > 0) {
+                try {
+                    const { data: teamProjects } = await supabase
+                        .from('projects')
+                        .select('id')
+                        .eq('team_id', typedInvite.team_id);
+
+                    if (teamProjects) {
+                        const selectedSet = new Set(typedInvite.project_ids as string[]);
+                        const projectIdsToRemove = teamProjects
+                            .map((p: any) => p.id)
+                            .filter((id: string) => !selectedSet.has(id));
+
+                        if (projectIdsToRemove.length > 0) {
+                            await supabase
+                                .from('project_members')
+                                .delete()
+                                .eq('user_id', user.id)
+                                .in('project_id', projectIdsToRemove);
+                        }
+                    }
+                } catch (projectErr) {
+                    console.error('Failed to clean up project assignments:', projectErr);
+                }
+            }
         }
 
         // Mark invite as accepted
@@ -314,6 +355,7 @@ export const teamInviteService = {
         inviterAvatar?: string;
         email?: string;
         role?: string;
+        projectNames?: string[];
     }> {
         try {
             // Direct query approach (most reliable - avoids RPC/Edge Function issues)
@@ -344,6 +386,16 @@ export const teamInviteService = {
                 inviterAvatar = inviterProfile?.avatar_url || undefined;
             }
 
+            // Get project names if project_ids are specified
+            let projectNames: string[] = [];
+            if (invite.project_ids && Array.isArray(invite.project_ids) && invite.project_ids.length > 0) {
+                const { data: projects } = await supabase
+                    .from('projects')
+                    .select('name')
+                    .in('id', invite.project_ids);
+                projectNames = (projects || []).map((p: any) => p.name);
+            }
+
             const teamName = (invite.team as any)?.name;
 
             if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
@@ -354,6 +406,7 @@ export const teamInviteService = {
                     inviterName,
                     email: invite.email,
                     role: invite.role,
+                    projectNames,
                 };
             }
 
@@ -365,6 +418,7 @@ export const teamInviteService = {
                     inviterName,
                     email: invite.email,
                     role: invite.role,
+                    projectNames,
                 };
             }
 
@@ -376,6 +430,7 @@ export const teamInviteService = {
                 inviterAvatar,
                 email: invite.email,
                 role: invite.role,
+                projectNames,
             };
         } catch (error) {
             console.error('getInvitePreview error:', error);

@@ -39,12 +39,13 @@ export interface UseSupabaseCollaborationReturn {
     onRemoteContentChange: (callback: (content: string, userId: string) => void) => void;
 }
 
+const COLORS = [
+    '#F87171', '#FB923C', '#FBBF24', '#4ADE80', '#22D3EE',
+    '#60A5FA', '#A78BFA', '#F472B6', '#94A3B8'
+];
+
 function getRandomColor(): string {
-    const colors = [
-        '#F87171', '#FB923C', '#FBBF24', '#4ADE80', '#22D3EE',
-        '#60A5FA', '#A78BFA', '#F472B6', '#94A3B8'
-    ];
-    return colors[Math.floor(Math.random() * colors.length)];
+    return COLORS[Math.floor(Math.random() * COLORS.length)];
 }
 
 export function useSupabaseCollaboration(
@@ -55,10 +56,20 @@ export function useSupabaseCollaboration(
         entityId,
         userId,
         userName,
-        userColor = getRandomColor(),
         avatarUrl,
         enabled = true,
     } = options;
+
+    // Stabilize userColor: use provided color, or generate a stable random color once per hook instance
+    const stableColorRef = useRef<string | null>(null);
+    if (!stableColorRef.current) {
+        stableColorRef.current = options.userColor || getRandomColor();
+    }
+    // Update if caller provides a new explicit color
+    if (options.userColor && options.userColor !== stableColorRef.current) {
+        stableColorRef.current = options.userColor;
+    }
+    const userColor = stableColorRef.current;
 
     const [isConnected, setIsConnected] = useState(false);
     const [presenceUsers, setPresenceUsers] = useState<PresenceUser[]>([]);
@@ -67,6 +78,28 @@ export function useSupabaseCollaboration(
 
     const roomName = useMemo(() => `collab:${entityType}:${entityId}`, [entityType, entityId]);
 
+    // Use refs for values that change but shouldn't trigger channel recreation
+    const userNameRef = useRef(userName);
+    const userColorRef = useRef(userColor);
+    const avatarUrlRef = useRef(avatarUrl);
+
+    useEffect(() => {
+        userNameRef.current = userName;
+        userColorRef.current = userColor;
+        avatarUrlRef.current = avatarUrl;
+
+        // Update presence with new user info (without recreating channel)
+        if (channelRef.current) {
+            channelRef.current.track({
+                id: userId,
+                name: userName,
+                color: userColor,
+                avatar: avatarUrl,
+                lastSeen: Date.now(),
+            });
+        }
+    }, [userId, userName, userColor, avatarUrl]);
+
     // Update cursor position
     const updateCursorPosition = useCallback((position: number, blockId?: string) => {
         if (!channelRef.current) return;
@@ -74,14 +107,14 @@ export function useSupabaseCollaboration(
         // Update presence with cursor info
         channelRef.current.track({
             id: userId,
-            name: userName,
-            color: userColor,
-            avatar: avatarUrl,
+            name: userNameRef.current,
+            color: userColorRef.current,
+            avatar: avatarUrlRef.current,
             cursorPosition: position,
             blockId,
             lastSeen: Date.now(),
         });
-    }, [userId, userName, userColor, avatarUrl]);
+    }, [userId]);
 
     // Broadcast content change to other users
     const broadcastContentChange = useCallback((content: string) => {
@@ -178,12 +211,12 @@ export function useSupabaseCollaboration(
                 console.log('[SupabaseCollaboration] Connected to:', roomName);
                 setIsConnected(true);
 
-                // Track initial presence
+                // Track initial presence (use refs for user info to avoid stale closures)
                 await channel.track({
                     id: userId,
-                    name: userName,
-                    color: userColor,
-                    avatar: avatarUrl,
+                    name: userNameRef.current,
+                    color: userColorRef.current,
+                    avatar: avatarUrlRef.current,
                     lastSeen: Date.now(),
                 });
             } else if (status === 'CHANNEL_ERROR') {
@@ -204,7 +237,8 @@ export function useSupabaseCollaboration(
             setIsConnected(false);
             setPresenceUsers([]);
         };
-    }, [enabled, entityId, userId, userName, userColor, avatarUrl, roomName]);
+    // Only recreate channel when core identifiers change (not user display info)
+    }, [enabled, entityId, userId, roomName]);
 
     return {
         isConnected,

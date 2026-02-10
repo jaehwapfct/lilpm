@@ -17,6 +17,8 @@ export { AudioNode } from './media/AudioNode';
 export { BookmarkNode } from './media/BookmarkNode';
 export { FileNode } from './media/FileNode';
 export { PageEmbed } from './media/PageEmbed';
+export { PdfNode } from './media/PdfNode';
+export { EmbedNode } from './media/EmbedNode';
 
 // === Database ===
 export { LinkedDatabase } from './database/LinkedDatabase';
@@ -37,6 +39,17 @@ export type { BlockComment, BlockCommentReply, BlockCommentOptions } from './Blo
 // === Core Extensions ===
 export { UniqueId, getBlockIdAtPos, findBlockById } from './UniqueId';
 export { SyncedBlock, SyncedBlockService } from './SyncedBlock';
+export { SyncedBlockNode } from './SyncedBlockNode';
+
+// === Page Link ([[ and + triggers) ===
+export { PageLink } from './PageLink';
+export type { PageLinkItem, PageLinkOptions } from './PageLink';
+
+// === Clipboard Handler (enhanced paste) ===
+export { ClipboardHandler } from './ClipboardHandler';
+
+// === Keyboard Shortcuts (Notion-style Cmd+Shift+1~9) ===
+export { KeyboardShortcuts } from './KeyboardShortcuts';
 
 // === Slash Commands ===
 export { SlashCommands, slashCommandItems } from './SlashCommands';

@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppLayout } from '@/components/layout';
 import { useTeamStore } from '@/stores/teamStore';
+import { useAuthStore } from '@/stores/authStore';
 import { teamMemberService, teamInviteService, type TeamMemberWithProfile } from '@/lib/services/teamService';
+import { projectService, projectMemberService } from '@/lib/services';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -64,14 +67,16 @@ import {
   Timer,
   AlertCircle,
   FolderOpen,
+  CheckSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { TeamRole, TeamInvite } from '@/types/database';
+import type { TeamRole, TeamInvite, Project } from '@/types/database';
 import { ProjectAssignmentModal } from '@/components/team';
 
 export function TeamMembersPage() {
   const { t } = useTranslation();
   const { currentTeam, teams, selectTeam } = useTeamStore();
+  const { user } = useAuthStore();
   const [members, setMembers] = useState<TeamMemberWithProfile[]>([]);
   const [invites, setInvites] = useState<TeamInvite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,6 +87,23 @@ export function TeamMembersPage() {
   const [removeMember, setRemoveMember] = useState<TeamMemberWithProfile | null>(null);
   const [projectAssignMember, setProjectAssignMember] = useState<TeamMemberWithProfile | null>(null);
   const [activeTab, setActiveTab] = useState<string>('members');
+
+  // Project selection for invite
+  const [teamProjects, setTeamProjects] = useState<Project[]>([]);
+  const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(new Set());
+  const [loadingProjects, setLoadingProjects] = useState(false);
+
+  // Member project assignments map: userId → project names
+  const [memberProjectsMap, setMemberProjectsMap] = useState<Record<string, string[]>>({});
+
+  // Determine current user's role in the team
+  const currentUserRole: TeamRole | null = React.useMemo(() => {
+    if (!user?.id || !members.length) return null;
+    const me = members.find(m => m.user_id === user.id);
+    return me?.role || null;
+  }, [user?.id, members]);
+
+  const isCurrentUserAdmin = currentUserRole === 'owner' || currentUserRole === 'admin';
 
   const roleLabels: Record<TeamRole, string> = {
     owner: t('team.owner'),
@@ -142,9 +164,10 @@ export function TeamMembersPage() {
 
     setIsLoading(true);
     try {
-      const [membersData, invitesData] = await Promise.all([
+      const [membersData, invitesData, projectsData] = await Promise.all([
         teamMemberService.getMembers(currentTeam.id),
         teamInviteService.getInvites(currentTeam.id),
+        projectService.getProjects(currentTeam.id),
       ]);
 
       // Check if team has an owner - if not, auto-fix by making current user the owner
@@ -160,6 +183,7 @@ export function TeamMembersPage() {
             const updatedMembers = await teamMemberService.getMembers(currentTeam.id);
             setMembers(updatedMembers);
             setInvites(invitesData);
+            setTeamProjects(projectsData);
             return;
           }
         } catch (rpcError) {
@@ -169,6 +193,25 @@ export function TeamMembersPage() {
 
       setMembers(membersData);
       setInvites(invitesData);
+      setTeamProjects(projectsData);
+
+      // Build member → projects map efficiently using a single batch
+      try {
+        const projectMap: Record<string, string[]> = {};
+        const projectNameMap = new Map(projectsData.map(p => [p.id, p.name]));
+
+        // Query all project_members for each member in parallel
+        const memberProjectPromises = membersData.map(async (member) => {
+          const userProjects = await projectMemberService.getUserProjects(member.user_id, currentTeam.id);
+          projectMap[member.user_id] = userProjects
+            .map(up => up.project?.name || projectNameMap.get((up.project as any)?.id) || '')
+            .filter(Boolean);
+        });
+        await Promise.all(memberProjectPromises);
+        setMemberProjectsMap(projectMap);
+      } catch (projectErr) {
+        console.error('Failed to load project assignments:', projectErr);
+      }
     } catch (error) {
       console.error('Failed to load team data:', error);
     } finally {
@@ -181,6 +224,24 @@ export function TeamMembersPage() {
   React.useEffect(() => {
     inviteOpenRef.current = inviteOpen;
   }, [inviteOpen]);
+
+  // Load projects when invite dialog opens
+  React.useEffect(() => {
+    if (inviteOpen && currentTeam) {
+      setLoadingProjects(true);
+      projectService.getProjects(currentTeam.id).then((projects) => {
+        setTeamProjects(projects);
+        // Pre-select all projects by default
+        setSelectedProjectIds(new Set(projects.map(p => p.id)));
+      }).catch(err => {
+        console.error('Failed to load projects for invite:', err);
+      }).finally(() => {
+        setLoadingProjects(false);
+      });
+      // Reset role to member when dialog opens
+      setInviteRole('member');
+    }
+  }, [inviteOpen, currentTeam?.id]);
 
   // Set up realtime subscription for team members and invites
   useEffect(() => {
@@ -238,10 +299,15 @@ export function TeamMembersPage() {
 
   const handleInvite = async () => {
     if (!currentTeam || !inviteEmail) return;
+    if (selectedProjectIds.size === 0) {
+      toast.error('Please select at least one project');
+      return;
+    }
 
     setIsSending(true);
     try {
-      const newInvite = await teamInviteService.createInvite(currentTeam.id, inviteEmail, inviteRole);
+      const projectIdsArray = Array.from(selectedProjectIds);
+      const newInvite = await teamInviteService.createInvite(currentTeam.id, inviteEmail, inviteRole, projectIdsArray);
 
       // Show different message based on whether user exists
       if ((newInvite as any).isExistingUser) {
@@ -254,6 +320,7 @@ export function TeamMembersPage() {
       setInvites(prev => [...prev, newInvite]);
 
       setInviteEmail('');
+      setSelectedProjectIds(new Set());
       setInviteOpen(false);
       setActiveTab('invites'); // Switch to Pending tab after invite
 
@@ -375,6 +442,7 @@ export function TeamMembersPage() {
                   <TableRow>
                     <TableHead>{t('team.member')}</TableHead>
                     <TableHead>{t('team.role')}</TableHead>
+                    <TableHead>Projects</TableHead>
                     <TableHead>{t('team.joined')}</TableHead>
                     <TableHead className="w-10"></TableHead>
                   </TableRow>
@@ -382,13 +450,13 @@ export function TeamMembersPage() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8">
+                      <TableCell colSpan={5} className="text-center py-8">
                         <Loader2 className="h-6 w-6 mx-auto animate-spin text-slate-400" />
                       </TableCell>
                     </TableRow>
                   ) : members.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-slate-400">
+                      <TableCell colSpan={5} className="text-center py-8 text-slate-400">
                         {t('team.noMembers')}
                       </TableCell>
                     </TableRow>
@@ -419,6 +487,19 @@ export function TeamMembersPage() {
                             {roleLabels[member.role]}
                           </Badge>
                         </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {(memberProjectsMap[member.user_id] || []).length > 0 ? (
+                              memberProjectsMap[member.user_id].map((name, idx) => (
+                                <Badge key={idx} variant="outline" className="text-xs font-normal">
+                                  {name}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-xs text-slate-500">—</span>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-slate-400 text-sm">
                           {new Date(member.joined_at).toLocaleDateString()}
                         </TableCell>
@@ -441,7 +522,7 @@ export function TeamMembersPage() {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => setProjectAssignMember(member)}>
                                   <FolderOpen className="h-4 w-4 mr-2" />
-                                  {t('team.manageProjects', '프로젝트 할당')}
+                                  Manage Projects
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
@@ -471,6 +552,7 @@ export function TeamMembersPage() {
                   <TableRow>
                     <TableHead>{t('auth.email')}</TableHead>
                     <TableHead>{t('team.role')}</TableHead>
+                    <TableHead>Projects</TableHead>
                     <TableHead>{t('common.status', 'Status')}</TableHead>
                     <TableHead>{t('team.timeLeft', 'Time Left')}</TableHead>
                     <TableHead className="w-10"></TableHead>
@@ -479,81 +561,101 @@ export function TeamMembersPage() {
                 <TableBody>
                   {invites.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-slate-400">
+                      <TableCell colSpan={6} className="text-center py-8 text-slate-400">
                         <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
                         {t('team.noInvitations')}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    invites.map((invite) => (
-                      <TableRow key={invite.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Mail className="h-4 w-4 text-slate-400" />
-                            <span>{invite.email}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={roleBadgeVariants[invite.role]}>
-                            {roleLabels[invite.role]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {isInviteExpired(invite) ? (
-                            <Badge variant="destructive" className="gap-1">
-                              <AlertCircle className="h-3 w-3" />
-                              Expired
+                    invites.map((invite) => {
+                      // Resolve project names from invite.project_ids
+                      const inviteProjectNames = invite.project_ids
+                        ? teamProjects.filter(p => invite.project_ids!.includes(p.id)).map(p => p.name)
+                        : [];
+
+                      return (
+                        <TableRow key={invite.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Mail className="h-4 w-4 text-slate-400" />
+                              <span>{invite.email}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={roleBadgeVariants[invite.role]}>
+                              {roleLabels[invite.role]}
                             </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="gap-1">
-                              <Timer className="h-3 w-3" />
-                              Waiting
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-slate-400 text-sm">
-                          {invite.expires_at ? (
-                            isInviteExpired(invite) ? (
-                              <span className="text-destructive">—</span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {inviteProjectNames.length > 0 ? (
+                                inviteProjectNames.map((name, idx) => (
+                                  <Badge key={idx} variant="outline" className="text-xs font-normal">
+                                    {name}
+                                  </Badge>
+                                ))
+                              ) : (
+                                <span className="text-xs text-slate-500">All projects</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {isInviteExpired(invite) ? (
+                              <Badge variant="destructive" className="gap-1">
+                                <AlertCircle className="h-3 w-3" />
+                                Expired
+                              </Badge>
                             ) : (
-                              <span className="flex items-center gap-1">
+                              <Badge variant="secondary" className="gap-1">
                                 <Timer className="h-3 w-3" />
-                                {getRemainingTime(invite.expires_at)}
-                              </span>
-                            )
-                          ) : (
-                            '—'
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleCopyInviteLink(invite)}>
-                                <Copy className="h-4 w-4 mr-2" />
-                                {t('issues.copyLink')}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleResendInvite(invite)}>
-                                <RefreshCw className="h-4 w-4 mr-2" />
-                                {t('team.resendInvite')}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => handleCancelInvite(invite.id)}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <X className="h-4 w-4 mr-2" />
-                                {t('team.cancelInvite')}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                                Waiting
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-slate-400 text-sm">
+                            {invite.expires_at ? (
+                              isInviteExpired(invite) ? (
+                                <span className="text-destructive">—</span>
+                              ) : (
+                                <span className="flex items-center gap-1">
+                                  <Timer className="h-3 w-3" />
+                                  {getRemainingTime(invite.expires_at)}
+                                </span>
+                              )
+                            ) : (
+                              '—'
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleCopyInviteLink(invite)}>
+                                  <Copy className="h-4 w-4 mr-2" />
+                                  {t('issues.copyLink')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleResendInvite(invite)}>
+                                  <RefreshCw className="h-4 w-4 mr-2" />
+                                  {t('team.resendInvite')}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleCancelInvite(invite.id)}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <X className="h-4 w-4 mr-2" />
+                                  {t('team.cancelInvite')}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
@@ -563,7 +665,7 @@ export function TeamMembersPage() {
 
         {/* Invite Dialog */}
         <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-          <DialogContent aria-describedby={undefined}>
+          <DialogContent aria-describedby={undefined} className="max-w-md">
             <DialogHeader>
               <DialogTitle>{t('team.inviteMember')}</DialogTitle>
             </DialogHeader>
@@ -584,12 +686,15 @@ export function TeamMembersPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">
-                      <div className="flex items-center gap-2">
-                        <ShieldCheck className="h-4 w-4" />
-                        {t('team.admin')}
-                      </div>
-                    </SelectItem>
+                    {/* Only show admin option if current user is admin or owner */}
+                    {isCurrentUserAdmin && (
+                      <SelectItem value="admin">
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="h-4 w-4" />
+                          {t('team.admin')}
+                        </div>
+                      </SelectItem>
+                    )}
                     <SelectItem value="member">
                       <div className="flex items-center gap-2">
                         <Shield className="h-4 w-4" />
@@ -605,11 +710,79 @@ export function TeamMembersPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Project Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <FolderOpen className="h-4 w-4" />
+                  Projects
+                  <span className="text-xs text-slate-400 font-normal">(select at least one)</span>
+                </label>
+                {loadingProjects ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                  </div>
+                ) : teamProjects.length === 0 ? (
+                  <p className="text-sm text-slate-400 py-2">No projects in this team yet.</p>
+                ) : (
+                  <div className="space-y-1 max-h-[200px] overflow-y-auto border border-white/10 rounded-lg p-2">
+                    {/* Select All toggle */}
+                    <label className="flex items-center gap-3 p-2 rounded-md hover:bg-white/5 cursor-pointer border-b border-white/5 mb-1">
+                      <Checkbox
+                        checked={selectedProjectIds.size === teamProjects.length && teamProjects.length > 0}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedProjectIds(new Set(teamProjects.map(p => p.id)));
+                          } else {
+                            setSelectedProjectIds(new Set());
+                          }
+                        }}
+                      />
+                      <div className="flex items-center gap-2">
+                        <CheckSquare className="h-4 w-4 text-violet-400" />
+                        <span className="text-sm font-medium text-violet-400">Select All</span>
+                      </div>
+                      <span className="ml-auto text-xs text-slate-400">{selectedProjectIds.size}/{teamProjects.length}</span>
+                    </label>
+
+                    {teamProjects.map((project) => (
+                      <label
+                        key={project.id}
+                        className="flex items-center gap-3 p-2 rounded-md hover:bg-white/5 cursor-pointer transition-colors"
+                      >
+                        <Checkbox
+                          checked={selectedProjectIds.has(project.id)}
+                          onCheckedChange={(checked) => {
+                            setSelectedProjectIds(prev => {
+                              const newSet = new Set(prev);
+                              if (checked) {
+                                newSet.add(project.id);
+                              } else {
+                                newSet.delete(project.id);
+                              }
+                              return newSet;
+                            });
+                          }}
+                        />
+                        <div
+                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: project.color || '#6b7280' }}
+                        />
+                        <span className="text-sm">{project.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-end gap-2 pt-4">
                 <Button variant="outline" onClick={() => setInviteOpen(false)}>
                   {t('common.cancel')}
                 </Button>
-                <Button onClick={handleInvite} disabled={!inviteEmail || isSending}>
+                <Button
+                  onClick={handleInvite}
+                  disabled={!inviteEmail || isSending || selectedProjectIds.size === 0}
+                >
                   {isSending ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (

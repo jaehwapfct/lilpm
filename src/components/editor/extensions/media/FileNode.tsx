@@ -1,6 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
-import React, { useRef } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import {
     FileText,
@@ -14,7 +14,17 @@ import {
     FileVideo,
     FileAudio,
     FileArchive,
+    Loader2,
 } from 'lucide-react';
+
+/**
+ * FileNode Extension
+ * Embeds uploaded files with preview and download.
+ * 
+ * Fixed: Converts files to base64 for persistence (survives page reload).
+ * Fixed: Added drag & drop support.
+ * Fixed: Added loading state during file processing.
+ */
 
 // Get file icon based on mime type or extension
 const getFileIcon = (fileType: string, fileName: string) => {
@@ -52,22 +62,57 @@ const formatFileSize = (bytes: number): string => {
 const FileComponent: React.FC<any> = ({ node, updateAttributes, selected, deleteNode }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { fileName, fileSize, fileType, fileUrl } = node.attrs;
+    const [isLoading, setIsLoading] = useState(false);
+    const [isDragOver, setIsDragOver] = useState(false);
+
+    const processFile = useCallback(async (file: globalThis.File) => {
+        setIsLoading(true);
+        try {
+            // Convert to base64 for persistence
+            const base64 = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+
+            updateAttributes({
+                fileName: file.name,
+                fileSize: file.size,
+                fileType: file.type,
+                fileUrl: base64,
+            });
+        } catch (err) {
+            console.error('Failed to process file:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [updateAttributes]);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file) return;
-
-        // In production, upload to storage and get URL
-        // For now, create a local object URL (won't persist)
-        const url = URL.createObjectURL(file);
-
-        updateAttributes({
-            fileName: file.name,
-            fileSize: file.size,
-            fileType: file.type,
-            fileUrl: url,
-        });
+        if (file) processFile(file);
     };
+
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file) processFile(file);
+    }, [processFile]);
+
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(true);
+    }, []);
+
+    const handleDragLeave = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(false);
+    }, []);
 
     const IconComponent = fileName ? getFileIcon(fileType || '', fileName) : Upload;
 
@@ -82,12 +127,32 @@ const FileComponent: React.FC<any> = ({ node, updateAttributes, selected, delete
                 {!fileName ? (
                     // File Upload UI
                     <div
-                        className="p-6 bg-white/5 text-center cursor-pointer hover:bg-white/10 transition-colors"
+                        className={cn(
+                            'p-6 bg-white/5 text-center cursor-pointer transition-colors relative',
+                            isDragOver ? 'bg-primary/10 border-primary' : 'hover:bg-white/10'
+                        )}
                         onClick={() => fileInputRef.current?.click()}
+                        onDrop={handleDrop}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
                     >
-                        <Upload className="h-10 w-10 mx-auto mb-4 text-slate-400/50" />
-                        <p className="text-sm text-slate-400">Click to upload a file</p>
-                        <p className="text-xs text-slate-400/70 mt-1">or drag and drop</p>
+                        {isLoading ? (
+                            <>
+                                <Loader2 className="h-10 w-10 mx-auto mb-4 text-primary animate-spin" />
+                                <p className="text-sm text-slate-400">Processing file...</p>
+                            </>
+                        ) : (
+                            <>
+                                <Upload className={cn(
+                                    'h-10 w-10 mx-auto mb-4',
+                                    isDragOver ? 'text-primary' : 'text-slate-400/50'
+                                )} />
+                                <p className="text-sm text-slate-400">
+                                    {isDragOver ? 'Drop file here' : 'Click to upload a file'}
+                                </p>
+                                <p className="text-xs text-slate-400/70 mt-1">or drag and drop</p>
+                            </>
+                        )}
                         <input
                             ref={fileInputRef}
                             type="file"
@@ -97,7 +162,7 @@ const FileComponent: React.FC<any> = ({ node, updateAttributes, selected, delete
                     </div>
                 ) : (
                     // File Card
-                    <div className="flex items-center gap-3 p-4 bg-white/5">
+                    <div className="flex items-center gap-3 p-4 bg-white/5 group">
                         {/* Icon */}
                         <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                             <IconComponent className="h-5 w-5 text-primary" />
@@ -113,7 +178,7 @@ const FileComponent: React.FC<any> = ({ node, updateAttributes, selected, delete
                         </div>
 
                         {/* Actions */}
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             {fileUrl && (
                                 <a
                                     href={fileUrl}
@@ -124,6 +189,16 @@ const FileComponent: React.FC<any> = ({ node, updateAttributes, selected, delete
                                     <Download className="h-4 w-4 text-slate-400" />
                                 </a>
                             )}
+                            <button
+                                onClick={() => {
+                                    // Replace: reset to upload state
+                                    updateAttributes({ fileName: '', fileSize: 0, fileType: '', fileUrl: '' });
+                                }}
+                                className="p-2 rounded-xl hover:bg-white/5 transition-colors"
+                                title="Replace file"
+                            >
+                                <Upload className="h-4 w-4 text-slate-400" />
+                            </button>
                             <button
                                 onClick={() => deleteNode()}
                                 className="p-2 rounded-xl hover:bg-destructive/10 transition-colors"

@@ -1,16 +1,28 @@
 /**
- * Yjs Room Durable Object (Simplified)
+ * Yjs Room Durable Object
  * 
- * Manages real-time collaboration using simple WebSocket message relay.
- * Each room broadcasts messages to all connected clients.
+ * Manages real-time collaboration for a single document room.
+ * Handles:
+ * - Yjs CRDT document sync (binary updates)
+ * - Yjs Awareness protocol relay (cursor positions, selections, user info)
+ * - Client connection lifecycle (join, leave)
+ * - Document persistence via Durable Object storage
  */
 
 import * as Y from 'yjs';
 
+interface ClientInfo {
+    clientId: string;
+    userId?: string;
+    userName?: string;
+}
+
 export class YjsRoom implements DurableObject {
     private doc: Y.Doc;
     private state: DurableObjectState;
-    private connections: Map<WebSocket, { clientId: string }>;
+    private connections: Map<WebSocket, ClientInfo>;
+    private persistTimer: ReturnType<typeof setTimeout> | null = null;
+    private readonly PERSIST_DEBOUNCE_MS = 2000;
 
     constructor(state: DurableObjectState, env: Env) {
         this.state = state;
@@ -21,17 +33,35 @@ export class YjsRoom implements DurableObject {
         this.state.blockConcurrencyWhile(async () => {
             const stored = await this.state.storage.get<number[]>('doc');
             if (stored) {
-                const update = new Uint8Array(stored);
-                Y.applyUpdate(this.doc, update);
-                console.log('[YjsRoom] Loaded persisted document');
+                try {
+                    const update = new Uint8Array(stored);
+                    Y.applyUpdate(this.doc, update);
+                    console.log('[YjsRoom] Loaded persisted document, size:', stored.length);
+                } catch (e) {
+                    console.error('[YjsRoom] Failed to load persisted document:', e);
+                }
             }
         });
 
-        // Listen for document updates and persist
-        this.doc.on('update', (update: Uint8Array) => {
-            const currentState = Y.encodeStateAsUpdate(this.doc);
-            this.state.storage.put('doc', Array.from(currentState));
+        // Listen for document updates and persist (debounced)
+        this.doc.on('update', () => {
+            this.schedulePersist();
         });
+    }
+
+    private schedulePersist() {
+        if (this.persistTimer) {
+            clearTimeout(this.persistTimer);
+        }
+        this.persistTimer = setTimeout(() => {
+            try {
+                const currentState = Y.encodeStateAsUpdate(this.doc);
+                this.state.storage.put('doc', Array.from(currentState));
+                console.log('[YjsRoom] Persisted document, size:', currentState.length);
+            } catch (e) {
+                console.error('[YjsRoom] Failed to persist document:', e);
+            }
+        }, this.PERSIST_DEBOUNCE_MS);
     }
 
     async fetch(request: Request): Promise<Response> {
@@ -57,6 +87,14 @@ export class YjsRoom implements DurableObject {
                 data: Array.from(currentState),
             }));
 
+            // Send existing awareness states from other clients
+            // Collect last known awareness from all other connected clients
+            for (const [conn, info] of this.connections) {
+                if (conn !== server && info.userId) {
+                    // Notify existing client about the new joiner (they can re-send their awareness)
+                }
+            }
+
             return new Response(null, {
                 status: 101,
                 webSocket: client,
@@ -79,6 +117,7 @@ export class YjsRoom implements DurableObject {
             return new Response(JSON.stringify({
                 status: 'ok',
                 connections: this.connections.size,
+                docSize: Y.encodeStateAsUpdate(this.doc).length,
             }), {
                 headers: {
                     'Content-Type': 'application/json',
@@ -93,6 +132,36 @@ export class YjsRoom implements DurableObject {
         });
     }
 
+    /**
+     * Broadcast a message to all clients except the sender
+     */
+    private broadcast(sender: WebSocket, message: string) {
+        for (const [conn] of this.connections) {
+            if (conn !== sender && conn.readyState === WebSocket.OPEN) {
+                try {
+                    conn.send(message);
+                } catch (e) {
+                    console.error('[YjsRoom] Failed to send to client:', e);
+                }
+            }
+        }
+    }
+
+    /**
+     * Broadcast a message to ALL clients (including sender)
+     */
+    private broadcastAll(message: string) {
+        for (const [conn] of this.connections) {
+            if (conn.readyState === WebSocket.OPEN) {
+                try {
+                    conn.send(message);
+                } catch (e) {
+                    console.error('[YjsRoom] Failed to send to client:', e);
+                }
+            }
+        }
+    }
+
     // Handle incoming WebSocket messages (hibernation API)
     async webSocketMessage(ws: WebSocket, message: ArrayBuffer | string) {
         try {
@@ -100,46 +169,65 @@ export class YjsRoom implements DurableObject {
                 ? JSON.parse(message)
                 : JSON.parse(new TextDecoder().decode(message));
 
-            if (msg.type === 'update' && msg.data) {
-                // Apply update to local doc
-                const update = new Uint8Array(msg.data);
-                Y.applyUpdate(this.doc, update, ws);
+            switch (msg.type) {
+                case 'update': {
+                    // Yjs document update
+                    if (!msg.data) break;
+                    const update = new Uint8Array(msg.data);
+                    Y.applyUpdate(this.doc, update, ws);
 
-                // Broadcast to other clients
-                for (const [conn] of this.connections) {
-                    if (conn !== ws && conn.readyState === WebSocket.OPEN) {
-                        conn.send(JSON.stringify({
-                            type: 'update',
-                            data: msg.data,
-                        }));
-                    }
+                    // Relay to other clients
+                    this.broadcast(ws, JSON.stringify({
+                        type: 'update',
+                        data: msg.data,
+                    }));
+                    break;
                 }
-            } else if (msg.type === 'cursor') {
-                // Broadcast cursor position to other clients
-                console.log('[YjsRoom] Cursor update from:', msg.userName, 'pos:', msg.position, 'block:', msg.blockId);
-                for (const [conn] of this.connections) {
-                    if (conn !== ws && conn.readyState === WebSocket.OPEN) {
-                        conn.send(JSON.stringify({
-                            type: 'cursor',
-                            userId: msg.userId,
-                            userName: msg.userName,
-                            color: msg.color,
-                            avatar: msg.avatar,
-                            blockId: msg.blockId,
-                            position: msg.position,
-                        }));
+
+                case 'awareness': {
+                    // Yjs Awareness update (cursor, selection, user info)
+                    // Relay encoded awareness data to all other clients
+                    if (!msg.data) break;
+
+                    // Store userId for leave tracking
+                    const info = this.connections.get(ws);
+                    if (info && msg.clientId) {
+                        info.userId = msg.userId;
+                        info.userName = msg.userName;
                     }
+
+                    this.broadcast(ws, JSON.stringify({
+                        type: 'awareness',
+                        data: msg.data,
+                        clientId: msg.clientId,
+                    }));
+                    break;
                 }
-            } else if (msg.type === 'awareness' && msg.data) {
-                // Broadcast awareness to other clients
-                for (const [conn] of this.connections) {
-                    if (conn !== ws && conn.readyState === WebSocket.OPEN) {
-                        conn.send(JSON.stringify({
-                            type: 'awareness',
-                            data: msg.data,
-                        }));
+
+                case 'cursor': {
+                    // Legacy cursor update (non-awareness based)
+                    // Store userId for leave tracking
+                    const cursorInfo = this.connections.get(ws);
+                    if (cursorInfo) {
+                        cursorInfo.userId = msg.userId;
+                        cursorInfo.userName = msg.userName;
                     }
+
+                    this.broadcast(ws, JSON.stringify({
+                        type: 'cursor',
+                        userId: msg.userId,
+                        userName: msg.userName,
+                        color: msg.color,
+                        avatar: msg.avatar,
+                        blockId: msg.blockId,
+                        position: msg.position,
+                        selection: msg.selection, // { anchor, head } for text selection
+                    }));
+                    break;
                 }
+
+                default:
+                    console.warn('[YjsRoom] Unknown message type:', msg.type);
             }
         } catch (error) {
             console.error('[YjsRoom] Error processing message:', error);
@@ -150,13 +238,40 @@ export class YjsRoom implements DurableObject {
     async webSocketClose(ws: WebSocket, code: number, reason: string, wasClean: boolean) {
         const info = this.connections.get(ws);
         this.connections.delete(ws);
-        console.log(`[YjsRoom] Client disconnected: ${info?.clientId}, remaining: ${this.connections.size}`);
+
+        console.log(`[YjsRoom] Client disconnected: ${info?.clientId} (${info?.userName}), remaining: ${this.connections.size}`);
+
+        // Broadcast leave event to remaining clients
+        if (info?.userId) {
+            this.broadcastAll(JSON.stringify({
+                type: 'leave',
+                userId: info.userId,
+                userName: info.userName,
+                clientId: info.clientId,
+            }));
+        }
+
+        // Persist document when last client disconnects
+        if (this.connections.size === 0) {
+            this.schedulePersist();
+        }
     }
 
     // Handle WebSocket error (hibernation API)
     async webSocketError(ws: WebSocket, error: unknown) {
         console.error('[YjsRoom] WebSocket error:', error);
+        const info = this.connections.get(ws);
         this.connections.delete(ws);
+
+        // Broadcast leave event
+        if (info?.userId) {
+            this.broadcastAll(JSON.stringify({
+                type: 'leave',
+                userId: info.userId,
+                userName: info.userName,
+                clientId: info.clientId,
+            }));
+        }
     }
 }
 

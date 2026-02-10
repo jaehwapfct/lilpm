@@ -30,6 +30,8 @@ export function SignupPage() {
   const isInvite = searchParams.get('invite') === 'true';
   const teamName = searchParams.get('teamName');
   const inviterName = searchParams.get('inviterName');
+  const projectNamesParam = searchParams.get('projectNames');
+  const projectNames = projectNamesParam ? projectNamesParam.split(',').filter(Boolean) : [];
 
   const signupSchema = z.object({
     name: z.string().min(2, t('auth.nameTooShort')),
@@ -56,11 +58,13 @@ export function SignupPage() {
   const onSubmit = async (data: SignupForm) => {
     try {
       setError(null);
-      await signup(data.email, data.password, data.name, returnUrl || undefined);
+      await signup(data.email, data.password, data.name, returnUrl || undefined, isInvite);
       toast.success(t('auth.signupSuccess'));
 
       if (isInvite && returnUrl) {
         // Invite signup: skip email verification, go directly to accept invite
+        // The returnUrl will be /invite/accept?token=...&auto=true
+        // which will auto-accept and redirect to dashboard
         navigate(returnUrl);
       } else {
         const verifyUrl = returnUrl
@@ -125,8 +129,14 @@ export function SignupPage() {
                   </h1>
                   <div className="mt-2 p-3 rounded-xl bg-violet-500/10 border border-violet-500/20">
                     <p className="text-sm text-violet-300">
-                      회원 가입을 해서 {inviterName ? <strong>{inviterName}</strong> : '팀원'}이 초대한{' '}
-                      {teamName ? <strong className="text-violet-200">{teamName}</strong> : '팀'}팀으로 작업을 시작해 보세요! 🚀
+                      {inviterName ? <strong>{inviterName}</strong> : 'A team member'} invited you to join{' '}
+                      <strong className="text-violet-200">{teamName || 'the team'}</strong>.
+                      {projectNames.length > 0 && (
+                        <>
+                          {' '}You'll be assigned to: <strong className="text-violet-200">{projectNames.join(', ')}</strong>.
+                        </>
+                      )}
+                      {' '}Sign up to get started!
                     </p>
                   </div>
                 </>
@@ -312,7 +322,7 @@ export function SignupPage() {
             <a href="#" className="underline hover:text-slate-300">
               {t('auth.privacyPolicy')}
             </a>
-            {t('auth.termsAgreement').includes('동의') ? '에 동의하게 됩니다.' : '.'}
+            .
           </p>
         </div>
       </div>

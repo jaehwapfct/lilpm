@@ -10,6 +10,12 @@ import { ko, enUS } from 'date-fns/locale';
 import { MessageSquare, Pin, PinOff, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+    TooltipProvider,
+} from '@/components/ui/tooltip';
 
 /**
  * NavItem Props
@@ -23,13 +29,48 @@ export interface NavItemProps {
     shortcut?: string;
     onClick?: () => void;
     presenceUsers?: Array<{ odId: string; name: string; avatarUrl?: string; color: string }>;
+    isCollapsed?: boolean;
 }
 
 /**
  * NavItem Component
  * Navigation link with icon, badge, and presence indicators
  */
-export function NavItem({ icon: Icon, label, href, badge, isActive, shortcut, onClick, presenceUsers = [] }: NavItemProps) {
+export function NavItem({ icon: Icon, label, href, badge, isActive, shortcut, onClick, presenceUsers = [], isCollapsed }: NavItemProps) {
+    if (isCollapsed) {
+        return (
+            <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Link
+                            to={href}
+                            onClick={onClick}
+                            className={cn(
+                                "flex items-center justify-center w-10 h-10 rounded-xl transition-colors group mx-auto relative",
+                                "hover:bg-white/5",
+                                isActive && "bg-white/5 text-white"
+                            )}
+                        >
+                            <Icon className={cn(
+                                "h-[18px] w-[18px] text-slate-400 group-hover:text-white",
+                                isActive && "text-white"
+                            )} />
+                            {badge !== undefined && badge > 0 && (
+                                <span className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] flex items-center justify-center text-[10px] bg-primary text-white px-1 rounded-full">
+                                    {badge}
+                                </span>
+                            )}
+                        </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="flex items-center gap-2">
+                        {label}
+                        {shortcut && <span className="text-xs text-slate-400 kbd">{shortcut}</span>}
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        );
+    }
+
     return (
         <Link
             to={href}

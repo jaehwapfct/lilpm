@@ -2,7 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts';
 
-const FUNCTION_VERSION = '2026-02-08.1';
+const FUNCTION_VERSION = '2026-02-10.1'; // Added project-specific assignments on invite acceptance
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -268,6 +268,38 @@ serve(async (req) => {
                 .from('team_invites')
                 .update({ status: 'accepted' })
                 .eq('id', invite.id);
+
+            // STEP 3.5: Handle project-specific assignments
+            // The auto_assign trigger adds user to ALL projects. If invite has specific project_ids,
+            // remove assignments for projects NOT in the list.
+            if (invite.project_ids && Array.isArray(invite.project_ids) && invite.project_ids.length > 0) {
+                try {
+                    // Get all projects in this team
+                    const { data: teamProjects } = await supabaseAdmin
+                        .from('projects')
+                        .select('id')
+                        .eq('team_id', teamId);
+
+                    if (teamProjects) {
+                        const selectedSet = new Set(invite.project_ids);
+                        const projectIdsToRemove = teamProjects
+                            .map((p: any) => p.id)
+                            .filter((id: string) => !selectedSet.has(id));
+
+                        if (projectIdsToRemove.length > 0) {
+                            await supabaseAdmin
+                                .from('project_members')
+                                .delete()
+                                .eq('user_id', userId)
+                                .in('project_id', projectIdsToRemove);
+                            console.log(`Removed ${projectIdsToRemove.length} auto-assigned project(s) not in invite selection`);
+                        }
+                    }
+                } catch (projectErr) {
+                    console.warn('Failed to clean up project assignments:', projectErr);
+                    // Non-fatal - user is still added to team
+                }
+            }
 
             // STEP 4: Send notification emails to inviter and existing team members
             if (gmailUser && gmailPassword) {

@@ -1,46 +1,78 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { List, RefreshCw } from 'lucide-react';
+
+/**
+ * Table of Contents Node
+ * 
+ * Fixed: Auto-updates when headings change (no more manual refresh needed).
+ * Uses editor transaction listener for real-time updates.
+ */
 
 interface TocHeading {
     level: number;
     text: string;
-    id: string;
+    pos: number;
 }
 
-// Use TipTap's NodeViewProps directly
 const TocComponent: React.FC<any> = ({ editor, selected }) => {
     const [headings, setHeadings] = useState<TocHeading[]>([]);
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const extractHeadings = () => {
+    const extractHeadings = useCallback(() => {
         const items: TocHeading[] = [];
-
-        editor.state.doc.descendants((node, pos) => {
+        editor.state.doc.descendants((node: any, pos: number) => {
             if (node.type.name === 'heading') {
-                const level = node.attrs.level;
-                const text = node.textContent;
-                const id = `heading-${pos}`;
-                items.push({ level, text, id });
+                items.push({
+                    level: node.attrs.level,
+                    text: node.textContent,
+                    pos,
+                });
             }
         });
-
         setHeadings(items);
-    };
+    }, [editor]);
 
     useEffect(() => {
+        // Initial extraction
         extractHeadings();
-        // Re-extract when document changes
-        const handleUpdate = () => extractHeadings();
-        // Note: In a real implementation, you'd subscribe to editor updates
-        return () => { };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editor.state.doc]);
 
-    const getLevelPadding = (level: number) => {
-        return `${(level - 1) * 16}px`;
+        // Subscribe to editor updates - debounced for performance
+        const handleUpdate = () => {
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+            timeoutRef.current = setTimeout(extractHeadings, 300);
+        };
+
+        editor.on('update', handleUpdate);
+
+        return () => {
+            editor.off('update', handleUpdate);
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        };
+    }, [editor, extractHeadings]);
+
+    const scrollToHeading = (pos: number) => {
+        // Use TipTap's coordsAtPos to find the heading position and scroll
+        try {
+            const coords = editor.view.coordsAtPos(pos);
+            const editorElement = editor.view.dom.closest('.ProseMirror')?.parentElement;
+            if (editorElement) {
+                const editorRect = editorElement.getBoundingClientRect();
+                const scrollTarget = coords.top - editorRect.top + editorElement.scrollTop - 80;
+                editorElement.scrollTo({ top: scrollTarget, behavior: 'smooth' });
+            } else {
+                window.scrollTo({ top: coords.top - 100, behavior: 'smooth' });
+            }
+            // Also set cursor to the heading
+            editor.chain().focus().setTextSelection(pos + 1).run();
+        } catch {
+            // Fallback
+        }
     };
+
+    const getLevelPadding = (level: number) => `${(level - 1) * 16}px`;
 
     return (
         <NodeViewWrapper>
@@ -55,13 +87,18 @@ const TocComponent: React.FC<any> = ({ editor, selected }) => {
                         <List className="h-4 w-4" />
                         Table of Contents
                     </div>
-                    <button
-                        onClick={extractHeadings}
-                        className="p-1 rounded hover:bg-white/5 transition-colors"
-                        title="Refresh"
-                    >
-                        <RefreshCw className="h-3.5 w-3.5 text-slate-400" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-slate-400 bg-white/5 px-1.5 py-0.5 rounded">
+                            Auto-updates
+                        </span>
+                        <button
+                            onClick={extractHeadings}
+                            className="p-1 rounded hover:bg-white/5 transition-colors"
+                            title="Refresh"
+                        >
+                            <RefreshCw className="h-3.5 w-3.5 text-slate-400" />
+                        </button>
+                    </div>
                 </div>
 
                 {headings.length === 0 ? (
@@ -69,29 +106,21 @@ const TocComponent: React.FC<any> = ({ editor, selected }) => {
                         Add headings to your document to see them here.
                     </p>
                 ) : (
-                    <nav className="space-y-1">
+                    <nav className="space-y-0.5">
                         {headings.map((heading, index) => (
-                            <a
-                                key={`${heading.id}-${index}`}
-                                href={`#${heading.id}`}
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    // Scroll to heading in editor
-                                    const element = document.getElementById(heading.id);
-                                    if (element) {
-                                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                    }
-                                }}
+                            <button
+                                key={`toc-${heading.pos}-${index}`}
+                                onClick={() => scrollToHeading(heading.pos)}
                                 className={cn(
-                                    'block py-1 text-sm hover:text-primary transition-colors',
+                                    'block w-full text-left py-1 px-2 text-sm rounded hover:bg-white/5 transition-colors',
                                     heading.level === 1 && 'font-semibold',
-                                    heading.level === 2 && 'text-slate-400',
-                                    heading.level >= 3 && 'text-slate-400/80 text-xs'
+                                    heading.level === 2 && 'text-slate-300',
+                                    heading.level >= 3 && 'text-slate-400 text-xs'
                                 )}
                                 style={{ paddingLeft: getLevelPadding(heading.level) }}
                             >
                                 {heading.text || `Heading ${heading.level}`}
-                            </a>
+                            </button>
                         ))}
                     </nav>
                 )}
@@ -100,18 +129,13 @@ const TocComponent: React.FC<any> = ({ editor, selected }) => {
     );
 };
 
-// TipTap Extension
 export const TableOfContentsNode = Node.create({
     name: 'tableOfContents',
     group: 'block',
     atom: true,
 
     parseHTML() {
-        return [
-            {
-                tag: 'div[data-type="toc"]',
-            },
-        ];
+        return [{ tag: 'div[data-type="toc"]' }];
     },
 
     renderHTML({ HTMLAttributes }) {

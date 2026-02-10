@@ -2,7 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts';
 
-const FUNCTION_VERSION = '2026-02-07.1'; // Fixed: Gmail SMTP for all users, no auto-registration
+const FUNCTION_VERSION = '2026-02-10.1'; // Added project names in invite email
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,10 +17,19 @@ interface InviteEmailRequest {
   role: string;
   token: string;
   targetUserId?: string;
+  projectIds?: string[];
+  projectNames?: string[];
 }
 
 // Generate beautiful HTML email template
-function generateEmailHtml(inviterName: string, teamName: string, role: string, inviteLink: string, email: string): string {
+function generateEmailHtml(inviterName: string, teamName: string, role: string, inviteLink: string, email: string, projectNames?: string[]): string {
+  const projectsSection = projectNames && projectNames.length > 0 ? `
+              <!-- Projects Info Box -->
+              <div style="background-color: #fafafa; border-radius: 8px; padding: 20px; margin: 0 0 24px 0; border-left: 4px solid #8b5cf6;">
+                <p style="color: #71717a; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px 0;">Projects</p>
+                <p style="color: #18181b; font-size: 16px; font-weight: 500; margin: 0;">${projectNames.join(', ')}</p>
+              </div>` : '';
+
   return `
 <!DOCTYPE html>
 <html>
@@ -56,6 +65,7 @@ function generateEmailHtml(inviterName: string, teamName: string, role: string, 
                 <p style="color: #71717a; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px 0;">Team</p>
                 <p style="color: #18181b; font-size: 18px; font-weight: 600; margin: 0;">${teamName}</p>
               </div>
+              ${projectsSection}
               
               <!-- CTA Button -->
               <div style="text-align: center; margin: 32px 0;">
@@ -146,7 +156,7 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
-    const { inviteId, email, teamName, inviterName, role, token, targetUserId }: InviteEmailRequest = await req.json();
+    const { inviteId, email, teamName, inviterName, role, token, targetUserId, projectIds, projectNames }: InviteEmailRequest = await req.json();
 
     console.log(`[${FUNCTION_VERSION}] Processing invite for ${email} (Target User: ${targetUserId || 'New User'})`);
 
@@ -191,7 +201,7 @@ serve(async (req) => {
       if (gmailUser && gmailPassword) {
         console.log(`Sending email to existing user ${email} via Gmail SMTP`);
 
-        const emailHtml = generateEmailHtml(inviterName, teamName, role, inviteLink, email);
+        const emailHtml = generateEmailHtml(inviterName, teamName, role, inviteLink, email, projectNames);
         const subject = `${inviterName} invited you to join ${teamName} on Lil PM`;
 
         const result = await sendGmailEmail(gmailUser, gmailPassword, email, subject, emailHtml);
@@ -211,7 +221,7 @@ serve(async (req) => {
       console.log(`Sending invite email to new user ${email} via Gmail SMTP`);
 
       if (gmailUser && gmailPassword) {
-        const emailHtml = generateEmailHtml(inviterName, teamName, role, inviteLink, email);
+        const emailHtml = generateEmailHtml(inviterName, teamName, role, inviteLink, email, projectNames);
         const subject = `${inviterName} invited you to join ${teamName} on Lil PM`;
 
         const result = await sendGmailEmail(gmailUser, gmailPassword, email, subject, emailHtml);
@@ -273,3 +283,5 @@ serve(async (req) => {
     );
   }
 });
+
+

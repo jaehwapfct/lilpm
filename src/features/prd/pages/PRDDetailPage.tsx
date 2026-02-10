@@ -10,7 +10,10 @@ import { teamMemberService } from '@/lib/services/teamService';
 import { notificationService } from '@/lib/services/notificationService';
 import { prdVersionService } from '@/features/prd';
 import { BlockEditor } from '@/components/editor';
+import { CommentPanel } from '@/components/editor/CommentPanel';
 import { VersionHistoryPanel } from '@/components/prd/VersionHistoryPanel';
+import { blockCommentService } from '@/lib/services/blockCommentService';
+import type { BlockComment as BlockCommentType } from '@/types/database';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useCloudflareCollaboration } from '@/hooks/useCloudflareCollaboration';
 import { useSupabaseCollaboration } from '@/hooks/collaboration/useSupabaseCollaboration';
@@ -210,8 +213,8 @@ export function PRDDetailPage() {
     return colors[Math.abs(hash) % colors.length];
   };
 
-  // Yjs CRDT Real-time Collaboration (WebSocket to Cloudflare Worker)
-  // TEMPORARILY DISABLED - Worker not deployed, causing 'doc' undefined crash
+  // Yjs CRDT Real-time Collaboration (WebSocket to Cloudflare Durable Object)
+  // Handles document sync, cursor positions, text selections, and offline editing
   const {
     yjsDoc,
     provider: yjsProvider,
@@ -221,22 +224,20 @@ export function PRDDetailPage() {
     updateCursorPosition: yjsUpdateCursorPosition,
   } = useCloudflareCollaboration({
     documentId: prdId || '',
+    documentType: 'prd',
     teamId: currentTeam?.id || '',
     userId: user?.id || '',
     userName: user?.name || user?.email?.split('@')[0] || 'Anonymous',
     userColor: user?.id ? getUserColor(user.id) : undefined,
     avatarUrl: user?.avatarUrl,
-    enabled: false, // DISABLED until Cloudflare Worker is fully deployed
+    enabled: !!(prdId && currentTeam?.id && user?.id && !isLoading),
   });
 
-  // Supabase Realtime Collaboration (reliable fallback for presence/cursors)
-  // TEMPORARILY DISABLED - re-enable after Cloudflare Worker is fully deployed
+  // Supabase Realtime for presence only (who's online on this page)
   const {
     isConnected: isSupabaseCollabConnected,
     presenceUsers,
     updateCursorPosition: supabaseUpdateCursorPosition,
-    broadcastContentChange,
-    onRemoteContentChange,
   } = useSupabaseCollaboration({
     entityType: 'prd',
     entityId: prdId || '',
@@ -244,14 +245,13 @@ export function PRDDetailPage() {
     userName: user?.name || user?.email?.split('@')[0] || 'Anonymous',
     userColor: user?.id ? getUserColor(user.id) : undefined,
     avatarUrl: user?.avatarUrl,
-    enabled: !!(prdId && user?.id && !isLoading), // Re-enabled for real-time saving
+    enabled: !!(prdId && user?.id && !isLoading),
   });
 
-  // Combine remote cursors from both sources (Yjs + Supabase Presence)
+  // Combine remote cursors from Cloudflare (CRDT) and Supabase (Presence)
   const remoteCursors = useMemo(() => {
-    // Handle undefined yjsRemoteCursors
     const combined = new Map(yjsRemoteCursors || []);
-    // Add Supabase presence users as cursors for block presence indicator
+    // Add Supabase presence users for block presence indicator
     presenceUsers.forEach((u) => {
       if (!combined.has(u.id)) {
         combined.set(u.id, {
@@ -262,31 +262,18 @@ export function PRDDetailPage() {
           avatar: u.avatar,
           position: u.cursorPosition || 0,
           blockId: u.blockId,
-          lastUpdate: u.lastSeen,
+          lastUpdate: u.lastSeen || Date.now(),
         });
       }
     });
     return combined;
   }, [yjsRemoteCursors, presenceUsers]);
 
-  // Update cursor position to both providers
+  // Update cursor position to Cloudflare (primary) and Supabase (presence)
   const updateCursorPosition = useCallback((position: number, blockId?: string) => {
-    yjsUpdateCursorPosition(position);
+    yjsUpdateCursorPosition(position, blockId);
     supabaseUpdateCursorPosition(position, blockId);
   }, [yjsUpdateCursorPosition, supabaseUpdateCursorPosition]);
-
-  // Register remote content change handler for real-time sync
-  useEffect(() => {
-    if (isSupabaseCollabConnected) {
-      onRemoteContentChange((remoteContent: string, remoteUserId: string) => {
-        console.log('[PRDDetailPage] Received remote content change from:', remoteUserId);
-        // Update content state - this will re-render the editor with new content
-        setContent(remoteContent);
-        // Also update the saved reference to prevent marking as unsaved
-        setSavedContent(remoteContent);
-      });
-    }
-  }, [isSupabaseCollabConnected, onRemoteContentChange]);
 
   // Provider display names
   const PROVIDER_LABELS: Record<AIProvider, string> = {
@@ -380,6 +367,11 @@ export function PRDDetailPage() {
   const [currentVersionIndex, setCurrentVersionIndex] = useState(-1);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
 
+  // Inline comments state
+  const [blockComments, setBlockComments] = useState<BlockCommentType[]>([]);
+  const [commentPanelOpen, setCommentPanelOpen] = useState(false);
+  const [activeCommentBlockId, setActiveCommentBlockId] = useState<string | null>(null);
+
   // Add to version history
   const addToHistory = useCallback((newContent: string, description: string) => {
     setVersionHistory(prev => {
@@ -415,6 +407,64 @@ export function PRDDetailPage() {
       toast.success(`Redone: ${nextVersion.description}`);
     }
   }, [currentVersionIndex, versionHistory]);
+
+  // Load inline comments and subscribe to changes
+  const loadBlockComments = useCallback(async () => {
+    if (!prdId) return;
+    try {
+      const comments = await blockCommentService.getComments(prdId, 'prd');
+      setBlockComments(comments);
+    } catch (error) {
+      console.error('Failed to load block comments:', error);
+    }
+  }, [prdId]);
+
+  useEffect(() => {
+    loadBlockComments();
+  }, [loadBlockComments]);
+
+  // Real-time subscription for block comments
+  useEffect(() => {
+    if (!prdId) return;
+    const unsubscribe = blockCommentService.subscribeToComments(prdId, 'prd', loadBlockComments);
+    return unsubscribe;
+  }, [prdId, loadBlockComments]);
+
+  const handleCommentClick = useCallback((blockId: string) => {
+    setActiveCommentBlockId(blockId);
+    setCommentPanelOpen(true);
+  }, []);
+
+  const handleAddComment = useCallback(async (blockId: string, content: string) => {
+    if (!prdId) return;
+    await blockCommentService.addComment(prdId, 'prd', blockId, content);
+    await loadBlockComments();
+  }, [prdId, loadBlockComments]);
+
+  const handleResolveComment = useCallback(async (commentId: string) => {
+    await blockCommentService.resolveComment(commentId);
+    await loadBlockComments();
+  }, [loadBlockComments]);
+
+  const handleUnresolveComment = useCallback(async (commentId: string) => {
+    await blockCommentService.unresolveComment(commentId);
+    await loadBlockComments();
+  }, [loadBlockComments]);
+
+  const handleDeleteComment = useCallback(async (commentId: string) => {
+    await blockCommentService.deleteComment(commentId);
+    await loadBlockComments();
+  }, [loadBlockComments]);
+
+  const handleAddReply = useCallback(async (commentId: string, content: string) => {
+    await blockCommentService.addReply(commentId, content);
+    await loadBlockComments();
+  }, [loadBlockComments]);
+
+  const handleToggleReaction = useCallback(async (commentId: string, emoji: string) => {
+    await blockCommentService.toggleReaction(commentId, emoji);
+    await loadBlockComments();
+  }, [loadBlockComments]);
 
   // Scroll AI messages to bottom
   useEffect(() => {
@@ -527,26 +577,30 @@ export function PRDDetailPage() {
     loadPRD();
   }, [prdId, t, currentTeam?.id]);
 
-  // Check if Yjs document is empty after sync - if so, use DB content instead
-  // This fixes the issue where newly created PRDs from Lily have empty Yjs docs
+  // When Yjs syncs and the document is empty, initialize it with DB content
+  // This handles the case where a new PRD was created without Yjs (e.g., from Lily AI)
   useEffect(() => {
     if (isYjsSynced && yjsDoc && !hasInitializedYjs && content) {
-      // Check if Yjs document has content
       const yFragment = yjsDoc.getXmlFragment('prosemirror');
       const isEmpty = yFragment.length === 0;
 
-      console.log('[PRDDetailPage] Yjs synced, fragment length:', yFragment.length, 'DB content length:', content.length);
+      console.log('[PRDDetailPage] Yjs synced, fragment empty:', isEmpty, 'DB content length:', content.length);
 
       if (isEmpty && content.length > 0) {
-        // Yjs is empty but DB has content - disable Yjs to use DB content
-        console.log('[PRDDetailPage] Yjs empty, using DB content instead');
-        setUseYjsForCollab(false);
+        // Yjs is empty but DB has content - we'll let the editor initialize from content prop
+        // The Tiptap Collaboration extension will pick up the content and sync to Yjs
+        console.log('[PRDDetailPage] Yjs empty, will initialize from DB content');
+        setUseYjsForCollab(false); // First render uses DB content
+        // After a short delay, switch to Yjs mode (editor will have populated the Yjs doc)
+        setTimeout(() => {
+          setUseYjsForCollab(true);
+          setHasInitializedYjs(true);
+        }, 500);
       } else {
-        // Yjs has content - use Yjs
+        // Yjs has content - use Yjs directly
         setUseYjsForCollab(true);
+        setHasInitializedYjs(true);
       }
-
-      setHasInitializedYjs(true);
     }
   }, [isYjsSynced, yjsDoc, hasInitializedYjs, content]);
 
@@ -560,18 +614,9 @@ export function PRDDetailPage() {
     setContent(value);
     setHasChanges(title !== savedTitle || value !== savedContent || status !== savedStatus);
 
-    // CRITICAL: Always trigger debounced save to guarantee DB persistence
-    // This ensures content is saved even in collaboration mode
-    debouncedSaveContent(value, true); // forceUpdate=true ensures save always happens
-
-    // Broadcast to other users via Supabase Realtime
-    console.log('[PRDDetailPage] Content change, isSupabaseCollabConnected:', isSupabaseCollabConnected);
-    if (isSupabaseCollabConnected) {
-      console.log('[PRDDetailPage] Broadcasting content change, length:', value.length);
-      broadcastContentChange(value);
-    } else {
-      console.warn('[PRDDetailPage] Not connected, skipping broadcast');
-    }
+    // Persist to DB (debounced) - Yjs CRDT handles real-time sync between users,
+    // but we still need to save to DB for non-collaboration reads and backup
+    debouncedSaveContent(value, true);
   };
 
   const handleStatusChange = async (newStatus: PRDStatus) => {
@@ -1086,8 +1131,10 @@ Respond in the same language as the user's message.`
                   onMention={handleMention}
                   yjsDoc={useYjsForCollab && yjsDoc ? yjsDoc : undefined}
                   yjsProvider={useYjsForCollab && yjsProvider ? yjsProvider : undefined}
-                  remoteCursors={useYjsForCollab ? remoteCursors : undefined}
-                  onCursorPositionChange={useYjsForCollab ? updateCursorPosition : undefined}
+                  remoteCursors={remoteCursors.size > 0 ? remoteCursors : undefined}
+                  onCursorPositionChange={updateCursorPosition}
+                  comments={blockComments}
+                  onCommentClick={handleCommentClick}
                 />
               </div>
 
@@ -1341,6 +1388,20 @@ Respond in the same language as the user's message.`
               </div>
             </div>
           )}
+
+          {/* Inline Comment Panel */}
+          <CommentPanel
+            isOpen={commentPanelOpen}
+            onClose={() => setCommentPanelOpen(false)}
+            blockId={activeCommentBlockId}
+            comments={blockComments}
+            onAddComment={handleAddComment}
+            onResolveComment={handleResolveComment}
+            onUnresolveComment={handleUnresolveComment}
+            onDeleteComment={handleDeleteComment}
+            onAddReply={handleAddReply}
+            onToggleReaction={handleToggleReaction}
+          />
 
           {/* Version History Panel */}
           {showVersionHistory && (

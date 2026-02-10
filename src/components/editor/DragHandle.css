@@ -1,11 +1,11 @@
 /* Drag Handle Styles for TipTap Block Editor */
-/* 6-dot handler only visible when hovering left margin, not content */
+/* Enhanced: Better visual feedback, smoother animations, clearer drop indicators */
 
 /* Drag handle container - hidden by default */
 .drag-handle {
   position: fixed;
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, transform 0.15s ease;
   border-radius: 4px;
   background: transparent;
   display: flex;
@@ -16,6 +16,7 @@
   cursor: grab;
   z-index: 50;
   pointer-events: auto;
+  transform: scale(0.9);
 }
 
 /* Show drag handle when hovering near left margin */
@@ -23,10 +24,13 @@
 .drag-handle.visible {
   opacity: 1;
   background-color: hsl(var(--accent));
+  transform: scale(1);
 }
 
 .drag-handle:active {
   cursor: grabbing;
+  background-color: hsl(var(--primary) / 0.15);
+  transform: scale(1.05);
 }
 
 /* 6-dot pattern icon */
@@ -35,6 +39,7 @@
   font-size: 14px;
   color: hsl(var(--muted-foreground));
   letter-spacing: -2px;
+  transition: color 0.1s ease;
 }
 
 .drag-handle:hover::after {
@@ -47,11 +52,12 @@
 }
 
 /* Create invisible left-margin hover zone for each block */
-.ProseMirror>*:not(.ProseMirror-gapcursor) {
+.ProseMirror > *:not(.ProseMirror-gapcursor) {
   position: relative;
+  transition: background-color 0.15s ease;
 }
 
-.ProseMirror>*:not(.ProseMirror-gapcursor)::before {
+.ProseMirror > *:not(.ProseMirror-gapcursor)::before {
   content: '';
   position: absolute;
   left: -40px;
@@ -63,13 +69,14 @@
 }
 
 /* Show drag handle only when mouse enters left margin zone */
-.ProseMirror>*:not(.ProseMirror-gapcursor):hover>.drag-handle,
+.ProseMirror > *:not(.ProseMirror-gapcursor):hover > .drag-handle,
 .ProseMirror-focused .drag-handle[data-visible="true"] {
   opacity: 1;
+  transform: scale(1);
 }
 
 /* Hide handle when hovering content (right of margin) */
-.ProseMirror>*[data-content-hover="true"] .drag-handle {
+.ProseMirror > *[data-content-hover="true"] .drag-handle {
   opacity: 0;
 }
 
@@ -78,7 +85,7 @@
   cursor: grabbing !important;
 }
 
-/* Drop indicator line */
+/* Drop indicator line - more visible */
 .drop-indicator {
   position: absolute;
   left: 0;
@@ -88,22 +95,26 @@
   border-radius: 2px;
   pointer-events: none;
   z-index: 100;
+  box-shadow: 0 0 8px hsl(var(--primary) / 0.4);
 }
 
-/* Block being dragged */
+/* Block being dragged - clear visual feedback */
 .ProseMirror-block-dragging {
-  opacity: 0.5;
-  outline: 2px dashed hsl(var(--primary));
+  opacity: 0.4;
+  outline: 2px dashed hsl(var(--primary) / 0.5);
   outline-offset: 2px;
+  border-radius: 4px;
+  background: hsl(var(--primary) / 0.03);
 }
 
 /* Placeholder for drop position */
 .block-drop-placeholder {
-  background: hsl(var(--primary) / 0.1);
-  border: 2px dashed hsl(var(--primary));
-  border-radius: 4px;
+  background: hsl(var(--primary) / 0.08);
+  border: 2px dashed hsl(var(--primary) / 0.4);
+  border-radius: 6px;
   min-height: 40px;
   margin: 4px 0;
+  transition: all 0.15s ease;
 }
 
 /* Only show drag handle when hovering LEFT side of block (first 40px) */
@@ -111,7 +122,54 @@
   position: relative;
 }
 
+/* Selected block highlight during drag */
+.ProseMirror .is-drop-target {
+  background: hsl(var(--primary) / 0.05);
+  border-radius: 4px;
+  outline: 2px solid hsl(var(--primary) / 0.3);
+  outline-offset: 2px;
+}
+
+/* Smooth transition for blocks moving during drag */
+.ProseMirror > * {
+  transition: transform 0.15s ease;
+}
+
+/* Synced block visual styles */
+.ProseMirror .synced-block {
+  border-left: 3px solid #EF4444;
+  padding-left: 12px;
+  position: relative;
+}
+
+.ProseMirror .synced-block::before {
+  content: '🔄';
+  position: absolute;
+  left: -24px;
+  top: 2px;
+  font-size: 12px;
+  opacity: 0.5;
+}
+
+/* Page link styles */
+.ProseMirror a[href^="/prd/"],
+.ProseMirror a[href^="/issues/"] {
+  text-decoration: none;
+  background: hsl(var(--primary) / 0.08);
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: hsl(var(--primary));
+  font-weight: 500;
+  transition: background 0.15s ease;
+}
+
+.ProseMirror a[href^="/prd/"]:hover,
+.ProseMirror a[href^="/issues/"]:hover {
+  background: hsl(var(--primary) / 0.15);
+  text-decoration: underline;
+}
+
 /* Left margin indicator for debugging (remove in production) */
-.ProseMirror.debug-margins>*::before {
+.ProseMirror.debug-margins > *::before {
   background: rgba(255, 0, 0, 0.1);
 }

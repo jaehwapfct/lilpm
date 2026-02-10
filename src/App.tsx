@@ -68,7 +68,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { teams } = useTeamStore();
   const { onboardingCompleted } = useMCPStore();
 
-  if (isLoading) {
+  // Only show spinner if we're loading AND don't have cached auth state
+  if (isLoading && !isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0d0d0f]">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -101,16 +102,21 @@ function OnboardingCheck({ children }: { children: React.ReactNode }) {
   // This ensures users can accept invites even without existing teams
   const isInvitePath = location.pathname.startsWith('/invite/') ||
     location.pathname.includes('/accept-invite') ||
-    location.search.includes('returnUrl=') && location.search.includes('/invite/');
+    (location.search.includes('returnUrl=') && location.search.includes('/invite/'));
+
+  // Track if teams have been loaded at least once
+  const teamsLoadedRef = React.useRef(false);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !teamsLoadedRef.current) {
+      teamsLoadedRef.current = true;
       loadTeams();
     }
   }, [isAuthenticated, loadTeams]);
 
   // First check auth loading - show spinner only for auth
-  if (authLoading) {
+  // But only if we don't have a cached authenticated state
+  if (authLoading && !isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0d0d0f]">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -128,8 +134,8 @@ function OnboardingCheck({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // Now check teams loading (only for authenticated users)
-  if (teamsLoading) {
+  // Now check teams loading - only show spinner on initial load (no teams yet)
+  if (teamsLoading && teams.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0d0d0f]">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -159,9 +165,9 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   // Check for returnUrl in search params - preserve invite flow
   const searchParams = new URLSearchParams(location.search);
   const returnUrl = searchParams.get('returnUrl');
-  const isInviteReturn = returnUrl?.includes('/invite/');
 
-  if (isLoading) {
+  // Only show spinner if loading AND no cached auth state
+  if (isLoading && !isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0d0d0f]">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -185,7 +191,8 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuthStore();
 
-  if (isLoading) {
+  // Only show spinner if actively loading AND no cached auth state
+  if (isLoading && !isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0d0d0f]">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />

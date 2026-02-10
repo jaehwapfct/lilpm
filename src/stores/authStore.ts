@@ -12,7 +12,7 @@ interface AuthState {
 
 interface AuthStore extends AuthState {
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string, returnUrl?: string) => Promise<void>;
+  signup: (email: string, password: string, name: string, returnUrl?: string, isInvite?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   loadUser: () => Promise<void>;
   updateUser: (data: Partial<User>) => void;
@@ -34,7 +34,11 @@ export const useAuthStore = create<AuthStore>()(
     (set, get) => ({
       user: null,
       isAuthenticated: false,
-      isLoading: true,
+      // Start as false - the persist middleware will hydrate user/isAuthenticated from localStorage
+      // synchronously. loadUser() will verify the session in the background.
+      // This prevents the "black screen" flash caused by showing spinners while
+      // we already have valid cached auth state.
+      isLoading: false,
       isEmailVerified: false,
 
       login: async (email: string, password: string) => {
@@ -61,7 +65,7 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      signup: async (email: string, password: string, name: string, returnUrl?: string) => {
+      signup: async (email: string, password: string, name: string, returnUrl?: string, isInvite?: boolean) => {
         set({ isLoading: true });
 
         // Use environment variable for production URL, fallback to current origin
@@ -88,12 +92,13 @@ export const useAuthStore = create<AuthStore>()(
         if (data.user) {
           const user = mapSupabaseUser(data.user);
           user.name = name;
-          // New signups are NOT email verified yet
+          // Invite signups are considered email-verified (they clicked the invite email)
+          // Regular signups need email verification
           set({
             user,
             isAuthenticated: true,
             isLoading: false,
-            isEmailVerified: false,
+            isEmailVerified: isInvite ? true : false,
           });
         }
       },
@@ -109,9 +114,10 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       loadUser: async () => {
-        // Don't set loading if we're already loading to avoid flicker
+        // Only show loading spinner if we don't have a cached user session.
+        // If we have a persisted session, trust it temporarily and verify in background.
         const currentState = get();
-        if (!currentState.isLoading) {
+        if (!currentState.isAuthenticated) {
           set({ isLoading: true });
         }
 

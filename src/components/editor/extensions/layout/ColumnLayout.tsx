@@ -1,53 +1,17 @@
 import { Node, mergeAttributes } from '@tiptap/core';
-import { ReactNodeViewRenderer, NodeViewWrapper, NodeViewProps } from '@tiptap/react';
+import { ReactNodeViewRenderer, NodeViewWrapper, NodeViewContent, NodeViewProps } from '@tiptap/react';
 import React from 'react';
-import { GripVertical, Plus, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 
 /**
  * Column Layout Extension
- * Enables side-by-side block layouts (2-column, 3-column)
+ * Enables side-by-side block layouts (2-column, 3-column, 4-column)
+ * 
+ * Fixed: Uses NodeViewContent for proper content rendering inside columns.
+ * Fixed: Single ColumnBlock definition with React NodeView.
  */
 
-// Column wrapper node
-export const ColumnBlock = Node.create({
-    name: 'columnBlock',
-
-    group: 'block',
-
-    content: 'column+',
-
-    defining: true,
-
-    addAttributes() {
-        return {
-            columnCount: {
-                default: 2,
-            },
-        };
-    },
-
-    parseHTML() {
-        return [
-            {
-                tag: 'div[data-type="column-block"]',
-            },
-        ];
-    },
-
-    renderHTML({ HTMLAttributes }) {
-        return [
-            'div',
-            mergeAttributes(HTMLAttributes, {
-                'data-type': 'column-block',
-                class: 'column-block',
-                style: `display: grid; grid-template-columns: repeat(${HTMLAttributes.columnCount || 2}, 1fr); gap: 16px;`,
-            }),
-            0,
-        ];
-    },
-});
-
-// Individual column node
+// Individual column node (child of ColumnBlock)
 export const Column = Node.create({
     name: 'column',
 
@@ -84,26 +48,8 @@ const ColumnBlockComponent: React.FC<NodeViewProps> = ({
     updateAttributes,
     deleteNode,
     selected,
-    editor,
 }) => {
     const columnCount = node.attrs.columnCount || 2;
-
-    const addColumn = () => {
-        if (columnCount < 4) {
-            updateAttributes({ columnCount: columnCount + 1 });
-            // Add new column content
-            editor.chain().focus().insertContentAt(
-                editor.state.selection.to,
-                { type: 'column', content: [{ type: 'paragraph' }] }
-            ).run();
-        }
-    };
-
-    const removeColumn = () => {
-        if (columnCount > 2) {
-            updateAttributes({ columnCount: columnCount - 1 });
-        }
-    };
 
     return (
         <NodeViewWrapper>
@@ -140,19 +86,19 @@ const ColumnBlockComponent: React.FC<NodeViewProps> = ({
                     </button>
                 </div>
 
-                {/* Columns grid */}
-                <div
+                {/* Columns grid - uses NodeViewContent for proper TipTap content rendering */}
+                <NodeViewContent
+                    as="div"
                     className="grid gap-4"
                     style={{ gridTemplateColumns: `repeat(${columnCount}, 1fr)` }}
-                    data-node-view-content
                 />
             </div>
         </NodeViewWrapper>
     );
 };
 
-// NodeView version of ColumnBlock
-export const ColumnBlockNodeView = Node.create({
+// ColumnBlock with React NodeView for interactive controls
+export const ColumnBlock = Node.create({
     name: 'columnBlock',
 
     group: 'block',
@@ -183,6 +129,7 @@ export const ColumnBlockNodeView = Node.create({
             mergeAttributes(HTMLAttributes, {
                 'data-type': 'column-block',
                 class: 'column-block',
+                style: `display: grid; grid-template-columns: repeat(${HTMLAttributes.columnCount || 2}, 1fr); gap: 16px;`,
             }),
             0,
         ];
@@ -239,4 +186,4 @@ export const columnLayoutCSS = `
 }
 `;
 
-export default { ColumnBlock, Column, ColumnBlockNodeView };
+export default { ColumnBlock, Column };

@@ -90,7 +90,8 @@ CREATE TABLE public.team_invites (
   invited_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   token TEXT NOT NULL UNIQUE DEFAULT gen_random_uuid()::text,
   expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '24 hours'),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  project_ids UUID[] DEFAULT NULL
 );
 
 -- Projects
