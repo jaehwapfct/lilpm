@@ -103,6 +103,9 @@ function FormField({ property, value, onChange }: {
     value: unknown;
     onChange: (val: unknown) => void;
 }) {
+    // useState must be called unconditionally (rules of hooks)
+    const [dateOpen, setDateOpen] = useState(false);
+
     switch (property.type) {
         case 'text':
         case 'email':
@@ -147,7 +150,7 @@ function FormField({ property, value, onChange }: {
                     ))}
                 </div>
             );
-        case 'multi_select':
+        case 'multi_select': {
             const selected = (value as string[]) || [];
             return (
                 <div className="flex flex-wrap gap-2">
@@ -176,11 +179,11 @@ function FormField({ property, value, onChange }: {
                     })}
                 </div>
             );
+        }
         case 'date': {
-            const [open, setOpen] = useState(false);
             const dateVal = value ? new Date(value as string) : undefined;
             return (
-                <Popover open={open} onOpenChange={setOpen}>
+                <Popover open={dateOpen} onOpenChange={setDateOpen}>
                     <PopoverTrigger asChild>
                         <Button variant="outline" className="w-full justify-start text-left">
                             <CalendarIcon className="h-4 w-4 mr-2" />
@@ -191,7 +194,7 @@ function FormField({ property, value, onChange }: {
                         <Calendar
                             mode="single"
                             selected={dateVal}
-                            onSelect={(d) => { onChange(d ? d.toISOString() : null); setOpen(false); }}
+                            onSelect={(d) => { onChange(d ? d.toISOString() : null); setDateOpen(false); }}
                         />
                     </PopoverContent>
                 </Popover>

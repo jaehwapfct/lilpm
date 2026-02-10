@@ -1,27 +1,21 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
-import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts';
+import { handleCors, env, sendEmail, versionedResponse, versionedError } from '../_shared/mod.ts';
 
-const FUNCTION_VERSION = '2026-02-07.1';
-
-const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const FUNCTION_VERSION = '2026-02-10.1'; // Refactored to use shared modules
 
 interface MentionEmailRequest {
-    recipientId: string;
-    recipientEmail: string;
-    recipientName: string;
-    mentionerName: string;
-    mentionerEmail: string;
-    prdId: string;
-    prdTitle: string;
+  recipientId: string;
+  recipientEmail: string;
+  recipientName: string;
+  mentionerName: string;
+  mentionerEmail: string;
+  prdId: string;
+  prdTitle: string;
 }
 
 // Generate beautiful HTML email template for mention notification
 function generateMentionEmailHtml(mentionerName: string, prdTitle: string, prdLink: string, recipientEmail: string): string {
-    return `
+  return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -93,113 +87,28 @@ function generateMentionEmailHtml(mentionerName: string, prdTitle: string, prdLi
 `;
 }
 
-// Send email via Gmail SMTP
-async function sendGmailEmail(
-    gmailUser: string,
-    gmailPassword: string,
-    to: string,
-    subject: string,
-    htmlContent: string
-): Promise<{ success: boolean; error?: string }> {
-    try {
-        const client = new SMTPClient({
-            connection: {
-                hostname: 'smtp.gmail.com',
-                port: 465,
-                tls: true,
-                auth: {
-                    username: gmailUser,
-                    password: gmailPassword,
-                },
-            },
-        });
-
-        await client.send({
-            from: `Lil PM <${gmailUser}>`,
-            to: to,
-            subject: subject,
-            html: htmlContent,
-        });
-
-        await client.close();
-        return { success: true };
-    } catch (error) {
-        console.error('Gmail SMTP error:', error);
-        return { success: false, error: (error as Error).message };
-    }
-}
-
 serve(async (req) => {
-    if (req.method === 'OPTIONS') {
-        return new Response('ok', { headers: corsHeaders });
-    }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
-    try {
-        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-        const siteUrl = Deno.env.get('SITE_URL') || 'https://lilpmaiai.vercel.app';
-        const gmailUser = Deno.env.get('GMAIL_USER');
-        const gmailPassword = Deno.env.get('GMAIL_APP_PASSWORD');
+  try {
+    const { recipientEmail, mentionerName, prdId, prdTitle }: MentionEmailRequest = await req.json();
 
-        const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-            auth: { autoRefreshToken: false, persistSession: false }
-        });
+    console.log(`[${FUNCTION_VERSION}] Processing mention notification for ${recipientEmail} from ${mentionerName}`);
 
-        const {
-            recipientId,
-            recipientEmail,
-            recipientName,
-            mentionerName,
-            mentionerEmail,
-            prdId,
-            prdTitle
-        }: MentionEmailRequest = await req.json();
+    const prdLink = `${env.siteUrl}/prd/${prdId}`;
+    const emailHtml = generateMentionEmailHtml(mentionerName, prdTitle, prdLink, recipientEmail);
+    const subject = `${mentionerName} mentioned you in "${prdTitle}"`;
 
-        console.log(`[${FUNCTION_VERSION}] Processing mention notification for ${recipientEmail} from ${mentionerName}`);
+    const emailResult = await sendEmail(recipientEmail, subject, emailHtml);
 
-        const prdLink = `${siteUrl}/prd/${prdId}`;
-        let emailSent = false;
-
-        // Send email via Gmail SMTP
-        if (gmailUser && gmailPassword) {
-            console.log(`Sending mention email to ${recipientEmail} via Gmail SMTP`);
-
-            const emailHtml = generateMentionEmailHtml(mentionerName, prdTitle, prdLink, recipientEmail);
-            const subject = `${mentionerName} mentioned you in "${prdTitle}"`;
-
-            const result = await sendGmailEmail(gmailUser, gmailPassword, recipientEmail, subject, emailHtml);
-
-            if (result.success) {
-                emailSent = true;
-                console.log(`Mention email sent successfully to ${recipientEmail}`);
-            } else {
-                console.error('Gmail send failed:', result.error);
-            }
-        } else {
-            console.log('Gmail credentials not configured - skipping email');
-        }
-
-        return new Response(
-            JSON.stringify({
-                success: true,
-                emailSent,
-                message: emailSent ? 'Mention email sent' : 'Email skipped (no Gmail credentials)',
-                version: FUNCTION_VERSION
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-
-    } catch (error) {
-        console.error('Error sending mention email:', error);
-        return new Response(
-            JSON.stringify({
-                error: (error as Error).message || 'Internal server error',
-                version: FUNCTION_VERSION
-            }),
-            {
-                status: 500,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            }
-        );
-    }
+    return versionedResponse({
+      success: true,
+      emailSent: emailResult.success,
+      message: emailResult.success ? 'Mention email sent' : 'Email skipped (no email service configured)',
+    }, FUNCTION_VERSION);
+  } catch (error) {
+    console.error('Error sending mention email:', error);
+    return versionedError((error as Error).message || 'Internal server error', FUNCTION_VERSION);
+  }
 });

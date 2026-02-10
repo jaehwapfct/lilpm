@@ -1,13 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
-import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts';
+import { handleCors, env, createAdminClient, sendEmail, versionedResponse, versionedError } from '../_shared/mod.ts';
 
-const FUNCTION_VERSION = '2026-02-10.1'; // Added project names in invite email
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const FUNCTION_VERSION = '2026-02-10.2'; // Refactored to use shared modules
 
 interface InviteEmailRequest {
   inviteId: string;
@@ -104,63 +98,17 @@ function generateEmailHtml(inviterName: string, teamName: string, role: string, 
 `;
 }
 
-// Send email via Gmail SMTP
-async function sendGmailEmail(
-  gmailUser: string,
-  gmailPassword: string,
-  to: string,
-  subject: string,
-  htmlContent: string
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const client = new SMTPClient({
-      connection: {
-        hostname: 'smtp.gmail.com',
-        port: 465,
-        tls: true,
-        auth: {
-          username: gmailUser,
-          password: gmailPassword,
-        },
-      },
-    });
-
-    await client.send({
-      from: `Lil PM <${gmailUser}>`,
-      to: to,
-      subject: subject,
-      html: htmlContent,
-    });
-
-    await client.close();
-    return { success: true };
-  } catch (error) {
-    console.error('Gmail SMTP error:', error);
-    return { success: false, error: (error as Error).message };
-  }
-}
-
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const siteUrl = Deno.env.get('SITE_URL') || 'https://lilpmaiai.vercel.app';
-    const gmailUser = Deno.env.get('GMAIL_USER');
-    const gmailPassword = Deno.env.get('GMAIL_APP_PASSWORD');
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false }
-    });
-
+    const supabase = createAdminClient();
     const { inviteId, email, teamName, inviterName, role, token, targetUserId, projectIds, projectNames }: InviteEmailRequest = await req.json();
 
     console.log(`[${FUNCTION_VERSION}] Processing invite for ${email} (Target User: ${targetUserId || 'New User'})`);
 
-    const inviteLink = `${siteUrl}/invite/accept?token=${token}`;
+    const inviteLink = `${env.siteUrl}/invite/accept?token=${token}`;
     let emailSent = false;
     let notificationCreated = false;
 
@@ -174,14 +122,7 @@ serve(async (req) => {
             type: 'team_invite',
             title: `You've been invited to join ${teamName}`,
             message: `${inviterName} invited you to join ${teamName} as a ${role}`,
-            data: {
-              inviteId,
-              teamName,
-              inviterName,
-              role,
-              token,
-              inviteLink,
-            },
+            data: { inviteId, teamName, inviterName, role, token, inviteLink },
           });
 
         if (notifError) {
@@ -195,55 +136,25 @@ serve(async (req) => {
       }
     }
 
-    // STEP 2: Send email
-    if (targetUserId) {
-      // Existing user: Send via Gmail SMTP
-      if (gmailUser && gmailPassword) {
-        console.log(`Sending email to existing user ${email} via Gmail SMTP`);
+    // STEP 2: Send email via shared email service (with automatic fallback)
+    const emailHtml = generateEmailHtml(inviterName, teamName, role, inviteLink, email, projectNames);
+    const subject = `${inviterName} invited you to join ${teamName} on Lil PM`;
 
-        const emailHtml = generateEmailHtml(inviterName, teamName, role, inviteLink, email, projectNames);
-        const subject = `${inviterName} invited you to join ${teamName} on Lil PM`;
+    if (!targetUserId && !env.hasGmailConfig) {
+      // New user requires email - fail if not configured
+      return versionedError(
+        'Email service not configured. Please configure Gmail credentials.',
+        FUNCTION_VERSION
+      );
+    }
 
-        const result = await sendGmailEmail(gmailUser, gmailPassword, email, subject, emailHtml);
+    const emailResult = await sendEmail(email, subject, emailHtml);
+    emailSent = emailResult.success;
 
-        if (result.success) {
-          emailSent = true;
-          console.log(`Email sent successfully to ${email} via Gmail`);
-        } else {
-          console.error('Gmail send failed:', result.error);
-        }
-      } else {
-        console.log('Gmail credentials not configured - skipping email');
-      }
-    } else {
-      // New user: Send invite via Gmail SMTP (NO auto-registration)
-      // IMPORTANT: Do NOT use supabase.auth.admin.inviteUserByEmail() as it auto-creates users
-      console.log(`Sending invite email to new user ${email} via Gmail SMTP`);
-
-      if (gmailUser && gmailPassword) {
-        const emailHtml = generateEmailHtml(inviterName, teamName, role, inviteLink, email, projectNames);
-        const subject = `${inviterName} invited you to join ${teamName} on Lil PM`;
-
-        const result = await sendGmailEmail(gmailUser, gmailPassword, email, subject, emailHtml);
-        if (result.success) {
-          emailSent = true;
-          console.log(`Invite email sent successfully to new user ${email}`);
-        } else {
-          console.error('Gmail send failed for new user:', result.error);
-        }
-      } else {
-        console.error('Gmail credentials not configured - cannot send invite to new user');
-        return new Response(
-          JSON.stringify({
-            error: 'Email service not configured. Please configure Gmail credentials.',
-            version: FUNCTION_VERSION
-          }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
-      }
+    if (emailSent) {
+      console.log(`Email sent successfully to ${email} via ${emailResult.provider}`);
+    } else if (!targetUserId) {
+      console.error('Failed to send email to new user:', emailResult.error);
     }
 
     // Build response message
@@ -258,30 +169,9 @@ serve(async (req) => {
       message = 'Invitation created but delivery pending';
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        emailSent,
-        notificationCreated,
-        message,
-        version: FUNCTION_VERSION
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+    return versionedResponse({ success: true, emailSent, notificationCreated, message }, FUNCTION_VERSION);
   } catch (error) {
     console.error('Error sending team invite:', error);
-    return new Response(
-      JSON.stringify({
-        error: (error as Error).message || 'Internal server error',
-        version: FUNCTION_VERSION
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    return versionedError((error as Error).message || 'Internal server error', FUNCTION_VERSION);
   }
 });
-
-
