@@ -53,9 +53,9 @@ export function EmailVerificationPage() {
         try {
             await resendVerificationEmail();
             setResendSuccess(true);
-            toast.success(t('auth.verificationEmailSent', '인증 이메일을 다시 보냈습니다'));
+            toast.success(t('auth.verificationEmailSent', 'Verification email has been resent'));
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : t('auth.resendError', '이메일 재전송에 실패했습니다'));
+            toast.error(error instanceof Error ? error.message : t('auth.resendError', 'Failed to resend verification email'));
         } finally {
             setIsResending(false);
         }

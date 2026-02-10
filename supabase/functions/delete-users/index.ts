@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { handleCors, createAdminClient, jsonResponse, errorResponse } from '../_shared/mod.ts';
 
-const FUNCTION_VERSION = '2026-02-10.1'; // Refactored to use shared modules + parallel operations
+const FUNCTION_VERSION = '2026-02-11.1'; // Fix: clean up page_versions & block_comments tables before deletion
 
 /**
  * Delete a single table's records for a user
@@ -64,6 +64,17 @@ serve(async (req) => {
           deleteFromTable(supabaseAdmin, 'team_invites', 'invited_by', userId, 'nullify'),
           deleteFromTable(supabaseAdmin, 'issues', 'assignee_id', userId, 'nullify'),
           deleteFromTable(supabaseAdmin, 'issues', 'creator_id', userId, 'nullify'),
+          // page_versions & block_comments tables (author_id FK without ON DELETE)
+          deleteFromTable(supabaseAdmin, 'block_comment_replies', 'author_id', userId, 'nullify'),
+          deleteFromTable(supabaseAdmin, 'block_comments', 'author_id', userId, 'nullify'),
+          deleteFromTable(supabaseAdmin, 'block_comments', 'resolved_by', userId, 'nullify'),
+          deleteFromTable(supabaseAdmin, 'prd_versions', 'author_id', userId, 'nullify'),
+          deleteFromTable(supabaseAdmin, 'issue_versions', 'author_id', userId, 'nullify'),
+          // Also handle user_id columns on these tables (consolidated schema)
+          deleteFromTable(supabaseAdmin, 'block_comment_reactions', 'user_id', userId),
+          deleteFromTable(supabaseAdmin, 'block_comment_replies', 'user_id', userId),
+          deleteFromTable(supabaseAdmin, 'block_comments', 'user_id', userId),
+          deleteFromTable(supabaseAdmin, 'project_members', 'user_id', userId),
         ]);
 
         // Phase 2: Tables with dependencies (must be sequential)
