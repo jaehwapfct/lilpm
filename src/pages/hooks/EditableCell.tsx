@@ -16,7 +16,7 @@ interface EditableCellProps {
     onAddOption?: (optionName: string) => Promise<{ id: string; name: string; color: string } | undefined>;
 }
 
-export function EditableCell({ value, property, onUpdate, onAddOption }: EditableCellProps) {
+export const EditableCell = React.memo(function EditableCell({ value, property, onUpdate, onAddOption }: EditableCellProps) {
     switch (property.type) {
         case 'text':
         case 'email':
@@ -69,7 +69,7 @@ export function EditableCell({ value, property, onUpdate, onAddOption }: Editabl
         default:
             return <span className="text-sm text-slate-400">{String(value || '')}</span>;
     }
-}
+});
 
 // ── Text Cell ──────────────────────────────────────────────
 function TextCell({ value, onUpdate, type }: { value: string; onUpdate: (v: unknown) => void; type: string }) {

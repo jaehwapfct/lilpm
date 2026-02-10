@@ -6,6 +6,7 @@ import {
     Type, Hash, Calendar, CheckSquare, Link, Tag,
     ChevronDown, MoreHorizontal
 } from 'lucide-react';
+import { InlineDatabaseContainer } from './InlineDatabaseContainer';
 
 // Use native crypto.randomUUID for ID generation
 const generateId = () => crypto.randomUUID();
@@ -188,7 +189,28 @@ const EditableCell: React.FC<{
     }
 };
 
-// Main Component
+// ── Convert InlineColumn/InlineRow to DatabaseProperty/DatabaseRow ──
+function toDbProperties(columns: InlineColumn[]): import('@/pages/hooks/databaseTypes').DatabaseProperty[] {
+    return columns.map(col => ({
+        id: col.id,
+        name: col.name,
+        type: col.type as import('@/pages/hooks/databaseTypes').PropertyType,
+        options: col.options,
+    }));
+}
+
+function toDbRows(rows: InlineRow[]): import('@/pages/hooks/databaseTypes').DatabaseRow[] {
+    return rows.map(row => ({
+        id: row.id,
+        properties: row.cells,
+        createdAt: new Date().toISOString(),
+        createdBy: '',
+        updatedAt: new Date().toISOString(),
+        updatedBy: '',
+    }));
+}
+
+// Main Component (refactored to use InlineDatabaseContainer)
 const InlineDatabaseComponent: React.FC<NodeViewProps> = ({
     node,
     updateAttributes,
@@ -204,8 +226,6 @@ const InlineDatabaseComponent: React.FC<NodeViewProps> = ({
     const [rows, setRows] = useState<InlineRow[]>(
         savedRows ? JSON.parse(savedRows) : defaultRows
     );
-    const [isEditingTitle, setIsEditingTitle] = useState(false);
-    const [showAddColumn, setShowAddColumn] = useState(false);
 
     const saveChanges = useCallback((newColumns: InlineColumn[], newRows: InlineRow[]) => {
         updateAttributes({
@@ -216,17 +236,20 @@ const InlineDatabaseComponent: React.FC<NodeViewProps> = ({
         options.onDatabaseChange?.(node.attrs.databaseId, newColumns, newRows);
     }, [updateAttributes, extension.options, node.attrs.databaseId]);
 
-    const updateCell = (rowId: string, columnId: string, value: any) => {
+    // Handlers that bridge InlineDatabaseContainer → internal state
+    const handleTitleChange = useCallback((newTitle: string) => {
+        updateAttributes({ title: newTitle });
+    }, [updateAttributes]);
+
+    const handleUpdateCell = useCallback((rowId: string, propertyId: string, value: unknown) => {
         const newRows = rows.map(row =>
-            row.id === rowId
-                ? { ...row, cells: { ...row.cells, [columnId]: value } }
-                : row
+            row.id === rowId ? { ...row, cells: { ...row.cells, [propertyId]: value } } : row
         );
         setRows(newRows);
         saveChanges(columns, newRows);
-    };
+    }, [rows, columns, saveChanges]);
 
-    const addRow = () => {
+    const handleAddRow = useCallback(() => {
         const newRow: InlineRow = {
             id: generateId(),
             cells: columns.reduce((acc, col) => ({ ...acc, [col.id]: '' }), {}),
@@ -234,142 +257,55 @@ const InlineDatabaseComponent: React.FC<NodeViewProps> = ({
         const newRows = [...rows, newRow];
         setRows(newRows);
         saveChanges(columns, newRows);
-    };
+    }, [rows, columns, saveChanges]);
 
-    const deleteRow = (rowId: string) => {
+    const handleDeleteRow = useCallback((rowId: string) => {
         const newRows = rows.filter(row => row.id !== rowId);
         setRows(newRows);
         saveChanges(columns, newRows);
-    };
+    }, [rows, columns, saveChanges]);
 
-    const addColumn = (type: InlineColumn['type']) => {
+    const handleAddProperty = useCallback((type: string) => {
         const newColumn: InlineColumn = {
             id: generateId(),
             name: `Column ${columns.length + 1}`,
-            type,
+            type: type as InlineColumn['type'],
             width: 120,
             ...(type === 'select' ? {
-                options: [
-                    { id: generateId(), name: 'Option 1', color: selectColors[0] },
-                ]
+                options: [{ id: generateId(), name: 'Option 1', color: selectColors[0] }]
             } : {}),
         };
         const newColumns = [...columns, newColumn];
         setColumns(newColumns);
         saveChanges(newColumns, rows);
-        setShowAddColumn(false);
-    };
+    }, [columns, rows, saveChanges]);
+
+    const handleAddSelectOption = useCallback(async (propertyId: string, name: string) => {
+        const col = columns.find(c => c.id === propertyId);
+        if (!col) return undefined;
+        const newOption = { id: generateId(), name, color: selectColors[(col.options?.length || 0) % selectColors.length] };
+        const updatedCol = { ...col, options: [...(col.options || []), newOption] };
+        const newColumns = columns.map(c => c.id === propertyId ? updatedCol : c);
+        setColumns(newColumns);
+        saveChanges(newColumns, rows);
+        return newOption;
+    }, [columns, rows, saveChanges]);
 
     return (
         <NodeViewWrapper>
-            <div className={`my-4 rounded-lg border ${selected ? 'ring-2 ring-primary' : ''} bg-[#1a1a1f] overflow-hidden`}>
-                {/* Header */}
-                <div className="flex items-center gap-2 px-4 py-3 border-b bg-white/5">
-                    <Database className="h-4 w-4 text-slate-400" />
-                    {isEditingTitle ? (
-                        <input
-                            type="text"
-                            value={title || 'Untitled Database'}
-                            onChange={(e) => updateAttributes({ title: e.target.value })}
-                            onBlur={() => setIsEditingTitle(false)}
-                            className="font-medium bg-transparent border-none outline-none"
-                            autoFocus
-                        />
-                    ) : (
-                        <h3
-                            className="font-medium cursor-pointer hover:bg-white/5 px-1 rounded"
-                            onClick={() => setIsEditingTitle(true)}
-                        >
-                            {title || 'Untitled Database'}
-                        </h3>
-                    )}
-                </div>
-
-                {/* Table */}
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b bg-white/[3%]">
-                                <th className="w-8"></th>
-                                {columns.map((col) => (
-                                    <th
-                                        key={col.id}
-                                        className="px-3 py-2 text-left font-medium text-slate-400 text-xs"
-                                        style={{ width: col.width }}
-                                    >
-                                        <div className="flex items-center gap-1">
-                                            {columnTypeIcons[col.type]}
-                                            {col.name}
-                                        </div>
-                                    </th>
-                                ))}
-                                <th className="w-10">
-                                    <div className="relative">
-                                        <button
-                                            onClick={() => setShowAddColumn(!showAddColumn)}
-                                            className="p-1 hover:bg-white/5 rounded"
-                                        >
-                                            <Plus className="h-4 w-4 text-slate-400" />
-                                        </button>
-                                        {showAddColumn && (
-                                            <div className="absolute right-0 top-full mt-1 w-40 bg-[#1a1a1f] border rounded shadow-lg z-20 p-1">
-                                                {Object.entries(columnTypeIcons).map(([type, icon]) => (
-                                                    <button
-                                                        key={type}
-                                                        onClick={() => addColumn(type as InlineColumn['type'])}
-                                                        className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-white/5 rounded"
-                                                    >
-                                                        {icon}
-                                                        <span className="capitalize">{type}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rows.map((row) => (
-                                <tr key={row.id} className="border-b hover:bg-white/5 group">
-                                    <td className="px-2">
-                                        <div className="flex items-center opacity-0 group-hover:opacity-100">
-                                            <button className="p-0.5 hover:bg-white/5 rounded cursor-grab">
-                                                <GripVertical className="h-3 w-3 text-slate-400" />
-                                            </button>
-                                        </div>
-                                    </td>
-                                    {columns.map((col) => (
-                                        <td key={col.id} className="px-3 py-2">
-                                            <EditableCell
-                                                column={col}
-                                                value={row.cells[col.id]}
-                                                onChange={(value) => updateCell(row.id, col.id, value)}
-                                            />
-                                        </td>
-                                    ))}
-                                    <td className="px-2">
-                                        <button
-                                            onClick={() => deleteRow(row.id)}
-                                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/10 text-destructive rounded"
-                                        >
-                                            <Trash2 className="h-3 w-3" />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Add Row */}
-                <button
-                    onClick={addRow}
-                    className="w-full py-2 text-xs text-slate-400 hover:bg-white/5 flex items-center justify-center gap-1"
-                >
-                    <Plus className="h-3 w-3" />
-                    New row
-                </button>
+            <div className={`my-4 ${selected ? 'ring-2 ring-primary rounded-xl' : ''}`}>
+                <InlineDatabaseContainer
+                    title={title || 'Untitled Database'}
+                    properties={toDbProperties(columns)}
+                    rows={toDbRows(rows)}
+                    onTitleChange={handleTitleChange}
+                    onUpdateCell={handleUpdateCell}
+                    onAddRow={handleAddRow}
+                    onDeleteRow={handleDeleteRow}
+                    onAddProperty={handleAddProperty}
+                    onAddSelectOption={handleAddSelectOption}
+                    compact
+                />
             </div>
         </NodeViewWrapper>
     );

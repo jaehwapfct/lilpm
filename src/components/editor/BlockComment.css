@@ -290,3 +290,36 @@
     border-style: solid;
     color: hsl(var(--foreground));
 }
+
+/* ─── Track Changes ─── */
+.track-changes-block {
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+    border-radius: 2px;
+}
+
+.track-changes-block:hover {
+    background: hsl(var(--accent) / 0.3);
+}
+
+/* Tooltip on hover showing author name */
+.track-changes-block::after {
+    content: attr(data-track-user);
+    position: absolute;
+    left: -4px;
+    top: 50%;
+    transform: translateX(-100%) translateY(-50%);
+    background: hsl(var(--popover));
+    color: hsl(var(--popover-foreground));
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+.track-changes-block:hover::after {
+    opacity: 1;
+}

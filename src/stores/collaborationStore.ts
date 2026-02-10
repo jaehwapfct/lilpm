@@ -24,6 +24,11 @@ interface CollaborationStore {
   myPresence: Partial<Presence>;
   showCursors: boolean;
 
+  // Follow mode (Figma-style)
+  followingUserId: string | null; // userId we're currently following
+  followUser: (userId: string) => void;
+  stopFollowing: () => void;
+
   // Actions
   joinRoom: (roomId: string, userInfo: { id: string; name: string; avatarUrl?: string }) => Promise<void>;
   leaveRoom: () => void;
@@ -62,6 +67,7 @@ export const useCollaborationStore = create<CollaborationStore>((set, get) => ({
     color: getRandomColor(),
   },
   showCursors: localStorage.getItem('showCursors') === 'true', // default false
+  followingUserId: null,
   cursorVisibleTo: JSON.parse(localStorage.getItem('cursorVisibleTo') || '[]'),
 
   joinRoom: async (roomId: string, userInfo: { id: string; name: string; avatarUrl?: string }) => {
@@ -217,6 +223,15 @@ export const useCollaborationStore = create<CollaborationStore>((set, get) => ({
         payload: { issueId, changes, updatedBy: myPresence.odId },
       });
     }
+  },
+
+  // Follow mode - Figma-style "follow" another user's viewport
+  followUser: (userId: string) => {
+    set({ followingUserId: userId });
+  },
+
+  stopFollowing: () => {
+    set({ followingUserId: null });
   },
 
   toggleShowCursors: () => {

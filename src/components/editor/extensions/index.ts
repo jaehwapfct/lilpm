@@ -35,6 +35,8 @@ export type { ContentTemplate, TemplateButtonOptions } from './interactive/Templ
 // === Collaboration ===
 export { BlockCommentExtension } from './BlockComment';
 export type { BlockComment, BlockCommentReply, BlockCommentOptions } from './BlockComment';
+export { TrackChangesExtension } from './TrackChanges';
+export type { TrackChangesUser, TrackChangesOptions } from './TrackChanges';
 
 // === Core Extensions ===
 export { UniqueId, getBlockIdAtPos, findBlockById } from './UniqueId';
@@ -50,6 +52,12 @@ export { ClipboardHandler } from './ClipboardHandler';
 
 // === Keyboard Shortcuts (Notion-style Cmd+Shift+1~9) ===
 export { KeyboardShortcuts } from './KeyboardShortcuts';
+
+// === Code Block with Language Selector ===
+export { CodeBlockWithLanguage, lowlight } from './CodeBlockWithLanguage';
+
+// === Drag Handle Menu (click ⠿ for Turn into / Color / Delete) ===
+export { DragHandleMenu } from './DragHandleMenu';
 
 // === Slash Commands ===
 export { SlashCommands, slashCommandItems } from './SlashCommands';

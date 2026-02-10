@@ -7,6 +7,25 @@ import type { Database, DatabaseProperty, DatabaseRow, DatabaseView, PropertyTyp
 import { evaluateFilterGroup } from './DatabaseFilterBuilder';
 import { evaluateFormula } from './DatabaseFormulaEngine';
 
+// Debounced DB write to batch rapid cell updates
+const pendingUpdates = new Map<string, { properties: Record<string, unknown>; timer: ReturnType<typeof setTimeout> }>();
+
+function debouncedRowUpdate(rowId: string, properties: Record<string, unknown>, delay = 300) {
+    const existing = pendingUpdates.get(rowId);
+    if (existing) clearTimeout(existing.timer);
+
+    const timer = setTimeout(async () => {
+        pendingUpdates.delete(rowId);
+        try {
+            await supabase.from('database_rows').update({ properties }).eq('id', rowId);
+        } catch (err) {
+            console.error('Debounced update failed:', err);
+        }
+    }, delay);
+
+    pendingUpdates.set(rowId, { properties, timer });
+}
+
 export function useDatabaseHandlers() {
     const { t } = useTranslation();
     const { currentTeam } = useTeamStore();
@@ -264,7 +283,7 @@ export function useDatabaseHandlers() {
 
         const updatedProperties = { ...row.properties, [propertyId]: value };
 
-        // Optimistic update
+        // Optimistic local update (instant)
         const updatedRows = selectedDatabase.rows.map(r =>
             r.id === rowId ? { ...r, properties: updatedProperties } : r
         );
@@ -274,23 +293,9 @@ export function useDatabaseHandlers() {
             db.id === selectedDatabase.id ? updatedDatabase : db
         ));
 
-        try {
-            const { error } = await supabase
-                .from('database_rows')
-                .update({ properties: updatedProperties })
-                .eq('id', rowId);
-
-            if (error) throw error;
-        } catch (error) {
-            console.error('Failed to update cell:', error);
-            toast.error(t('database.loadError'));
-            // Revert on failure
-            setSelectedDatabase(selectedDatabase);
-            setDatabases(prev => prev.map(db =>
-                db.id === selectedDatabase.id ? selectedDatabase : db
-            ));
-        }
-    }, [selectedDatabase, t]);
+        // Debounced DB write (batches rapid edits)
+        debouncedRowUpdate(rowId, updatedProperties);
+    }, [selectedDatabase]);
 
     const handleDeleteRow = useCallback(async (rowId: string) => {
         if (!selectedDatabase) return;

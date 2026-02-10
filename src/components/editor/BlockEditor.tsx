@@ -20,13 +20,13 @@ import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import Image from '@tiptap/extension-image';
-import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+// CodeBlockLowlight replaced by CodeBlockWithLanguage (has language selector UI)
 import Collaboration from '@tiptap/extension-collaboration';
 import TiptapCollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import Mention from '@tiptap/extension-mention';
 import Color from '@tiptap/extension-color';
 import { TextStyle } from '@tiptap/extension-text-style';
-import { common, createLowlight } from 'lowlight';
+// lowlight is now provided by CodeBlockWithLanguage extension
 import GlobalDragHandle from 'tiptap-extension-global-drag-handle';
 import * as Y from 'yjs';
 import tippy, { Instance as TippyInstance } from 'tippy.js';
@@ -81,12 +81,16 @@ import {
   LinkedDatabase, InlineDatabase,
   SlashCommands,
   BlockCommentExtension,
+  TrackChangesExtension,
   SyncedBlockNode,
   PageLink,
   ClipboardHandler,
   KeyboardShortcuts,
   PdfNode,
   EmbedNode,
+  CodeBlockWithLanguage,
+  lowlight,
+  DragHandleMenu,
 } from './extensions';
 import { cn } from '@/lib/utils';
 import {
@@ -113,7 +117,7 @@ import {
 import { CursorOverlay } from './CursorOverlay';
 import type { RemoteCursor } from '@/hooks/useCloudflareCollaboration';
 
-const lowlight = createLowlight(common);
+// lowlight is imported from CodeBlockWithLanguage extension
 
 
 // ResizableImage is now imported from ./ResizableImage
@@ -172,6 +176,10 @@ interface BlockEditorProps {
   // Inline comments
   comments?: import('@/types/database').BlockComment[];
   onCommentClick?: (blockId: string, comments: import('@/types/database').BlockComment[]) => void;
+  // Track changes
+  trackChangesEnabled?: boolean;
+  trackChangesUser?: { id: string; name: string; color: string } | null;
+  trackChangesUsers?: Map<string, { id: string; name: string; color: string }>;
 }
 
 // SlashCommandsMenu is now imported from ./BlockEditor/components
@@ -192,6 +200,9 @@ export function BlockEditor({
   onCursorPositionChange,
   comments = [],
   onCommentClick,
+  trackChangesEnabled = false,
+  trackChangesUser = null,
+  trackChangesUsers = new Map(),
 }: BlockEditorProps) {
   const [linkUrl, setLinkUrl] = useState('');
   const [showLinkPopover, setShowLinkPopover] = useState(false);
@@ -423,10 +434,10 @@ export function BlockEditor({
           class: 'rounded-lg max-w-full',
         },
       }),
-      CodeBlockLowlight.configure({
+      CodeBlockWithLanguage.configure({
         lowlight,
         HTMLAttributes: {
-          class: 'rounded-lg bg-[#121215] p-4 font-mono text-sm',
+          class: 'rounded-lg bg-[#121215] font-mono text-sm',
         },
       }),
       // Mention extension for @mentions
@@ -466,6 +477,8 @@ export function BlockEditor({
         dragHandleWidth: 20,
         scrollTreshold: 100,
       }),
+      // Drag handle click menu (Turn into, Color, Duplicate, Delete)
+      DragHandleMenu,
       // Yjs Collaboration extension (real-time document sync)
       ...(yjsDoc ? [
         Collaboration.configure({
@@ -544,6 +557,12 @@ export function BlockEditor({
           onCommentClick,
         }),
       ] : []),
+      // Track Changes - per-block authorship tracking
+      TrackChangesExtension.configure({
+        enabled: trackChangesEnabled,
+        currentUser: trackChangesUser,
+        users: trackChangesUsers,
+      }),
     ],
     content: yjsDoc ? undefined : content, // Don't set content when using Yjs (doc is the source of truth)
     editable,
@@ -597,6 +616,60 @@ export function BlockEditor({
       editor.off('focus', handleSelectionUpdate);
     };
   }, [editor, onCursorPositionChange]);
+
+  // Follow mode - auto-scroll to the followed user's cursor position
+  useEffect(() => {
+    if (!editor || !remoteCursors) return;
+
+    // Import store lazily to avoid circular dependencies
+    const { useCollaborationStore } = require('@/stores/collaborationStore');
+    const unsubscribe = useCollaborationStore.subscribe(
+      (state: any) => state.followingUserId,
+      (followingUserId: string | null) => {
+        // This subscription watches followingUserId changes
+      }
+    );
+
+    const interval = setInterval(() => {
+      const followingUserId = useCollaborationStore.getState().followingUserId;
+      if (!followingUserId || !remoteCursors) return;
+
+      const followedCursor = remoteCursors.get(followingUserId);
+      if (!followedCursor || !followedCursor.position) return;
+
+      try {
+        const docSize = editor.state.doc.content.size;
+        const pos = Math.min(Math.max(0, followedCursor.position), docSize);
+        const coords = editor.view.coordsAtPos(pos);
+        const editorRect = editor.view.dom.getBoundingClientRect();
+
+        // Check if cursor is outside viewport
+        const scrollContainer = editor.view.dom.closest('.overflow-y-auto') || window;
+        const viewportTop = scrollContainer === window ? window.scrollY : (scrollContainer as HTMLElement).scrollTop;
+        const viewportHeight = scrollContainer === window ? window.innerHeight : (scrollContainer as HTMLElement).clientHeight;
+
+        const cursorRelativeY = coords.top;
+        if (cursorRelativeY < viewportTop + 100 || cursorRelativeY > viewportTop + viewportHeight - 100) {
+          // Smooth scroll to cursor position
+          if (scrollContainer === window) {
+            window.scrollTo({ top: cursorRelativeY - viewportHeight / 3, behavior: 'smooth' });
+          } else {
+            (scrollContainer as HTMLElement).scrollTo({
+              top: coords.top - editorRect.top - viewportHeight / 3,
+              behavior: 'smooth',
+            });
+          }
+        }
+      } catch {
+        // Position out of bounds
+      }
+    }, 500); // Check every 500ms
+
+    return () => {
+      clearInterval(interval);
+      unsubscribe?.();
+    };
+  }, [editor, remoteCursors]);
 
   // Ref to track if we're currently updating from remote content
   const lastContentRef = useRef(content);

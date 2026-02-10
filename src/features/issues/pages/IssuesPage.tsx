@@ -28,10 +28,16 @@ import {
   Archive,
   CheckSquare,
   X,
+  Calendar as CalendarIcon,
+  GanttChart,
+  LayoutGrid,
+  BarChart3,
 } from 'lucide-react';
 import type { Issue, IssueStatus } from '@/types';
+import { IssueDatabaseViews } from '../components/IssueDatabaseViews';
 
 type SprintView = 'active' | 'backlog' | 'all';
+type DbViewType = 'calendar' | 'timeline' | 'gallery' | 'chart';
 
 export function IssuesPage() {
   const { t } = useTranslation();
@@ -56,6 +62,7 @@ export function IssuesPage() {
   const [sprintView, setSprintView] = useState<SprintView>('all');
   const [selectionMode, setSelectionMode] = useState(false);
   const [bulkArchiveOpen, setBulkArchiveOpen] = useState(false);
+  const [dbView, setDbView] = useState<DbViewType | null>(null);
   const [filters, setFilters] = useState<IssueFiltersState>({
     status: [],
     priority: [],
@@ -182,7 +189,7 @@ export function IssuesPage() {
             {/* View Toggle */}
             <Tabs
               value={viewPreferences.layout}
-              onValueChange={(v) => setViewPreferences({ layout: v as 'list' | 'board' | 'gantt' })}
+              onValueChange={(v) => { setDbView(null); setViewPreferences({ layout: v as 'list' | 'board' | 'gantt' }); }}
             >
               <TabsList className="h-8">
                 <TabsTrigger value="list" className="h-6 px-2" title={t('issues.listView', 'List View')}>
@@ -193,6 +200,15 @@ export function IssuesPage() {
                 </TabsTrigger>
                 <TabsTrigger value="gantt" className="h-6 px-2" title={t('issues.ganttView', 'Gantt Chart')}>
                   <GanttChartSquare className="h-3.5 w-3.5" />
+                </TabsTrigger>
+                <TabsTrigger value="calendar" className="h-6 px-2" title="Calendar View" onClick={() => { setDbView('calendar'); setViewPreferences({ layout: 'calendar' as any }); }}>
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                </TabsTrigger>
+                <TabsTrigger value="timeline" className="h-6 px-2" title="Timeline View" onClick={() => { setDbView('timeline'); setViewPreferences({ layout: 'timeline' as any }); }}>
+                  <GanttChart className="h-3.5 w-3.5" />
+                </TabsTrigger>
+                <TabsTrigger value="chart" className="h-6 px-2" title="Chart View" onClick={() => { setDbView('chart'); setViewPreferences({ layout: 'chart' as any }); }}>
+                  <BarChart3 className="h-3.5 w-3.5" />
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -337,6 +353,13 @@ export function IssuesPage() {
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
               <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+            </div>
+          ) : dbView ? (
+            <div className="h-full overflow-y-auto p-4">
+              <IssueDatabaseViews
+                activeView={dbView}
+                onViewChange={setDbView}
+              />
             </div>
           ) : viewPreferences.layout === 'board' ? (
             <IssueBoard
