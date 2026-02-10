@@ -1,14 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.93.3";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsHeaders } from "../_shared/cors.ts";
+import { createAdminClient } from "../_shared/supabase.ts";
+import { env } from "../_shared/env.ts";
 
 // Bump this string to verify which deployment is actually running.
-const FUNCTION_VERSION = "2026-02-04.6";
+const FUNCTION_VERSION = "2026-02-10.7";
 const DEPLOYED_AT = new Date().toISOString();
 
 // AI Provider configurations
@@ -754,8 +750,8 @@ serve(async (req) => {
       deployed_at: DEPLOYED_AT,
       status: "running",
       env: {
-        SUPABASE_URL: !!Deno.env.get("SUPABASE_URL"),
-        SUPABASE_SERVICE_ROLE_KEY: !!Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
+        SUPABASE_URL: !!env.supabaseUrl,
+        SUPABASE_SERVICE_ROLE_KEY: !!env.supabaseServiceKey,
       },
       secrets: {
         ANTHROPIC_API_KEY: !!Deno.env.get("ANTHROPIC_API_KEY"),
@@ -812,12 +808,10 @@ serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!supabaseUrl || !supabaseServiceKey) {
+    if (!env.supabaseUrl || !env.supabaseServiceKey) {
       console.error("Missing backend environment variables", {
-        SUPABASE_URL: !!supabaseUrl,
-        SUPABASE_SERVICE_ROLE_KEY: !!supabaseServiceKey,
+        SUPABASE_URL: !!env.supabaseUrl,
+        SUPABASE_SERVICE_ROLE_KEY: !!env.supabaseServiceKey,
         version: FUNCTION_VERSION,
       });
       return new Response(
@@ -829,7 +823,7 @@ serve(async (req) => {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createAdminClient();
 
     const authHeader = req.headers.get("Authorization");
     let userId: string | null = null;

@@ -83,7 +83,7 @@ export function Sidebar({ onNavigate, style, isCollapsed = false }: SidebarProps
   const { t, i18n } = useTranslation();
   const dateLocale = i18n.language === 'ko' ? ko : enUS;
   const { currentTeam, teams, selectTeam, projects, isLoading: isTeamLoading } = useTeamStore();
-  const { users } = useCollaborationStore();
+  const { sidebarPresenceUsers } = useCollaborationStore();
   const { unreadCount } = useNotificationStore();
   const {
     conversations,
@@ -161,13 +161,13 @@ export function Sidebar({ onNavigate, style, isCollapsed = false }: SidebarProps
 
   // Helper function to get presence users for a given path
   const getPresenceForPath = (path: string) => {
-    return users
-      .filter(user => user.currentPath === path)
-      .map(user => ({
-        odId: user.odId,
-        name: user.name,
-        avatarUrl: user.avatarUrl,
-        color: user.color
+    return sidebarPresenceUsers
+      .filter(u => u.currentPath === path || u.currentPath?.startsWith(path + '/'))
+      .map(u => ({
+        odId: u.odId,
+        name: u.name,
+        avatarUrl: u.avatarUrl,
+        color: u.color
       }));
   };
 

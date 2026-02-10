@@ -60,7 +60,27 @@ function PageLoader() {
   );
 }
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Cache data for 5 minutes before refetching
+      staleTime: 5 * 60 * 1000,
+      // Keep unused data in cache for 10 minutes
+      gcTime: 10 * 60 * 1000,
+      // Refetch on window focus for fresh data
+      refetchOnWindowFocus: true,
+      // Don't refetch on reconnect unless stale
+      refetchOnReconnect: 'always',
+      // Retry failed requests up to 2 times with exponential backoff
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+    },
+    mutations: {
+      // Retry mutations once on failure
+      retry: 1,
+    },
+  },
+});
 
 // Protected Route wrapper with onboarding check
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -106,11 +126,15 @@ function OnboardingCheck({ children }: { children: React.ReactNode }) {
 
   // Track if teams have been loaded at least once
   const teamsLoadedRef = React.useRef(false);
+  // Track if the initial team load has completed (not just started)
+  const teamsInitializedRef = React.useRef(false);
 
   useEffect(() => {
     if (isAuthenticated && !teamsLoadedRef.current) {
       teamsLoadedRef.current = true;
-      loadTeams();
+      loadTeams().finally(() => {
+        teamsInitializedRef.current = true;
+      });
     }
   }, [isAuthenticated, loadTeams]);
 
@@ -134,8 +158,10 @@ function OnboardingCheck({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // Now check teams loading - only show spinner on initial load (no teams yet)
-  if (teamsLoading && teams.length === 0) {
+  // CRITICAL FIX: Wait for teams to be loaded at least once before making redirect decisions.
+  // Without this, there's a race condition where teams.length === 0 because loadTeams()
+  // hasn't completed yet, causing spurious redirects to onboarding or verify-email.
+  if (!teamsInitializedRef.current && (teamsLoading || teams.length === 0)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0d0d0f]">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />

@@ -13,7 +13,7 @@ export function useSidebarPresence() {
     const location = useLocation();
     const { user } = useAuthStore();
     const { currentTeam } = useTeamStore();
-    const { setUsers } = useCollaborationStore();
+    const { setSidebarPresenceUsers } = useCollaborationStore();
     const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
     const presenceUsersRef = useRef<Map<string, Presence>>(new Map());
 
@@ -62,8 +62,8 @@ export function useSidebarPresence() {
                 }
             });
 
-            // Update collaboration store with presence users
-            setUsers(users);
+            // Update collaboration store with sidebar presence users (separate from room users)
+            setSidebarPresenceUsers(users);
         });
 
         // Handle user join
@@ -109,7 +109,7 @@ export function useSidebarPresence() {
             channel.unsubscribe();
             channelRef.current = null;
         };
-    }, [user?.id, currentTeam?.id, setUsers, getUserColor, location.pathname]);
+    }, [user?.id, currentTeam?.id, setSidebarPresenceUsers, getUserColor, location.pathname]);
 
     // Update presence when path changes
     useEffect(() => {

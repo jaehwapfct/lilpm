@@ -255,13 +255,26 @@ const channel = supabase
 | expires_at | timestamp | 만료 일시 (24시간) |
 | created_at | timestamp | 생성 일시 |
 
+## 팀 탈퇴
+
+비 Owner 멤버는 팀에서 탈퇴할 수 있습니다:
+
+```typescript
+await teamMemberService.leaveTeam(teamId, userId);
+```
+
+- 확인 다이얼로그 표시
+- Owner는 탈퇴 불가 (소유권 이전 필요)
+- 탈퇴 후 팀 목록에서 제거
+
 ## Edge Functions
 
 | 함수명 | 용도 | JWT 검증 |
 |--------|------|----------|
-| `get-invite-preview` | 초대 미리보기 (RLS 우회) | ❌ (--no-verify-jwt) |
-| `send-team-invite` | 팀 초대 이메일 발송 | ✅ |
-| `send-member-removed` | 멤버 제거 알림 이메일 | ✅ |
+| `accept-invite-v2` | 초대 수락 (인증/매직링크/회원가입, 프로젝트 할당) | ❌ |
+| `get-invite-preview` | 초대 미리보기 (RLS 우회) | ❌ |
+| `send-team-invite` | 팀 초대 이메일 발송 | ❌ |
+| `send-member-removed` | 멤버 제거 알림 이메일 | ❌ |
 
 ## 프로젝트별 멤버 할당
 

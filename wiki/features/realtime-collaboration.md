@@ -246,15 +246,54 @@ useAutoSave({
 
 ---
 
+## Cloudflare Workers (Yjs 협업)
+
+### YjsRoom
+
+**위치**: `workers/collab/src/YjsRoom.ts`
+
+Yjs CRDT 기반 동시 편집을 위한 Cloudflare Durable Object:
+- WebSocket 연결 관리
+- Yjs 문서 상태 동기화
+- 커서 위치 브로드캐스트
+
+### useCloudflareCollaboration
+
+**위치**: `src/hooks/collaboration/useCloudflareCollaboration.ts`
+
+```typescript
+const { yjsDoc, isConnected, remoteCursors } = useCloudflareCollaboration({
+  roomId: `prd-${prdId}`,
+  userId, userName, avatarUrl, userColor,
+  enabled: false, // Cloudflare Worker 배포 후 활성화
+});
+```
+
+> 현재 `enabled: false`로 비활성화. Cloudflare Worker 배포 후 활성화 예정.
+
+## BlockPresenceIndicator
+
+**파일**: `src/components/editor/BlockPresenceIndicator.tsx`
+
+블록별로 편집 중인 사용자의 아바타를 표시합니다:
+- RemoteCursor의 `blockId` 기반
+- 애니메이션 효과 (BlockPresence.css)
+- BlockEditor에 통합
+
 ## 관련 파일
 
 | 파일 | 역할 |
 |------|------|
 | `src/hooks/collaboration/useSupabaseCollaboration.ts` | Supabase Realtime 훅 |
-| `src/pages/PRDDetailPage.tsx` | PRD 편집 페이지 |
+| `src/hooks/collaboration/useCloudflareCollaboration.ts` | Yjs + Cloudflare 훅 |
+| `src/hooks/collaboration/useRealtimeCollaboration.ts` | 글로벌 프레즌스 훅 |
 | `src/components/editor/BlockEditor.tsx` | Tiptap 에디터 래퍼 |
 | `src/components/editor/CursorOverlay.tsx` | 원격 커서 표시 |
-| `src/services/prdService.ts` | PRD CRUD API |
+| `src/components/editor/BlockPresenceIndicator.tsx` | 블록 편집자 아바타 |
+| `src/components/collaboration/PresenceAvatars.tsx` | 접속자 아바타 |
+| `src/components/collaboration/CursorPresence.tsx` | 커서 프레즌스 |
+| `workers/collab/src/YjsRoom.ts` | Yjs Durable Object |
+| `features/prd/services/prdService.ts` | PRD CRUD API |
 
 ---
 
@@ -265,3 +304,10 @@ useAutoSave({
 | 2026-02-08 | 실시간 컨텐츠 동기화 구현 완료 |
 | 2026-02-08 | BlockEditor useEffect 추가로 원격 컨텐츠 UI 반영 |
 | 2026-02-08 | overview 필드 자동 동기화 구현 |
+| 2026-02-08 | BlockPresenceIndicator 추가 |
+
+---
+
+**관련 문서**
+- [협업 아키텍처](../architecture/collaboration.md)
+- [블록 에디터](./block-editor.md)

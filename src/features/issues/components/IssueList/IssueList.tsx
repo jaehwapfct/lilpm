@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Issue, IssueStatus } from '@/types';
 import { IssueRow } from './IssueRow';
@@ -31,7 +31,7 @@ export function IssueList({
   const [dragOverGroup, setDragOverGroup] = useState<string | null>(null);
   const [draggingIssueId, setDraggingIssueId] = useState<string | null>(null);
 
-  const toggleGroup = (groupKey: string) => {
+  const toggleGroup = useCallback((groupKey: string) => {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
       if (next.has(groupKey)) {
@@ -41,36 +41,34 @@ export function IssueList({
       }
       return next;
     });
-  };
+  }, []);
 
-  const handleDragStart = (e: React.DragEvent, issueId: string) => {
+  const handleDragStart = useCallback((e: React.DragEvent, issueId: string) => {
     e.dataTransfer.setData('issueId', issueId);
     e.dataTransfer.effectAllowed = 'move';
     setDraggingIssueId(issueId);
-  };
+  }, []);
 
-  const handleDragEnd = () => {
+  const handleDragEnd = useCallback(() => {
     setDraggingIssueId(null);
     setDragOverGroup(null);
-  };
+  }, []);
 
-  const handleDragOver = (e: React.DragEvent, groupKey: string) => {
+  const handleDragOver = useCallback((e: React.DragEvent, groupKey: string) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    if (dragOverGroup !== groupKey) {
-      setDragOverGroup(groupKey);
-    }
-  };
+    setDragOverGroup((prev) => prev !== groupKey ? groupKey : prev);
+  }, []);
 
-  const handleDragLeave = (e: React.DragEvent) => {
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
     const relatedTarget = e.relatedTarget as HTMLElement;
     const currentTarget = e.currentTarget as HTMLElement;
     if (!currentTarget.contains(relatedTarget)) {
       setDragOverGroup(null);
     }
-  };
+  }, []);
 
-  const handleDrop = (e: React.DragEvent, groupKey: string) => {
+  const handleDrop = useCallback((e: React.DragEvent, groupKey: string) => {
     e.preventDefault();
     const issueId = e.dataTransfer.getData('issueId');
     setDragOverGroup(null);
@@ -82,7 +80,7 @@ export function IssueList({
         onStatusChange(issueId, groupKey as IssueStatus);
       }
     }
-  };
+  }, [onStatusChange, groupBy, issues]);
 
   // Group issues
   const groupedIssues = React.useMemo(() => {

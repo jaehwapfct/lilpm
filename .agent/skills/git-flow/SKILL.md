@@ -64,12 +64,37 @@ feat(lily): Add conversation sharing with access control
 - `main` 브랜치 푸시 시 자동 배포
 - 배포 상태: https://vercel.com/dashboard
 
+## 🌿 브랜치 전략
+
+| 브랜치 | 용도 | 배포 |
+|--------|------|------|
+| `main` | 프로덕션 | Vercel Production + Cloudflare Worker |
+| `develop` | 개발 | Vercel Preview |
+| `feature/*` | 기능 개발 | (로컬) |
+| `fix/*` | 버그 수정 | (로컬) |
+
+### 일반적인 플로우
+```
+develop에서 작업 → 빌드 검증 → 커밋 → develop 푸시
+develop → main (PR 통해 머지, 프로덕션 배포)
+```
+
+### 현재 기본 작업 브랜치: `develop`
+```bash
+# 항상 develop에서 작업
+git push origin develop
+
+# 프로덕션 배포 시
+git checkout main && git merge develop && git push origin main
+```
+
 ## 📋 푸시 전 체크리스트
 
 1. [ ] `npm run build` 성공
-2. [ ] 타입 에러 없음
-3. [ ] 커밋 메시지 컨벤션 준수
-4. [ ] Wiki 업데이트 필요 여부 확인
+2. [ ] 타입 에러 없음 (`npx tsc --noEmit`)
+3. [ ] 테스트 통과 (`npm run test`)
+4. [ ] 커밋 메시지 컨벤션 준수
+5. [ ] Wiki 업데이트 필요 여부 확인
 
 ## 🚀 배포 순서
 
@@ -80,12 +105,12 @@ npm run build
 
 2. 커밋 & 푸시:
 ```bash
-git add -A && git commit -m "feat: description" && git push
+git add -A && git commit -m "feat: description" && git push origin develop
 ```
 
 3. Edge Function 변경 시:
 ```bash
-supabase functions deploy [function-name]
+supabase functions deploy [function-name] --no-verify-jwt
 ```
 
 4. 마이그레이션 있을 시:

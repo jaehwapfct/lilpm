@@ -88,8 +88,30 @@ toast.loading('Saving...');
 | 클릭 시 이동 | entity_type/entity_id로 라우팅 |
 | 전체 읽음 | Mark all as read 버튼 |
 
+## 알림 설정
+
+**파일**: `src/pages/settings/NotificationSettingsPage.tsx`
+
+유형별 알림 활성화/비활성화:
+- 이메일 알림 on/off
+- 인앱 알림 on/off
+- `notificationSettingsStore`로 관리
+
+## 알림 실시간 구독
+
+```typescript
+// Supabase Realtime으로 알림 실시간 수신
+supabase.channel(`notifications:${userId}`)
+  .on('postgres_changes', { event: 'INSERT', table: 'notifications',
+    filter: `user_id=eq.${userId}` }, (payload) => {
+    addNotification(payload.new);
+    toast(payload.new.title);
+  }).subscribe();
+```
+
 ---
 
 **관련 문서**
 - [Issues](./issues.md)
 - [PRD](./prd.md)
+- [설정](./settings.md)

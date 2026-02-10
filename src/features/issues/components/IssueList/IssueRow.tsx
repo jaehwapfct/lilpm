@@ -45,7 +45,7 @@ interface IssueRowProps {
   isDragging?: boolean;
 }
 
-export function IssueRow({
+export const IssueRow = React.memo(function IssueRow({
   issue,
   isSelected,
   onSelect,
@@ -241,5 +241,4 @@ export function IssueRow({
       </DropdownMenu>
     </div>
   );
-}
-
+});

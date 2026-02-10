@@ -54,6 +54,25 @@ Lil PM의 이슈 관리 시스템은 Linear.app의 UX를 기반으로 설계되�
 | 리스트 뷰 | 기본 테이블 형태 |
 | 보드 뷰 | 칸반 스타일 |
 | 간트 차트 | 타임라인 뷰 ([자세히 보기](./gantt-chart.md)) |
+| 캘린더 뷰 | 날짜 기반 (DatabaseCalendarView 연동) |
+| 타임라인 뷰 | 기간 기반 (DatabaseTimelineView 연동) |
+| 갤러리 뷰 | 카드 형태 (DatabaseGalleryView 연동) |
+| 차트 뷰 | 통계 시각화 (DatabaseChartView 연동) |
+
+> Database 뷰는 `IssuesDatabaseAdapter`를 통해 이슈 데이터를 변환하여 표시합니다.
+
+### 3. 스프린트 필터링
+
+이슈 페이지에서 스프린트별 필터링:
+- **All**: 전체 이슈
+- **Active Sprint**: 현재 활성 사이클의 이슈
+- **Backlog**: 사이클에 미할당된 이슈
+
+### 4. 선택 모드 & 벌크 작업
+
+- 체크박스로 다중 이슈 선택
+- "Archive Selected" 버튼으로 일괄 아카이브
+- 벌크 상태/프로젝트 변경
 
 ### 3. 필터링
 
@@ -122,6 +141,23 @@ Lil PM의 이슈 관리 시스템은 Linear.app의 UX를 기반으로 설계되�
 - 모든 변경사항 자동 저장 (2초 디바운스)
 - 저장 상태 표시: ☁️ 저장됨 / 🔄 저장중 / ⚠️ 미저장
 
+### 5. 이슈 템플릿
+
+사전 정의된 템플릿으로 빠른 이슈 생성:
+
+```typescript
+// issue_templates 테이블
+{ name, description, default_type, default_priority, default_status, template_content }
+```
+
+### 6. 아카이브
+
+완료되거나 불필요한 이슈를 아카이브:
+- `archived_at` 컬럼으로 관리
+- 30일 후 자동 삭제
+- `/archive` 페이지에서 관리 및 복원
+- 자세한 내용: [아카이브 시스템](./archive.md)
+
 ## 데이터베이스 스키마
 
 ### issues 테이블
@@ -133,21 +169,22 @@ Lil PM의 이슈 관리 시스템은 Linear.app의 UX를 기반으로 설계되�
 | project_id | uuid | FK → projects |
 | cycle_id | uuid | FK → cycles (스프린트) |
 | **prd_id** | uuid | FK → prd_documents (연결된 PRD) |
-| parent_id | uuid | FK → issues (상위 이슈) |
+| parent_id | uuid | FK → issues (상위 이슈/서브이슈) |
 | identifier | text | 이슈 번호 (예: LPM-123) |
 | title | text | 제목 |
-| description | text | 설명 (마크다운) |
+| description | text | 설명 (HTML/마크다운) |
 | type | text | epic/user_story/task/subtask/bug |
 | status | text | backlog/todo/in_progress/in_review/blocked/done/cancelled |
 | priority | text | urgent/high/medium/low/none |
-| assignee_id | uuid | 담당자 |
-| creator_id | uuid | 생성자 |
-| start_date | timestamp | 시작일 |
-| due_date | timestamp | 마감일 |
+| assignee_id | uuid | 담당자 (SET NULL on delete) |
+| creator_id | uuid | 생성자 (SET NULL on delete, nullable) |
+| start_date | date | 시작일 |
+| due_date | date | 마감일 |
 | estimate | integer | 예상 공수 (스토리 포인트) |
 | sort_order | float | 정렬 순서 |
-| created_at | timestamp | 생성일 |
-| updated_at | timestamp | 수정일 |
+| **archived_at** | timestamptz | 아카이브 시각 (NULL이면 활성) |
+| created_at | timestamptz | 생성일 |
+| updated_at | timestamptz | 수정일 |
 
 ## 키보드 단축키
 
@@ -183,6 +220,15 @@ interface IssueStore {
 }
 ```
 
+## 관련 페이지
+
+| 라우트 | 파일 | 설명 |
+|--------|------|------|
+| `/issues` | `features/issues/pages/IssuesPage.tsx` | 이슈 목록 (7가지 뷰) |
+| `/issue/:issueId` | `features/issues/pages/IssueDetailPage.tsx` | 이슈 상세 |
+| `/my-issues` | `features/issues/pages/MyIssuesPage.tsx` | 내 이슈 |
+| `/archive` | `features/issues/pages/ArchivePage.tsx` | 아카이브 |
+
 ---
 
 **관련 문서**
@@ -190,3 +236,5 @@ interface IssueStore {
 - [Lily AI](./lily-ai.md)
 - [사이클](./cycles.md)
 - [PRD](./prd.md)
+- [아카이브](./archive.md)
+- [Database (이슈 뷰 연동)](./database.md)

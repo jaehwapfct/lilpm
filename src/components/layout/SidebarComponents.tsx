@@ -36,7 +36,7 @@ export interface NavItemProps {
  * NavItem Component
  * Navigation link with icon, badge, and presence indicators
  */
-export function NavItem({ icon: Icon, label, href, badge, isActive, shortcut, onClick, presenceUsers = [], isCollapsed }: NavItemProps) {
+export const NavItem = React.memo(function NavItem({ icon: Icon, label, href, badge, isActive, shortcut, onClick, presenceUsers = [], isCollapsed }: NavItemProps) {
     if (isCollapsed) {
         return (
             <TooltipProvider delayDuration={0}>
@@ -114,7 +114,7 @@ export function NavItem({ icon: Icon, label, href, badge, isActive, shortcut, on
             )}
         </Link>
     );
-}
+});
 
 /**
  * ConversationListItem Props
@@ -140,7 +140,7 @@ export interface ConversationListItemProps {
  * ConversationListItem Component
  * Conversation item for Lily chat mode sidebar
  */
-export function ConversationListItem({
+export const ConversationListItem = React.memo(function ConversationListItem({
     conv,
     isPinned,
     isSelected,
@@ -226,4 +226,4 @@ export function ConversationListItem({
             </div>
         </div>
     );
-}
+});

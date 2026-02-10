@@ -386,11 +386,48 @@ CREATE TABLE messages (
 - 기존 이슈 수: {issueCount}
 ```
 
+## MCP 통합 (Model Context Protocol)
+
+Lily는 MCP 도구를 통해 외부 서비스와 연동할 수 있습니다:
+
+```typescript
+// lily-chat Edge Function에서 MCP 도구 호출
+// mcpTools 파라미터로 사용 가능한 도구 전달
+const response = await fetch('/functions/v1/lily-chat', {
+  body: JSON.stringify({
+    messages,
+    mcpTools: [{ name: 'search_web', endpoint: '...', apiKey: '...' }],
+  }),
+});
+```
+
+자세한 내용: [MCP 통합](./mcp.md)
+
+## 멀티모달 지원
+
+이미지와 파일을 첨부하여 AI와 대화:
+
+```typescript
+// 이미지 데이터 전송
+const response = await fetch('/functions/v1/lily-chat', {
+  body: JSON.stringify({
+    messages,
+    imageData: { base64: '...', mimeType: 'image/png' },
+  }),
+});
+```
+
+## Lovable Gateway 폴백
+
+사용자 API 키가 없거나 오류 발생 시 Lovable Gateway를 폴백으로 사용합니다.
+
 ---
 
 **관련 문서**
 - [PRD](./prd.md)
 - [이슈 관리](./issues.md)
+- [MCP 통합](./mcp.md)
+- [블록 에디터](./block-editor.md)
 - [API 설계](../architecture/api.md)
 - [데이터베이스 스키마](../architecture/database.md)
 

@@ -1,10 +1,7 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { handleCors, jsonResponse, errorResponse } from '../_shared/mod.ts';
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+const FUNCTION_VERSION = '1.1.0'; // Refactored to use shared modules
 
 interface MCPRequest {
   endpoint: string;
@@ -14,30 +11,25 @@ interface MCPRequest {
 }
 
 serve(async (req) => {
-  // Handle CORS
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
-  if (req.method === "GET") {
+  if (req.method === 'GET') {
     return new Response(
-      JSON.stringify({ status: "ok", service: "mcp-proxy", version: "1.0.1" }),
-      { 
+      JSON.stringify({ status: 'ok', service: 'mcp-proxy', version: FUNCTION_VERSION }),
+      {
         status: 200,
-        headers: { 
-          ...corsHeaders, 
-          "Content-Type": "application/json",
-          "Cache-Control": "no-store",
-        } 
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store',
+        },
       }
     );
   }
 
-  if (req.method !== "POST") {
-    return new Response(
-      JSON.stringify({ error: "Method not allowed" }),
-      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+  if (req.method !== 'POST') {
+    return errorResponse('Method not allowed', 405);
   }
 
   try {
@@ -45,92 +37,66 @@ serve(async (req) => {
     const { endpoint, apiKey, action, params = {} } = body;
 
     if (!endpoint) {
-      return new Response(
-        JSON.stringify({ error: "endpoint is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse('endpoint is required', 400);
     }
 
-    // Remove /sse suffix to get base URL
-    const baseUrl = endpoint.replace(/\/sse$/, "");
-    
-    console.log("[MCP Proxy] Base URL:", baseUrl);
-    console.log("[MCP Proxy] Action:", action);
-    console.log("[MCP Proxy] Has API Key:", !!apiKey);
+    const baseUrl = endpoint.replace(/\/sse$/, '');
+
+    console.log(`[MCP Proxy v${FUNCTION_VERSION}] Base URL: ${baseUrl}, Action: ${action}`);
 
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     };
     if (apiKey) {
-      headers["Authorization"] = `Bearer ${apiKey}`;
+      headers['Authorization'] = `Bearer ${apiKey}`;
     }
 
     // Try multiple endpoint patterns
     const patterns = [
-      { url: `${baseUrl}/tools/${action}`, method: "POST", body: params },
-      { url: `${baseUrl}/tools/call`, method: "POST", body: { name: action, arguments: params } },
-      { url: `${baseUrl}/rpc`, method: "POST", body: { jsonrpc: "2.0", id: Date.now(), method: action, params } },
-      { url: `${baseUrl}/call`, method: "POST", body: { method: action, params } },
-      { url: `${baseUrl}/api/${action}`, method: "POST", body: params },
-      { url: `${baseUrl}/${action}`, method: "POST", body: params },
+      { url: `${baseUrl}/tools/${action}`, body: params },
+      { url: `${baseUrl}/tools/call`, body: { name: action, arguments: params } },
+      { url: `${baseUrl}/rpc`, body: { jsonrpc: '2.0', id: Date.now(), method: action, params } },
+      { url: `${baseUrl}/call`, body: { method: action, params } },
+      { url: `${baseUrl}/api/${action}`, body: params },
+      { url: `${baseUrl}/${action}`, body: params },
     ];
 
-    const results: Array<{ pattern: string; status: number; data?: unknown; error?: string }> = [];
+    const attempts: Array<{ pattern: string; status: number; error?: string }> = [];
 
     for (const pattern of patterns) {
       try {
-        console.log("[MCP Proxy] Trying:", pattern.url);
-        
+        console.log(`[MCP Proxy] Trying: ${pattern.url}`);
+
         const response = await fetch(pattern.url, {
-          method: pattern.method,
+          method: 'POST',
           headers,
           body: JSON.stringify(pattern.body),
         });
 
-        const status = response.status;
-        
         if (response.ok) {
           const data = await response.json();
-          console.log("[MCP Proxy] Success:", pattern.url, data);
-          
-          // Return successful result
-          return new Response(
-            JSON.stringify({ 
-              success: true, 
-              data: data.result || data.data || data,
-              pattern: pattern.url,
-            }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          console.log(`[MCP Proxy] Success: ${pattern.url}`);
+
+          return jsonResponse({
+            success: true,
+            data: data.result || data.data || data,
+            pattern: pattern.url,
+          });
         } else {
           const errorText = await response.text();
-          results.push({ pattern: pattern.url, status, error: errorText.substring(0, 200) });
+          attempts.push({ pattern: pattern.url, status: response.status, error: errorText.substring(0, 200) });
         }
       } catch (e) {
-        const error = e instanceof Error ? e.message : "Unknown error";
-        results.push({ pattern: pattern.url, status: 0, error });
+        const error = e instanceof Error ? e.message : 'Unknown error';
+        attempts.push({ pattern: pattern.url, status: 0, error });
       }
     }
 
     // All patterns failed
-    console.log("[MCP Proxy] All patterns failed:", results);
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: "All MCP endpoint patterns failed",
-        attempts: results,
-      }),
-      { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-
+    console.log('[MCP Proxy] All patterns failed:', attempts);
+    return errorResponse('All MCP endpoint patterns failed', 502, { attempts });
   } catch (error) {
-    console.error("[MCP Proxy] Error:", error);
-    return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : "Unknown error" 
-      }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    console.error('[MCP Proxy] Error:', error);
+    return errorResponse(error instanceof Error ? error.message : 'Unknown error', 500);
   }
 });
-

@@ -17,31 +17,101 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Optimize dependency pre-bundling
+  optimizeDeps: {
+    include: [
+      "react",
+      "react-dom",
+      "react-router-dom",
+      "@supabase/supabase-js",
+      "zustand",
+      "@tanstack/react-query",
+      "clsx",
+      "tailwind-merge",
+      "date-fns",
+      "i18next",
+      "react-i18next",
+      "lucide-react",
+      "framer-motion",
+      "zod",
+      "react-hook-form",
+    ],
+    // Exclude heavy optional dependencies from pre-bundling
+    exclude: ["@liveblocks/client", "@liveblocks/yjs"],
+  },
   build: {
     outDir: "dist",
     sourcemap: mode === "development",
-    chunkSizeWarningLimit: 1000, // Increase limit since we're intentionally creating large vendor chunks
+    // Target modern browsers for smaller output
+    target: "es2022",
+    // CSS code splitting for better caching
+    cssCodeSplit: true,
+    // CSS minification (using default esbuild minifier)
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
+        // Use content hash for long-term caching
+        chunkFileNames: "assets/[name]-[hash].js",
+        entryFileNames: "assets/[name]-[hash].js",
+        assetFileNames: "assets/[name]-[hash][extname]",
         manualChunks: {
-          // Core React ecosystem
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          // Core React ecosystem (rarely changes)
+          "react-vendor": ["react", "react-dom", "react-router-dom"],
           // Supabase client
-          'supabase': ['@supabase/supabase-js'],
-          // Rich text editor
-          'editor': ['@tiptap/react', '@tiptap/starter-kit', '@tiptap/extension-placeholder', '@tiptap/extension-link'],
-          // UI components
-          'ui-radix': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select', '@radix-ui/react-tabs', '@radix-ui/react-tooltip', '@radix-ui/react-popover'],
+          supabase: ["@supabase/supabase-js"],
+          // Rich text editor (largest chunk - loaded lazily)
+          "editor-core": [
+            "@tiptap/react",
+            "@tiptap/starter-kit",
+          ],
+          "editor-extensions": [
+            "@tiptap/extension-placeholder",
+            "@tiptap/extension-link",
+            "@tiptap/extension-image",
+            "@tiptap/extension-table",
+            "@tiptap/extension-table-row",
+            "@tiptap/extension-table-cell",
+            "@tiptap/extension-table-header",
+            "@tiptap/extension-task-item",
+            "@tiptap/extension-task-list",
+            "@tiptap/extension-code-block-lowlight",
+            "@tiptap/extension-highlight",
+            "@tiptap/extension-color",
+            "@tiptap/extension-text-style",
+            "@tiptap/extension-mention",
+            "@tiptap/extension-typography",
+          ],
+          // Collaboration (heavy, loaded on demand)
+          collaboration: ["yjs", "y-prosemirror", "y-indexeddb"],
+          // UI components (Radix primitives)
+          "ui-radix": [
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-dropdown-menu",
+            "@radix-ui/react-select",
+            "@radix-ui/react-tabs",
+            "@radix-ui/react-tooltip",
+            "@radix-ui/react-popover",
+            "@radix-ui/react-scroll-area",
+            "@radix-ui/react-accordion",
+            "@radix-ui/react-alert-dialog",
+            "@radix-ui/react-context-menu",
+          ],
           // Icons
-          'icons': ['lucide-react'],
+          icons: ["lucide-react"],
           // Form and validation
-          'form': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          form: ["react-hook-form", "@hookform/resolvers", "zod"],
           // State management
-          'state': ['zustand'],
+          state: ["zustand", "@tanstack/react-query"],
           // Date utilities
-          'date': ['date-fns'],
+          date: ["date-fns"],
           // i18n
-          'i18n': ['i18next', 'react-i18next'],
+          i18n: ["i18next", "react-i18next", "i18next-browser-languagedetector"],
+          // Animation
+          animation: ["framer-motion"],
+          // Markdown rendering
+          markdown: ["react-markdown", "remark-gfm", "marked", "dompurify"],
+          // Charts
+          charts: ["recharts"],
         },
       },
     },

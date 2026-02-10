@@ -39,8 +39,11 @@
 - [서비스 레이어](./architecture/services.md) - 비즈니스 로직 캡슐화
 - [협업 아키텍처](./architecture/collaboration.md) - Supabase Realtime + Yjs + Cloudflare Workers
 - [마이그레이션](./architecture/migrations.md) - 32+ 마이그레이션, FK 규칙
-- [성능 최적화](./architecture/performance.md) - 코드 스플리팅, 번들 최적화
+- [성능 최적화](./architecture/performance.md) - 코드 스플리팅, 번들 최적화, React Query, 컴포넌트 최적화
 - [배포](./architecture/deployment.md) - Vercel + Supabase + Cloudflare Workers
+
+### 리팩토링 & 마이그레이션
+- [2026-02-10 리팩토링 리포트](./REFACTORING-2026-02-10.md) - Edge Functions, DB 인덱스, 프론트엔드 최적화 전체 상세
 
 ### 개발 가이드
 - [환경 설정](./development/setup.md)
@@ -300,6 +303,13 @@ VITE_LIVEBLOCKS_PUBLIC_KEY=pk_...
 ```
 
 ## 최근 업데이트 (2026-02-10)
+
+### 전체 스택 리팩토링 & 성능 최적화
+- **[상세 리팩토링 리포트](./REFACTORING-2026-02-10.md)** - 전체 변경 사항 상세 문서
+- **Edge Functions 리팩토링** - `_shared/` 모듈로 중복 코드 제거 (~300줄 절감)
+- **DB 성능 인덱스** - 16개 새 인덱스 (Composite, Partial, GIN)
+- **프론트엔드 최적화** - 14개 그래뉼러 코드 스플릿, React Query 캐싱, React.memo
+- **빌드 최적화** - ES2022 타겟, Lightning CSS, 의존성 프리번들링
 
 ### 초대 시스템 개선
 - **프로젝트별 초대** - 초대 시 특정 프로젝트만 할당 가능 (`project_ids` 컬럼)

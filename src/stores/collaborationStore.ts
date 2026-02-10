@@ -21,6 +21,7 @@ interface CollaborationStore {
   roomId: string | null;
   channel: RealtimeChannel | null;
   users: Presence[];
+  sidebarPresenceUsers: Presence[]; // Separate state for sidebar presence (won't conflict with room users)
   myPresence: Partial<Presence>;
   showCursors: boolean;
 
@@ -45,8 +46,9 @@ interface CollaborationStore {
   setCursorVisibleTo: (userIds: string[]) => void;
   // Text cursor for editor collaboration
   updateTextCursor: (position: { line: number; column: number; selection?: string }) => void;
-  // Set users directly (for sidebar presence)
+  // Set users directly (for sidebar presence - uses separate state)
   setUsers: (users: Presence[]) => void;
+  setSidebarPresenceUsers: (users: Presence[]) => void;
 }
 
 const PRESENCE_COLORS = [
@@ -63,6 +65,7 @@ export const useCollaborationStore = create<CollaborationStore>((set, get) => ({
   roomId: null,
   channel: null,
   users: [],
+  sidebarPresenceUsers: [],
   myPresence: {
     color: getRandomColor(),
   },
@@ -265,5 +268,9 @@ export const useCollaborationStore = create<CollaborationStore>((set, get) => ({
 
   setUsers: (users: Presence[]) => {
     set({ users });
+  },
+
+  setSidebarPresenceUsers: (users: Presence[]) => {
+    set({ sidebarPresenceUsers: users });
   },
 }));

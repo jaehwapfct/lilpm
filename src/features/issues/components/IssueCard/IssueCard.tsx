@@ -19,7 +19,7 @@ interface IssueCardProps {
   isDragging?: boolean;
 }
 
-export function IssueCard({ issue, onClick, onDragStart, onDragEnd, isDragging }: IssueCardProps) {
+export const IssueCard = React.memo(function IssueCard({ issue, onClick, onDragStart, onDragEnd, isDragging }: IssueCardProps) {
   return (
     <div
       draggable
@@ -93,4 +93,4 @@ export function IssueCard({ issue, onClick, onDragStart, onDragEnd, isDragging }
       </div>
     </div>
   );
-}
+});

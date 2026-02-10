@@ -36,22 +36,33 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-white/10 bg-[#1a1a1f] p-6 shadow-2xl duration-200",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out",
-        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-        "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg gap-4 border border-white/10 bg-[#1a1a1f] p-6 shadow-2xl",
         "sm:rounded-xl",
+        "dialog-content-animation",
         className,
       )}
-      style={{
-        '--tw-enter-translate-x': '-50%',
-        '--tw-enter-translate-y': '-50%',
-        '--tw-exit-translate-x': '-50%',
-        '--tw-exit-translate-y': '-50%',
-        ...style,
-      } as React.CSSProperties}
+      style={style}
       {...props}
     >
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes dialog-enter {
+          from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+          to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        @keyframes dialog-exit {
+          from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+          to   { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+        }
+        .dialog-content-animation {
+          transform: translate(-50%, -50%) scale(1);
+        }
+        .dialog-content-animation[data-state="open"] {
+          animation: dialog-enter 200ms ease-out forwards;
+        }
+        .dialog-content-animation[data-state="closed"] {
+          animation: dialog-exit 150ms ease-in forwards;
+        }
+      ` }} />
       {children}
       <DialogPrimitive.Close className="absolute right-4 top-4 rounded-xl p-1 text-slate-400 opacity-70 ring-offset-[#0d0d0f] transition-all hover:opacity-100 hover:text-white hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:ring-offset-2 disabled:pointer-events-none">
         <X className="h-4 w-4" />

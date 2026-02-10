@@ -5,6 +5,7 @@ import { TeamSwitchingOverlay } from './TeamSwitchingOverlay';
 import { CursorPresence, CollaborationToast } from '@/components/collaboration';
 import { InboxToast } from './InboxToast';
 import { useRealtimeCollaboration } from '@/hooks/useRealtimeCollaboration';
+import { useSidebarPresence } from '@/hooks/useSidebarPresence';
 import { useTeamStore } from '@/stores/teamStore';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -53,6 +54,9 @@ export function AppLayout({
   const { isConnected, onlineCount } = useRealtimeCollaboration({
     enabled: enableCollaboration,
   });
+
+  // Initialize sidebar presence tracking for real-time team member location display
+  useSidebarPresence();
 
   const toggleSidebar = useCallback(() => {
     setIsCollapsed(prev => !prev);
