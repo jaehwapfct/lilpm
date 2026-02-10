@@ -316,27 +316,69 @@ export const teamInviteService = {
         role?: string;
     }> {
         try {
-            // Method 1: Use RPC function
-            const { data: rpcData, error: rpcError } = await supabase.rpc('get_invite_preview', {
-                invite_token: token,
-            });
+            // Direct query approach (most reliable - avoids RPC/Edge Function issues)
+            const { data: invite, error } = await supabase
+                .from('team_invites')
+                .select(`
+                    *,
+                    team:teams(name)
+                `)
+                .eq('token', token)
+                .maybeSingle();
 
-            if (!rpcError && rpcData) {
-                return rpcData;
+            if (error || !invite) {
+                console.error('Invite preview query error:', error);
+                return { valid: false, status: 'not_found' };
             }
 
-            // Method 2: Use Edge Function
-            const { data, error } = await supabase.functions.invoke('get-invite-preview', {
-                body: { token },
-            });
-
-            if (!error && data) {
-                return data;
+            // Get inviter profile separately (invited_by → auth.users, not profiles)
+            let inviterName: string | undefined;
+            let inviterAvatar: string | undefined;
+            if (invite.invited_by) {
+                const { data: inviterProfile } = await supabase
+                    .from('profiles')
+                    .select('name, avatar_url')
+                    .eq('id', invite.invited_by)
+                    .maybeSingle();
+                inviterName = inviterProfile?.name || undefined;
+                inviterAvatar = inviterProfile?.avatar_url || undefined;
             }
 
-            // Method 3: Fall back to direct query
-            return this.getInvitePreviewDirect(token);
+            const teamName = (invite.team as any)?.name;
+
+            if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
+                return {
+                    valid: false,
+                    status: 'expired',
+                    teamName,
+                    inviterName,
+                    email: invite.email,
+                    role: invite.role,
+                };
+            }
+
+            if (invite.status !== 'pending') {
+                return {
+                    valid: false,
+                    status: invite.status as any,
+                    teamName,
+                    inviterName,
+                    email: invite.email,
+                    role: invite.role,
+                };
+            }
+
+            return {
+                valid: true,
+                status: 'pending',
+                teamName,
+                inviterName,
+                inviterAvatar,
+                email: invite.email,
+                role: invite.role,
+            };
         } catch (error) {
+            console.error('getInvitePreview error:', error);
             return { valid: false, status: 'not_found' };
         }
     },
